@@ -14,6 +14,7 @@ import { emitterFor, EMITTERS } from './emit/index.mjs';
 import { coverageJson, coverageMarkdown, coverageText } from './report/coverage.mjs';
 import { diffLocker, diffMarkdown, diffText } from './report/diff.mjs';
 import { checkDrift, driftMarkdown } from './report/drift.mjs';
+import { buildBaseline } from './routes/baseline.mjs';
 import { loadRoutes, validateRoutes } from './routes/routes.mjs';
 
 /**
@@ -63,6 +64,9 @@ const USAGE = `ksi-harness — continuous control monitoring for FedRAMP 20x
 
   ksi routes validate [--class c]
       Validate the routing map against the catalog and the check registry.
+
+  ksi routes baseline [--class c] [--out FILE]
+      A routing map for a new boundary: every applicable indicator, unaddressed.
 
   ksi collect --profile F [--fixture DIR] [--out DIR] [--only aws|check.id]
       Run the collectors and write evidence bundles.
@@ -183,7 +187,17 @@ async function main() {
     }
 
     case 'routes': {
-      if (sub !== 'validate') throw new Error('Usage: ksi routes validate');
+      if (sub === 'baseline') {
+        // A starting point for a new boundary: every applicable indicator declared
+        // unaddressed. Deliberately not a copy of this repository's own routes.yaml, which
+        // describes what these collectors establish about the environment they were written
+        // for — inheriting those claims elsewhere makes the report describe somewhere else.
+        const text = buildBaseline({ klass });
+        if (flags.out) console.log(`wrote ${write(String(flags.out), text)}`);
+        else process.stdout.write(text);
+        return 0;
+      }
+      if (sub !== 'validate') throw new Error('Usage: ksi routes validate | ksi routes baseline');
       const result = validateRoutes({ klass });
       for (const err of result.errors) console.error(`error   ${err}`);
       for (const warn of result.warnings) console.warn(`warning ${warn}`);
@@ -249,6 +263,8 @@ async function main() {
         // A significant change is a decision, not an observation, so the emitter that files
         // one takes the decision as an input rather than inferring it from drift.
         change: flags.change && flags.change !== true ? parse(readFileSync(String(flags.change), 'utf8')) : null,
+        // The overview is a projection of the declared boundary rather than of the evidence.
+        profile,
       });
       const serialised = `${JSON.stringify(document, null, 2)}\n`;
       if (flags.out) console.log(`wrote ${write(String(flags.out), serialised)}`);

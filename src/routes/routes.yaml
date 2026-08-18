@@ -365,15 +365,31 @@ KSI-MLA-RVL:
   next: Read detection-rule state and alert dispositions from the monitoring platform once one is in scope.
 
 KSI-PIY-GIV:
-  coverage: unaddressed
-  reason: >
-    An inventory is generated for several checks already, but as a side effect of scoping a
-    population rather than as an authoritative real-time inventory of all information
-    resources. Presenting a by-product as the inventory would overstate both its coverage
-    and its authority.
-  next: >
-    Promote the population-scoping work into a first-class inventory check with a declared
-    authoritative source per resource class, then reconcile the two.
+  coverage: partial
+  cadence: daily
+  checks:
+    - boundary.scope.attribution
+  unautomated:
+    - >
+      The check inventories boundary *membership* rather than resources, which is the
+      distinction that matters when the authorization is scoped to a product mode: listing
+      every bucket in the organization inventories the organization, not the boundary. Every
+      enumerated resource is placed in scope, out of scope, or unattributed, and an
+      unattributed resource fails rather than being quietly excluded.
+    - >
+      The inventory is what this run's collectors enumerated, not an authoritative real-time
+      asset feed. A resource in a service no collector reads does not appear at all, and its
+      absence is indistinguishable from its non-existence. Cloud Asset Inventory and the AWS
+      equivalent would close that, and are not wired in.
+    - >
+      Attribution is only as good as the labels on the resources. A resource created without
+      the selector is detected after it exists rather than prevented, which is why the
+      Organization Policy constraints in gcp.policy.org-constraints are the preventive
+      counterpart — a label-requiring constraint is what stops the gap opening at all.
+    - >
+      Capabilities declared out of scope are attested, not tested. No cloud API can confirm
+      that a product feature is switched off, so those entries carry a named attester and are
+      reported as stated exclusions rather than verified ones.
 
 KSI-PIY-RES:
   coverage: manual

@@ -476,20 +476,56 @@ KSI-SCR-MIT:
   cadence: daily
   checks:
     - github.supply-chain.workflow-pinning
+    - thirdparty.register.review
   unautomated:
     - >
       Build-time dependency provenance is checked at one point: whether third-party CI
       actions are pinned to an immutable revision rather than a mutable tag. Application
-      dependency provenance, SBOM completeness, and vendor risk assessment are all
-      unaddressed, and they are the larger part of supply chain risk.
+      dependency provenance and SBOM completeness are still unaddressed.
+    - >
+      "Identify" is evidenced beyond the register itself, which matters because a register
+      checked only against itself confirms that a document says what it says. Declared
+      dependencies are reconciled against outbound integrations observed in the estate, so a
+      destination nobody wrote down is a finding. That observation is webhooks only:
+      installed GitHub Apps are the richer signal and need organisation-admin scope, and SaaS
+      reached from outside the code host is not visible at all.
+    - >
+      "Mitigate" is evidenced as ownership and a dated resolution that has not gone stale — a
+      non-certified dependency inside a boundary targeting certification fails when nobody
+      owns the answer or the target date has passed. That is accountability for the
+      mitigation rather than proof the mitigation works, and the two should not be blurred.
+    - >
+      A certified dependency's authorization is taken from the declared attestation and its
+      refresh interval rather than from FedRAMP's marketplace. A dependency whose
+      authorization changed between attestations would not be detected until the next refresh
+      falls due.
 
 KSI-SCR-MON:
-  coverage: unaddressed
-  reason: >
-    Upstream vulnerability monitoring exists in most estates via the code host's own
-    alerting; it is not collected here yet, and the indicator also admits contractual
-    notification as a mechanism, which is a document rather than a signal.
-  next: Collect dependency-alert state per repository, and record the contractual-notification mechanism as a manual supplement.
+  coverage: partial
+  cadence: daily
+  checks:
+    - github.supply-chain.dependency-alerts
+  unautomated:
+    - >
+      The first-order question the indicator asks — whether anything is watching at all — is
+      evidenced: monitoring state is a population member per repository and fails on its own
+      terms, because a repository with alerting switched off and no alerts looks identical in
+      a count to one with alerting on and nothing wrong. Open alerts are then aged against the
+      remediation window their severity declares in the profile.
+    - >
+      Coverage is bounded by what the code host's own scanner can parse. A vendored library, a
+      binary pulled at build time, or a base-image OS package is invisible to it and therefore
+      to this check. Container and image scanning would be a separate population rather than
+      more of this one.
+    - >
+      The indicator explicitly admits contractual notification as a mechanism, and a contract
+      is a document rather than a signal. Nothing here evidences that a supplier's obligation
+      to notify exists or was honoured; that sits with the third-party register and its named
+      owners under KSI-SCR-MIT.
+    - >
+      An alert open within its window is reported as a warning rather than a pass. The
+      indicator is about monitoring rather than remediation, so a queue being worked is not a
+      failure — but neither is it evidence that anything was fixed.
 
 KSI-SVC-ACM:
   coverage: partial

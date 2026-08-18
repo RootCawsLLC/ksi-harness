@@ -1,0 +1,60 @@
+{
+  "note": "The register alone would only confirm a document says what it says, so it is reconciled against observed webhook destinations. sentry.io receives repository events and appears in no register entry — that is the undeclared dependency the reconciliation exists to find. MongoDB Atlas is the FedRAMP case: not certified, inside a boundary targeting certification, with a resolution whose target date has passed.",
+  "register": [
+    {
+      "name": "Google Cloud Platform",
+      "provider": "Google",
+      "use_case": "Primary compute, storage and networking for the synthesis path.",
+      "certified": true,
+      "fedramp_id": "FR1805751477",
+      "owner": "Platform engineering lead",
+      "attestation": { "date": "2026-06-01", "refresh_days": 365 },
+      "hosts": ["googleapis.com", "google.com"]
+    },
+    {
+      "name": "Datadog",
+      "provider": "Datadog, Inc.",
+      "use_case": "Infrastructure metrics and log aggregation.",
+      "certified": true,
+      "fedramp_id": "FR1234567890",
+      "owner": "Observability lead",
+      "attestation": { "date": "2024-02-01", "refresh_days": 365 },
+      "hosts": ["datadoghq.com"]
+    },
+    {
+      "name": "Atlas",
+      "provider": "MongoDB",
+      "use_case": "Tenant metadata and job queue state, commercial tier.",
+      "certified": false,
+      "owner": "Data platform lead",
+      "resolution": { "plan": "Migrate to Atlas for Government or bring in-boundary", "target_date": "2026-07-31" },
+      "hosts": ["mongodb.com", "mongodb.net"]
+    },
+    {
+      "name": "Statuspage",
+      "provider": "Atlassian",
+      "use_case": "Public status communication.",
+      "certified": false,
+      "owner": "SRE lead",
+      "resolution": { "plan": "Scope out; no customer data flows to it", "target_date": "2026-12-01" },
+      "hosts": ["statuspage.io"]
+    },
+    {
+      "name": "Pagerduty",
+      "provider": "PagerDuty, Inc.",
+      "use_case": "Incident paging.",
+      "certified": false,
+      "owner": null,
+      "resolution": { "plan": "Assess", "target_date": "2027-01-01" },
+      "hosts": ["pagerduty.com"]
+    }
+  ],
+  "observed": [
+    { "source": "northwind/platform", "host": "hooks.datadoghq.com", "events": ["push"], "active": true },
+    { "source": "northwind/platform", "host": "sentry.io", "events": ["push", "release"], "active": true },
+    { "source": "northwind/infra", "host": "events.pagerduty.com", "events": ["issues"], "active": true }
+  ],
+  "unexamined": [
+    { "id": "webhooks/northwind/docs", "reason": "Token lacks permission to list webhooks on this repository" }
+  ]
+}

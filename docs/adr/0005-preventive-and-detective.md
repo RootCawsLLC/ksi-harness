@@ -96,6 +96,14 @@ This is why the routes credit this layer as `partial` and never as sufficient on
   an unmapped finding cannot be reported as KSI evidence — gating on it would mean blocking on
   something this harness cannot account for. It runs to catch what the hand-written policies miss,
   and its JSON and SARIF output is retained.
+- The two engines **disagree on the conforming fixture, and that is the point.** Checkov raises
+  `CKV_AWS_62` and `CKV_AWS_63` against the break-glass role, because it treats any `Action: "*"` as
+  a finding. The Rego gate deliberately allows it: the grant is bounded by a condition, which is
+  what `KSI-IAM-JIT` asks for, so an unconditioned wildcard is the thing worth failing a build over.
+  A generic scanner has no notion of which indicator a pattern is meant to satisfy, which is exactly
+  why its output is advice and the indicator-mapped gate is the control. It also happens to resolve
+  `jsonencode` where the configuration-level gate can only warn, so the two are complementary
+  rather than redundant.
 - Checkov's **execution** is not advisory. The first version of this pipeline used the published
   `checkov-action`, which pinned a years-old image, rejected the output flags it was handed, exited
   on an argument error, and still reported success — so the scanner was absent behind a green tick.

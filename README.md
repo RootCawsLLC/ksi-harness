@@ -276,7 +276,7 @@ population, and both are worse than a report that says what happened.
 
 | Workflow | What it does |
 |---|---|
-| `ci.yml` | Verify the pin, validate routes, 142 tests, then collect → report → emit → schema-validate end to end |
+| `ci.yml` | Verify the pin, validate routes, 153 tests, then collect → report → emit → schema-validate end to end |
 | `policy.yml` | OPA unit tests, the gate with its negative control, then the gate result as an evidence bundle. Checkov findings are advisory, but its execution is verified |
 | `ccm.yml` | Daily collection via OIDC, coverage report, ruleset drift check, and an issue when evidence stops supporting a claim |
 
@@ -297,7 +297,7 @@ validation text.
 ## Tests
 
 ```bash
-npm test          # 142 tests
+npm test          # 153 tests
 npm run policy    # policy unit tests + gate + negative control (39 Rego tests)
 ```
 

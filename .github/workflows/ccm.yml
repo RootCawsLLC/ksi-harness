@@ -34,12 +34,19 @@ on:
 
 permissions:
   contents: read
-  # Branch protection is readable only with administration scope. Without it the collector records
-  # "token lacks permission to verify this" as a warning, which is honest but is not evidence.
-  administration: read
   pull-requests: read
   id-token: write
   issues: write
+
+# Branch protection is readable only with `administration: read`, and that scope cannot be granted
+# to the workflow token — it is not one of the keys `permissions:` accepts, and asking for it makes
+# the whole file fail to parse. Reading it therefore needs a PAT or App token in
+# `KSI_GITHUB_READ_TOKEN`.
+#
+# Without that secret the run is still honest rather than wrong: the collector classifies the 403 as
+# a permission failure and records `github.change.branch-protection` as a warning that names the
+# missing scope, instead of passing it or failing it. An unverifiable control and a satisfied one are
+# different facts, and this is the case that distinction was built for.
 
 jobs:
   collect:

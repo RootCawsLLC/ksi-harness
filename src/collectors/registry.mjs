@@ -1,3 +1,4 @@
+import * as boundaryAttribution from './boundary/attribution.mjs';
 import * as awsConfig from './aws/config.mjs';
 import * as awsData from './aws/data.mjs';
 import * as awsIam from './aws/iam.mjs';
@@ -32,6 +33,7 @@ export const COLLECTORS = Object.freeze([
   gcpNetwork,
   gcpData,
   gcpPolicy,
+  boundaryAttribution,
   githubChange,
   githubSupplyChain,
   pipelinePolicyGate,

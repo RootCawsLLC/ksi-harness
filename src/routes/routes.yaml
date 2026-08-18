@@ -100,6 +100,7 @@ KSI-CNA-DFP:
   cadence: daily
   checks:
     - aws.iam.privileged-access
+    - gcp.iam.privileged-access
   unautomated:
     - >
       Privilege definition is checked; functionality definition is not. "Strictly defined"
@@ -212,6 +213,7 @@ KSI-IAM-ELP:
   cadence: daily
   checks:
     - aws.iam.privileged-access
+    - gcp.iam.privileged-access
   unautomated:
     - >
       Wildcard and administrative grants are detected — the coarse failure. Least privilege
@@ -224,6 +226,7 @@ KSI-IAM-JIT:
   cadence: daily
   checks:
     - aws.iam.privileged-access
+    - gcp.iam.privileged-access
   unautomated:
     - >
       Standing privilege is detectable and is checked. The just-in-time half — that elevation
@@ -231,15 +234,24 @@ KSI-IAM-JIT:
       and its absence is precisely what a standing-privilege finding cannot tell you.
 
 KSI-IAM-SNU:
-  coverage: unaddressed
-  reason: >
-    Non-user authentication is the largest unaddressed surface in this catalog: workload
-    identity, service accounts, machine-to-machine credentials. Partial coverage here would
-    be misleading, because a check over IAM users says nothing about the roles and
-    federated workloads that carry most machine authentication.
-  next: >
-    Check for long-lived access keys, and separately for OIDC-federated roles replacing
-    static credentials in CI. Both are readable today; neither is written yet.
+  coverage: partial
+  cadence: daily
+  checks:
+    - gcp.iam.service-account-keys
+  unautomated:
+    - >
+      The check establishes that no service account in a declared GCP project holds a
+      user-managed key, and that the Organization Policy preventing their creation is
+      enforced — the detective and preventive halves of the same claim. It says nothing
+      about the AWS side of the boundary, where the equivalent surface is long-lived IAM
+      access keys and OIDC-federated roles, and that collector is not written yet.
+    - >
+      Workload identity federation is inferred from the absence of downloaded keys rather
+      than observed directly. An account with no user-managed key might be federated
+      correctly or might simply be unused, and this check cannot tell those apart.
+    - >
+      Machine credentials held outside the cloud account — in CI, the IdP, and third-party
+      services — are the larger share of non-user authentication and are not collected.
 
 KSI-IAM-SUS:
   coverage: unaddressed

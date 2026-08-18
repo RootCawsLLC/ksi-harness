@@ -1,0 +1,11 @@
+{
+  "note": "A primitive role on a human identity is standing administrative privilege and fails. The same role on a workload warns, because the control is the workload identity binding rather than the role and this check has not read it. The deleted principal is a real and common finding: the binding outlives the account. Non-privileged bindings are present so the privileged set is a genuine filter over a fully-read policy rather than the whole policy.",
+  "project": "elevenlabs-fedramp-demo",
+  "bindings": [
+    { "role": "roles/owner", "members": ["user:founder@elevenlabs.io"] },
+    { "role": "roles/editor", "members": ["serviceAccount:terraform@elevenlabs-fedramp-demo.iam.gserviceaccount.com", "deleted:user:former-eng@elevenlabs.io?uid=1029384756"] },
+    { "role": "roles/iam.serviceAccountTokenCreator", "members": ["serviceAccount:workload-federated@elevenlabs-fedramp-demo.iam.gserviceaccount.com"], "condition": { "title": "prod-only", "expression": "resource.name.startsWith('prod')" } },
+    { "role": "roles/logging.viewer", "members": ["group:security@elevenlabs.io"] },
+    { "role": "roles/storage.objectViewer", "members": ["serviceAccount:tts-runtime@elevenlabs-fedramp-demo.iam.gserviceaccount.com"] }
+  ]
+}

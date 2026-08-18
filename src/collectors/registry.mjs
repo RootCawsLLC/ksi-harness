@@ -1,0 +1,54 @@
+import * as awsConfig from './aws/config.mjs';
+import * as awsData from './aws/data.mjs';
+import * as awsIam from './aws/iam.mjs';
+import * as awsLogging from './aws/logging.mjs';
+import * as awsNetwork from './aws/network.mjs';
+import * as githubChange from './github/change.mjs';
+import * as githubSupplyChain from './github/supply-chain.mjs';
+import * as pipelinePolicyGate from './pipeline/policy-gate.mjs';
+
+/**
+ * Every implemented collector.
+ *
+ * This module is what makes the routing map falsifiable. `validateRoutes` resolves each
+ * declared check against `CHECK_IDS`, so a route cannot claim automation that no code
+ * provides — the coverage report is bounded by what is actually here rather than by what
+ * someone intended to write. Registering a collector is therefore the deliberate act of
+ * saying its checks exist.
+ */
+export const COLLECTORS = Object.freeze([
+  awsIam,
+  awsLogging,
+  awsNetwork,
+  awsData,
+  awsConfig,
+  githubChange,
+  githubSupplyChain,
+  pipelinePolicyGate,
+]);
+
+export const ALL_CHECKS = Object.freeze(
+  COLLECTORS.flatMap((collector) =>
+    collector.CHECKS.map((check) => Object.freeze({ ...check, collector, path: collector.PATH, version: collector.VERSION }))
+  )
+);
+
+export const CHECK_IDS = new Set(ALL_CHECKS.map((c) => c.id));
+
+export const CHECKS_BY_ID = new Map(ALL_CHECKS.map((c) => [c.id, c]));
+
+/** Which collector family a check belongs to, used to skip families with no credentials. */
+export function providerOf(checkId) {
+  return checkId.split('.')[0];
+}
+
+/** Duplicate check ids across collectors would make evidence ambiguous; a test asserts this is empty. */
+export function duplicateCheckIds() {
+  const seen = new Set();
+  const duplicates = new Set();
+  for (const check of ALL_CHECKS) {
+    if (seen.has(check.id)) duplicates.add(check.id);
+    seen.add(check.id);
+  }
+  return [...duplicates];
+}

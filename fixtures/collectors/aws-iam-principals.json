@@ -1,0 +1,86 @@
+[
+  {
+    "type": "user",
+    "name": "avery",
+    "attached": ["ReadOnlyAccess"],
+    "inline": [],
+    "attachedDocuments": [],
+    "trustedPrincipals": []
+  },
+  {
+    "type": "user",
+    "name": "marcus",
+    "attached": ["AdministratorAccess"],
+    "inline": [],
+    "attachedDocuments": [],
+    "trustedPrincipals": []
+  },
+  {
+    "type": "user",
+    "name": "ci-deploy",
+    "attached": [],
+    "inline": [
+      {
+        "name": "deploy-everything",
+        "document": {
+          "Version": "2012-10-17",
+          "Statement": [{ "Effect": "Allow", "Action": "*", "Resource": "*" }]
+        }
+      }
+    ],
+    "attachedDocuments": [],
+    "trustedPrincipals": []
+  },
+  {
+    "type": "user",
+    "name": "priya",
+    "attached": ["PowerUserAccess"],
+    "inline": [],
+    "attachedDocuments": [],
+    "trustedPrincipals": []
+  },
+  {
+    "type": "role",
+    "name": "BreakGlassAdmin",
+    "attached": ["AdministratorAccess"],
+    "inline": [],
+    "attachedDocuments": [],
+    "trustedPrincipals": ["arn:aws:iam::123456789012:saml-provider/Okta"]
+  },
+  {
+    "type": "role",
+    "name": "AppRuntime",
+    "attached": [],
+    "inline": [
+      {
+        "name": "read-app-bucket",
+        "document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            { "Effect": "Allow", "Action": ["s3:GetObject"], "Resource": "arn:aws:s3:::northwind-app/*" }
+          ]
+        }
+      }
+    ],
+    "attachedDocuments": [],
+    "trustedPrincipals": ["ec2.amazonaws.com"]
+  },
+  {
+    "type": "role",
+    "name": "TerraformApply",
+    "attached": [],
+    "inline": [],
+    "attachedDocuments": [
+      {
+        "name": "terraform-broad",
+        "document": {
+          "Version": "2012-10-17",
+          "Statement": [
+            { "Effect": "Allow", "Action": "*", "Resource": "*", "Condition": { "StringEquals": { "aws:PrincipalTag/session": "iac" } } }
+          ]
+        }
+      }
+    ],
+    "trustedPrincipals": ["arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"]
+  }
+]

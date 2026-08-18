@@ -1,0 +1,15 @@
+{
+  "account": "123456789012",
+  "recorders": [
+    {
+      "name": "default",
+      "all_supported": true,
+      "include_global_resource_types": true,
+      "recording": true,
+      "last_status": "SUCCESS",
+      "last_error_code": null
+    }
+  ],
+  "delivery_channels": [{ "name": "default", "s3_bucket": "northwind-config-history" }],
+  "active_rule_count": 42
+}

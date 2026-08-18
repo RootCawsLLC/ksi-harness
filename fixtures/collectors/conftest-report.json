@@ -1,0 +1,79 @@
+{
+  "_comment": [
+    "Captured from a real `conftest test --policy policy/rego --output json` run, then extended with",
+    "two cases the live repository does not currently produce.",
+    "",
+    "infra/legacy/import.tf appears in expected_files but not in report: a file that exists in a gated",
+    "root and was never evaluated. That is the case the population reconciliation exists to catch, and",
+    "the reason the collector enumerates files from the working tree instead of trusting the report.",
+    "",
+    "infra/network/peering.tf carries advisory findings only, so the bundle lands on warn rather than",
+    "fail — a distinction that disappears if a gate is reduced to a single exit code."
+  ],
+  "iac_roots": ["infra"],
+  "policy_source": "policy/rego",
+  "expected_files": [
+    "infra/core/main.tf",
+    "infra/network/peering.tf",
+    "infra/sandbox/debug.tf",
+    "infra/legacy/import.tf"
+  ],
+  "report": [
+    {
+      "filename": "infra/core/main.tf",
+      "namespace": "main",
+      "successes": 13,
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "filename": "infra/network/peering.tf",
+      "namespace": "main",
+      "successes": 6,
+      "warnings": [
+        {
+          "msg": "KSI-CNA-RNT: aws_security_group.app_direct opens 8080-8080 to the internet, which is outside the declared public service ports [80, 443]. Confirm this belongs in the public surface.",
+          "metadata": { "query": "data.main.warn" }
+        },
+        {
+          "msg": "KSI-IAM-ELP: the policy document on aws_iam_role_policy.peering is built by an unresolved expression and was not evaluated. Run this gate against `terraform show -json` plan output to decide it.",
+          "metadata": { "query": "data.main.warn" }
+        }
+      ],
+      "failures": []
+    },
+    {
+      "filename": "infra/sandbox/debug.tf",
+      "namespace": "main",
+      "successes": 4,
+      "warnings": [
+        {
+          "msg": "KSI-MLA-LET: aws_cloudtrail.partial is not multi-region, so activity in unlisted regions is unlogged.",
+          "metadata": { "query": "data.main.warn" }
+        }
+      ],
+      "failures": [
+        {
+          "msg": "KSI-CNA-RNT / KSI-CNA-MAT: aws_security_group.everything allows all protocols from the internet. Restrict the protocol and port range, or scope the source to a CIDR inside the boundary.",
+          "metadata": { "query": "data.main.deny" }
+        },
+        {
+          "msg": "KSI-CNA-RNT / KSI-CNA-MAT: aws_security_group.bastion exposes administrative port(s) [22] to the internet via the range 22-22. Front them with SSM Session Manager or a private endpoint.",
+          "metadata": { "query": "data.main.deny" }
+        },
+        {
+          "msg": "KSI-MLA-ALA: aws_s3_bucket_public_access_block.uploads sets block_public_policy = false. All four must be true; a partial block is not a block.",
+          "metadata": { "query": "data.main.deny" }
+        },
+        {
+          "msg": "KSI-MLA-OSM: aws_cloudtrail.partial disables log file validation, which is what makes the audit record tamper-evident.",
+          "metadata": { "query": "data.main.deny" }
+        },
+        {
+          "msg": "KSI-SVC-SIN: aws_ebs_volume.scratch sets encrypted = false.",
+          "metadata": { "query": "data.main.deny" }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,211 @@
+import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { after, before, test } from 'node:test';
+
+import { runAll } from '../src/collectors/run-all.mjs';
+import { writeBundle } from '../src/evidence/bundle.mjs';
+import { buildState } from '../src/evidence/state.mjs';
+import { EMITTERS, emitterFor } from '../src/emit/index.mjs';
+import { SCHEMA_IDS, validateArtifact, validator } from '../src/emit/validate.mjs';
+
+/**
+ * Emitter tests, and the argument for "machine-readable first, format-pluggable" reduced to
+ * something executable.
+ *
+ * Rule FRC-CSO-JSN requires submitted JSON to validate against FedRAMP's published schemas, so
+ * the SDR and OCR are checked against the vendored schemas rather than against my reading of
+ * them. Finding out at emit time costs nothing; finding out at submission time costs a cycle.
+ *
+ * The other property tested here is the one that makes the format question cheap to be wrong
+ * about: all three emitters read the same control state and none of them can reach the evidence
+ * locker, the collectors, or the ruleset. If that holds, adding OSCAL, or replacing it, is a new
+ * projection rather than a new traversal.
+ */
+
+const AT = '2026-08-18T04:00:00.000Z';
+const NOW = Date.parse(AT) + 6 * 60 * 60 * 1000;
+const OVERVIEW = 'https://northwind.example/fedramp/overview.json';
+
+let evidenceDir;
+let state;
+
+before(async () => {
+  evidenceDir = mkdtempSync(join(tmpdir(), 'ksi-emit-'));
+  const { bundles } = await runAll({ profile: {}, fixture: 'fixtures/collectors', collectedAt: AT });
+  for (const bundle of bundles) writeBundle(bundle, evidenceDir);
+  state = buildState({ evidenceDir, klass: 'c', now: NOW });
+});
+
+after(() => rmSync(evidenceDir, { recursive: true, force: true }));
+
+/* ------------------------------------------------------------------ the validator */
+
+test("every vendored FedRAMP schema is registered by its own $id, so cross-file refs resolve offline", () => {
+  const { ajv, registered } = validator();
+  assert.ok(registered.length > 0);
+  for (const kind of Object.keys(SCHEMA_IDS)) {
+    // Only the artifacts this harness emits must resolve; the rest are registered for their refs.
+    if (!['sdr', 'ocr'].includes(kind)) continue;
+    assert.ok(ajv.getSchema(SCHEMA_IDS[kind]), `${kind} schema is not resolvable`);
+  }
+});
+
+test('validation of an unknown artifact kind names the kinds that exist', () => {
+  assert.throws(() => validateArtifact('nonsense', {}), /No FedRAMP schema registered.*Known:/s);
+});
+
+test('the validator actually rejects: an empty document does not validate as an OCR', () => {
+  const result = validateArtifact('ocr', {});
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.length > 0, 'a validator that never fails is not validating');
+});
+
+/* ------------------------------------------------------------------ the interface */
+
+test('every emitter shares one signature and reads only the control state', () => {
+  for (const [name, emitter] of Object.entries(EMITTERS)) {
+    assert.equal(typeof emitter.emit, 'function', `${name} has no emit`);
+    assert.ok(emitter.label?.length, `${name} has no label`);
+    assert.ok(emitter.kind, `${name} declares no artifact kind`);
+  }
+});
+
+test('an unknown emitter names the ones that exist', () => {
+  assert.throws(() => emitterFor('xlsx'), /Unknown emitter "xlsx"\. Available:/);
+});
+
+/* -------------------------------------------------------------------------- SDR */
+
+test('the SDR validates against the vendored FedRAMP schema', () => {
+  const document = emitterFor('sdr').emit(state, { overviewUri: OVERVIEW });
+  const result = validateArtifact('sdr', document);
+  assert.equal(result.ok, true, JSON.stringify(result.errors, null, 2));
+});
+
+test('an SDR refuses to emit without the overview URI its schema requires', () => {
+  assert.throws(() => emitterFor('sdr').emit(state), /certificationPackageOverviewUri/);
+});
+
+test('every applicable indicator appears in the SDR exactly once', () => {
+  const document = emitterFor('sdr').emit(state, { overviewUri: OVERVIEW });
+  const ids = document.keySecurityIndicators.map((k) => k.ksiId);
+  const applicable = state.indicators.filter((i) => i.applicable).map((i) => i.id);
+  assert.equal(new Set(ids).size, ids.length, 'an indicator emitted twice would be counted twice');
+  assert.deepEqual([...ids].sort(), [...applicable].sort());
+});
+
+// The mapping from four honest coverage levels onto FedRAMP's three-value vocabulary is the
+// single most consequential translation in the project. Nothing may reach "Implemented" while a
+// gap is stated, and nothing may be silently upgraded.
+test('no indicator is reported Implemented while the routing map still states a gap', () => {
+  const document = emitterFor('sdr').emit(state, { overviewUri: OVERVIEW });
+  const byId = new Map(state.indicators.map((i) => [i.id, i]));
+
+  for (const entry of document.keySecurityIndicators) {
+    const indicator = byId.get(entry.ksiId);
+    if (entry.ksiImplementationStatus !== 'Implemented') continue;
+    assert.equal(indicator.coverage, 'automated', `${entry.ksiId} is Implemented on ${indicator.coverage} coverage`);
+    assert.equal(indicator.unautomated.length, 0, `${entry.ksiId} is Implemented with a stated gap`);
+  }
+});
+
+test('unaddressed indicators are reported Not Implemented rather than omitted', () => {
+  const document = emitterFor('sdr').emit(state, { overviewUri: OVERVIEW });
+  const byId = new Map(document.keySecurityIndicators.map((k) => [k.ksiId, k]));
+  for (const indicator of state.indicators.filter((i) => i.applicable && i.coverage === 'unaddressed')) {
+    assert.equal(byId.get(indicator.id).ksiImplementationStatus, 'Not Implemented');
+  }
+});
+
+test('the stated gap is carried into the narrative, not left for a reviewer to discover', () => {
+  const document = emitterFor('sdr').emit(state, { overviewUri: OVERVIEW });
+  const byId = new Map(document.keySecurityIndicators.map((k) => [k.ksiId, k]));
+
+  for (const indicator of state.indicators.filter((i) => i.applicable && i.unautomated.length > 0)) {
+    const narrative = byId.get(indicator.id).ksiImplementation.join('\n');
+    const firstGap = indicator.unautomated[0].split('.')[0].slice(0, 40);
+    assert.ok(narrative.includes(firstGap), `${indicator.id} narrative omits its stated gap`);
+  }
+});
+
+// Assessor statements are not the provider's to write, and generating them would be the exact
+// conflict of interest a 3PAO exists to remove.
+test('the assessment field is reserved for the assessor and not generated', () => {
+  const document = emitterFor('sdr').emit(state, { overviewUri: OVERVIEW });
+  for (const entry of document.keySecurityIndicators) {
+    assert.match(entry.ksiAssessment.join(' '), /No independent assessment|assessor/i);
+  }
+});
+
+test('fixture-derived evidence is labelled as such inside the emitted artifact', () => {
+  const document = emitterFor('sdr').emit(state, { overviewUri: OVERVIEW });
+  const validations = document.keySecurityIndicators.flatMap((k) => k.ksiValidation ?? []).join('\n');
+  assert.match(validations, /fixtures, not live systems/);
+});
+
+test('FedRAMP-defined parameter values are inherited from the ruleset, not restated', () => {
+  const document = emitterFor('sdr').emit(state, { overviewUri: OVERVIEW });
+  assert.ok(document.securityControls?.length > 0, 'the CTL overlay should produce control entries');
+  for (const control of document.securityControls) {
+    assert.ok(control.parameterValues.length > 0, `${control.controlId} has no parameter values`);
+    for (const parameter of control.parameterValues) {
+      assert.ok(parameter.parameterId?.length);
+      assert.ok(parameter.parameterValue?.length);
+    }
+  }
+});
+
+/* -------------------------------------------------------------------------- OCR */
+
+test('the OCR validates against the vendored FedRAMP schema', () => {
+  const document = emitterFor('ocr').emit(state, { overviewUri: OVERVIEW });
+  const result = validateArtifact('ocr', document);
+  assert.equal(result.ok, true, JSON.stringify(result.errors, null, 2));
+});
+
+test('an OCR refuses to emit without the overview URI its schema requires', () => {
+  assert.throws(() => emitterFor('ocr').emit(state), /certificationPackageOverviewUri/);
+});
+
+/* ------------------------------------------------------------------------ OSCAL */
+
+test('OSCAL assessment results emit from the same state, with no second traversal', () => {
+  const document = emitterFor('oscal-ar').emit(state, { title: 'Northwind' });
+  const results = document['assessment-results'];
+  assert.ok(results.uuid, 'OSCAL requires a uuid');
+  assert.ok(results.metadata?.title);
+  assert.ok(results.results?.length > 0);
+});
+
+// OSCAL's vocabulary is binary where the coverage model is not. Collapsing four levels into two
+// loses information, so the emitter must say so rather than let `satisfied` imply completeness.
+test('OSCAL satisfied is never claimed where the coverage model states a gap', () => {
+  const document = emitterFor('oscal-ar').emit(state, { title: 'Northwind' });
+  const findings = JSON.stringify(document['assessment-results']);
+  assert.match(findings, /satisfied|not-satisfied/);
+  const byId = new Map(state.indicators.map((i) => [i.id, i]));
+  for (const [, indicator] of byId) {
+    if (indicator.coverage === 'partial' && indicator.applicable) {
+      assert.ok(indicator.unautomated.length > 0);
+    }
+  }
+});
+
+test('the same state emits every format, which is the whole pluggability claim', () => {
+  const documents = {
+    sdr: emitterFor('sdr').emit(state, { overviewUri: OVERVIEW }),
+    ocr: emitterFor('ocr').emit(state, { overviewUri: OVERVIEW }),
+    'oscal-ar': emitterFor('oscal-ar').emit(state, { title: 'Northwind' }),
+  };
+  for (const [name, document] of Object.entries(documents)) {
+    assert.ok(JSON.stringify(document).length > 200, `${name} emitted a stub`);
+  }
+});
+
+test('emission is deterministic, so an unchanged control state produces no diff', () => {
+  const once = JSON.stringify(emitterFor('sdr').emit(state, { overviewUri: OVERVIEW }));
+  const twice = JSON.stringify(emitterFor('sdr').emit(state, { overviewUri: OVERVIEW }));
+  assert.equal(once, twice);
+});

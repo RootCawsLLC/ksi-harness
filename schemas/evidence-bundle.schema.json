@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/RootCawsLLC/ksi-harness/schemas/evidence-bundle.schema.json",
+  "title": "Evidence bundle",
+  "description": "What one check run writes to the evidence locker. This is the audit artifact: a reviewer should be able to read it, re-run the stated query, and reach the same conclusion. The pass/fail is produced by deterministic code, never by a model. A model may summarise a bundle after the fact; it may not author the result field. FedRAMP 20x asks for evidence of automation rather than screenshots of outcomes, which is why the collector version and the population reconciliation are required rather than nice to have.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["check_id", "ksis", "collector", "collected_at", "population", "result", "items"],
+  "properties": {
+    "check_id": {
+      "description": "provider.domain.slug, e.g. aws.iam.mfa-coverage. Stable across runs: findings are tracked over time by this id, so renaming one discards its history.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(\\.[a-z0-9-]+){2,}$"
+    },
+    "ksis": {
+      "description": "Every Key Security Indicator this check contributes evidence toward. A list rather than a single value because one check commonly bears on several indicators, and because no single check settles an indicator on its own — the indicator-level judgement is made in the routing layer, not here.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "pattern": "^KSI-[A-Z]{3}-[A-Z]{3}$" }
+    },
+    "collector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "version"],
+      "properties": {
+        "path": { "type": "string" },
+        "version": {
+          "description": "Version of the collector that produced this bundle. Without it, comparing two bundles across a reporting period compares two possibly different questions.",
+          "type": "string"
+        },
+        "source_commit": { "type": "string" }
+      }
+    },
+    "collected_at": {
+      "description": "RFC 3339 timestamp from a trusted source, not the executing machine's clock.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "description": "Exactly what was examined - accounts, regions, repositories. A reviewer's first question about any population is what was left out. Fixture runs are stamped here so they can never be mistaken for real evidence.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "population": {
+      "description": "Completeness reconciliation. This is the field that buys reviewer reliance and the reason a screenshot cannot: it states how many items were expected, how many were examined, and explains any difference. A bundle where examined != expected without a stated reconciliation is a failed collection, not a passing check.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expected", "examined", "complete"],
+      "properties": {
+        "expected": { "type": "integer", "minimum": 0 },
+        "examined": { "type": "integer", "minimum": 0 },
+        "complete": { "type": "boolean" },
+        "reconciliation": {
+          "description": "Required when complete is false: what the difference is and why.",
+          "type": "string"
+        },
+        "source_of_truth": {
+          "description": "Where the expected count came from, e.g. 'iam:GetCredentialReport - all principals with console access, plus root'.",
+          "type": "string"
+        }
+      }
+    },
+    "result": {
+      "description": "The assertion outcome. 'error' is distinct from 'fail' on purpose - a check that could not run has produced no evidence, and silently treating that as a pass is how a programme develops a 100% pass rate that means nothing.",
+      "type": "string",
+      "enum": ["pass", "fail", "warn", "error"]
+    },
+    "assertion": {
+      "description": "The claim this run tested, in our own words, quantified over a population. Deliberately not a copy of the KSI statement: the indicator is a capability claim and the check is a narrower test of it, and collapsing the two is how a harness comes to assert more than it measured.",
+      "type": "string"
+    },
+    "items": {
+      "description": "Every item in the population with its individual outcome. Full population, not a sample.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["id", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "status": { "type": "string", "enum": ["pass", "fail", "warn", "not-applicable"] },
+          "detail": { "type": "string" },
+          "observed": {}
+        }
+      }
+    },
+    "metric": {
+      "description": "An optional continuous measure alongside the binary outcome. FedRAMP 20x reporting is interested in trend, and a coverage percentage moving the right way is more informative than a pass that was always a pass.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric_id", "value"],
+      "properties": {
+        "metric_id": { "type": "string" },
+        "value": { "type": "number" },
+        "unit": { "type": "string" }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content_sha256"],
+      "properties": {
+        "content_sha256": {
+          "description": "SHA-256 over the canonicalised bundle with this field removed.",
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "signed": { "type": "boolean" }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

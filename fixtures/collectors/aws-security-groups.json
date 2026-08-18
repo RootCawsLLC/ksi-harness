@@ -1,0 +1,59 @@
+{
+  "account": "123456789012",
+  "region": "us-east-1",
+  "security_groups": [
+    {
+      "GroupId": "sg-0a1b2c3d4e5f60001",
+      "GroupName": "northwind-alb",
+      "IpPermissions": [
+        { "IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "IpRanges": [{ "CidrIp": "0.0.0.0/0" }], "Ipv6Ranges": [] },
+        { "IpProtocol": "tcp", "FromPort": 80, "ToPort": 80, "IpRanges": [{ "CidrIp": "0.0.0.0/0" }], "Ipv6Ranges": [] }
+      ],
+      "attachments": [
+        { "interface_id": "eni-1111", "type": "network_load_balancer", "description": "ELB app/northwind-alb", "attached_to": null }
+      ]
+    },
+    {
+      "GroupId": "sg-0a1b2c3d4e5f60002",
+      "GroupName": "northwind-db",
+      "IpPermissions": [
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 5432,
+          "ToPort": 5432,
+          "IpRanges": [{ "CidrIp": "10.0.0.0/16" }],
+          "Ipv6Ranges": []
+        }
+      ],
+      "attachments": [{ "interface_id": "eni-2222", "type": "interface", "description": "RDS northwind-primary", "attached_to": null }]
+    },
+    {
+      "GroupId": "sg-0a1b2c3d4e5f60003",
+      "GroupName": "bastion-legacy",
+      "IpPermissions": [
+        { "IpProtocol": "tcp", "FromPort": 22, "ToPort": 22, "IpRanges": [{ "CidrIp": "0.0.0.0/0" }], "Ipv6Ranges": [] }
+      ],
+      "attachments": [{ "interface_id": "eni-3333", "type": "interface", "description": "bastion host", "attached_to": "i-0abc123def456" }]
+    },
+    {
+      "GroupId": "sg-0a1b2c3d4e5f60004",
+      "GroupName": "orphaned-open-all",
+      "IpPermissions": [{ "IpProtocol": "-1", "IpRanges": [{ "CidrIp": "0.0.0.0/0" }], "Ipv6Ranges": [] }],
+      "attachments": []
+    },
+    {
+      "GroupId": "sg-0a1b2c3d4e5f60005",
+      "GroupName": "northwind-cache",
+      "IpPermissions": [
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 6379,
+          "ToPort": 6379,
+          "IpRanges": [],
+          "Ipv6Ranges": [{ "CidrIpv6": "::/0" }]
+        }
+      ],
+      "attachments": [{ "interface_id": "eni-5555", "type": "interface", "description": "ElastiCache northwind", "attached_to": null }]
+    }
+  ]
+}

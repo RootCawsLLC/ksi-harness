@@ -1,0 +1,120 @@
+name: ccm
+
+# Continuous control monitoring: collect against live systems on a schedule, report, and open an
+# issue when the evidence stops supporting a claim.
+#
+# The schedule is the control. Several indicators use the word "persistently", which FedRAMP
+# defines rather than leaves to the reader, and a check that runs when someone remembers to run it
+# does not satisfy it. The harness records collection history and compares the observed interval
+# against the cadence each route declares, so an unreliable schedule shows up as a cadence failure
+# in the coverage report rather than as an absence nobody notices.
+#
+# Credentials come from OIDC rather than long-lived keys — aws.iam.mfa-coverage and
+# aws.iam.privileged-access both fail on standing access, and a permanent CI access key in a
+# repository secret is exactly that. The role should be read-only.
+
+on:
+  schedule:
+    # 04:15 UTC daily. Offset from the hour because every scheduler on GitHub fires on it.
+    - cron: '15 4 * * *'
+  workflow_dispatch:
+    inputs:
+      fixtures_only:
+        description: 'Run against fixtures instead of live systems'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Verify the FedRAMP ruleset pin
+        run: npm run vendor:verify
+
+      # Whether a live run is possible is decided once, here, and reported. The alternative —
+      # falling back to fixtures without saying so — would put demo data in a locker that
+      # everything downstream treats as real, which is the worst bug this repository could ship.
+      - name: Decide the collection mode
+        id: mode
+        env:
+          ROLE: ${{ secrets.AWS_COLLECTOR_ROLE_ARN }}
+        run: |
+          if [ "${{ inputs.fixtures_only }}" = "true" ] || [ -z "$ROLE" ]; then
+            echo "live=false" >> "$GITHUB_OUTPUT"
+            echo "No collector role configured, or fixtures requested: this run produces fixture evidence." >&2
+          else
+            echo "live=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Assume the read-only collector role
+        if: steps.mode.outputs.live == 'true'
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ secrets.AWS_COLLECTOR_ROLE_ARN }}
+          aws-region: us-east-1
+          role-session-name: ksi-harness-ccm
+
+      - name: Collect live evidence
+        if: steps.mode.outputs.live == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.KSI_GITHUB_READ_TOKEN || github.token }}
+        run: node src/cli.mjs collect --profile examples/northwind.profile.yaml --out .evidence
+
+      - name: Collect fixture evidence
+        if: steps.mode.outputs.live != 'true'
+        run: npm run collect:fixture
+
+      - name: Coverage report
+        run: |
+          node src/cli.mjs coverage --evidence .evidence --md out/coverage.md --json out/coverage.json
+          cat out/coverage.md >> "$GITHUB_STEP_SUMMARY"
+
+      # Drift in the upstream ruleset is a separate failure from drift in the environment, and it
+      # is the one nobody watches. A new indicator, or a changed statement, silently invalidates
+      # the routing map and every narrative generated from it.
+      - name: Check the upstream ruleset for drift
+        continue-on-error: true
+        run: node src/cli.mjs drift --md out/drift.md
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: ccm-${{ github.run_number }}
+          path: |
+            out/
+            .evidence/
+          # Long enough to cover a quarterly OCR window with room to spare. Real evidence
+          # retention belongs in a private append-only store, not in workflow artifacts.
+          retention-days: 120
+
+      - name: Open an issue when the evidence stops supporting a claim
+        if: steps.mode.outputs.live == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          findings=$(node -e "
+            const s = require('./out/coverage.json');
+            const open = s.findings ?? [];
+            if (!open.length) process.exit(0);
+            console.log(open.map(f => '- **' + f.indicator + '** (' + f.evidence_state + '): ' +
+              f.checks.map(c => c.check_id + ' = ' + c.result).join(', ')).join('\n'));
+          ")
+          if [ -n "$findings" ]; then
+            printf 'Continuous monitoring found indicators whose evidence no longer supports the declared coverage.\n\n%s\n' "$findings" > body.md
+            gh issue create \
+              --title "CCM: evidence does not support declared coverage ($(date -u +%Y-%m-%d))" \
+              --body-file body.md \
+              --label ccm || true
+          fi

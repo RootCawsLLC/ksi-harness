@@ -1,0 +1,84 @@
+name: ci
+
+# Third-party actions are pinned to commit revisions rather than tags, because
+# github.supply-chain.workflow-pinning is a check this repository ships and failing your own
+# control in your own pipeline is not a good look. First-party actions/* are pinned too, since
+# the check only warns on them and the warning is still correct.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # The pin is verified before anything is generated from it. A report is only meaningful
+      # against a known ruleset, and a silently changed vendor file would invalidate every
+      # artifact this run produces.
+      - name: Verify the FedRAMP ruleset pin
+        run: npm run vendor:verify
+
+      - name: Validate the routing map
+        run: npm run routes:validate
+
+      - run: npm test
+
+  artifacts:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Proves the whole path end to end on every change: collect, report, emit, schema-validate.
+      # The emitters fail the run rather than writing a document FedRAMP would reject on
+      # submission, so a schema regression is caught here rather than in a certification cycle.
+      - name: Collect fixture evidence
+        run: npm run collect:fixture
+
+      - name: Coverage report
+        run: node src/cli.mjs coverage --evidence .evidence --md out/coverage.md --json out/coverage.json
+
+      - name: Emit FedRAMP 20x artifacts
+        run: |
+          node src/cli.mjs emit sdr \
+            --evidence .evidence \
+            --profile examples/northwind.profile.yaml \
+            --overview-uri "https://northwind.example/fedramp/overview.json" \
+            --out out/sdr.json
+          node src/cli.mjs emit ocr \
+            --evidence .evidence \
+            --profile examples/northwind.profile.yaml \
+            --overview-uri "https://northwind.example/fedramp/overview.json" \
+            --out out/ocr.json
+
+      - name: Emit OSCAL assessment results
+        run: node src/cli.mjs emit oscal-ar --evidence .evidence --out out/oscal-assessment-results.json
+
+      - name: Summarise coverage in the run
+        run: cat out/coverage.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: artifacts
+          path: |
+            out/
+            .evidence/
+          retention-days: 30

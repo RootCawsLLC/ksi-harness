@@ -1,0 +1,34 @@
+node_modules/
+
+# Generated artifacts. The harness is the thing under version control; its output is not, with
+# one deliberate exception below.
+out/
+.policy/
+.tools/
+
+# Evidence lockers.
+#
+# Real evidence is deliberately not committed here. A bundle names accounts, roles, buckets,
+# repositories and failing resources — an accurate inventory of where a boundary is weakest — and
+# a public repository is the wrong place for it. In a real deployment the locker belongs in a
+# private, append-only store with the retention the programme requires.
+#
+# `.evidence/` is the fixture-derived locker the demo writes. It is ignored because it is
+# reproducible from `npm run collect:fixture` and there is no reason to carry generated files.
+.evidence/
+.evidence-*/
+
+# Terraform, for the sample configuration under policy/terraform.
+.terraform/
+*.tfstate
+*.tfstate.*
+tfplan
+*.tfplan
+.terraform.lock.hcl
+
+# Credentials. Nothing here should ever be committed, and the profile format is designed so that
+# nothing secret needs to be: it declares scope, and credentials come from the environment.
+.env
+.env.*
+*.pem
+credentials.json

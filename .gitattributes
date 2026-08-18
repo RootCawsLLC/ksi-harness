@@ -1,0 +1,15 @@
+# Normalise to LF in the repository regardless of the platform a commit came from.
+#
+# This is not tidiness. The workflow files carry multi-line `run:` shell blocks, and a CRLF landing
+# in one of those breaks on a Linux runner in ways that read as a mysterious CI failure rather than
+# as a line-ending problem. Rego and .mjs are equally happy either way, but a mixed tree makes every
+# diff noisy, which is its own cost on a repository meant to be read.
+* text=auto eol=lf
+
+# The pinned FedRAMP sources are hashed byte-for-byte in vendor/fedramp/PINNED.json. Any line-ending
+# translation on these files would change the hash and fail `npm run vendor:verify`, so they are
+# never touched.
+vendor/fedramp/** -text
+
+*.png binary
+*.jpg binary

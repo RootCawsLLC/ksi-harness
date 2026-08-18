@@ -1,0 +1,48 @@
+# Example service profile.
+#
+# The profile is where the certification boundary is *declared*. Nothing in this harness
+# discovers scope from the environment, which is a deliberate constraint rather than a missing
+# feature: if collection enumerated whatever it could see, a new account or repository would
+# join the authorization boundary without anyone deciding it should, and the evidence would
+# quietly redefine what was certified.
+
+service_name: Northwind Voice API
+provider: Northwind Systems, Inc.
+
+# Class C (Moderate-equivalent) is the practical ceiling today: Class D has no 20x path and
+# stays on Rev5, with a pilot targeted for FY27.
+certification_class: c
+
+aws:
+  accounts:
+    - id: "123456789012"
+      regions: [us-east-1]
+  # Ports the service is intended to expose to the internet. Anything else reachable from
+  # 0.0.0.0/0 is a finding rather than a design decision, and stating the intent here is what
+  # lets the check tell those apart.
+  public_ports: [80, 443]
+
+github:
+  repositories:
+    - name: northwind/platform
+      branch: main
+    - name: northwind/infra
+      branch: main
+    - name: northwind/docs
+      branch: main
+  window_days: 30
+
+# The pre-merge policy gate. `iac_roots` is the declared scope for infrastructure as code, and it
+# is enumerated from the working tree rather than taken from the policy tool's own report: a file
+# that exists in a gated root but never reached the gate has to be detectable, and it is not if
+# the population is read out of the report that omitted it.
+pipeline:
+  iac_roots:
+    - policy/terraform/compliant
+  policy_source: policy/rego
+  policy_report: .policy/conftest-report.json
+
+# Contacts that appear in generated 20x artifacts.
+contacts:
+  security: security@northwind.example
+  incident_reporting: soc@northwind.example

@@ -1,0 +1,548 @@
+# How each Key Security Indicator is evidenced.
+#
+# This file is the honest part of the harness, and it is the reason the coverage report can
+# be trusted. Read docs/adr/0002-coverage-honesty.md before editing it.
+#
+# The design problem it solves: a KSI is a *capability* claim, and a check is a narrower
+# test of that capability. If a route were allowed to say "automated" merely because some
+# check touches the topic, the coverage number would climb while the package got no
+# stronger — the exact failure Defense Unicorns named when it dropped OSCAL from Lula 2
+# ("automated tests alone were insufficient for real compliance verification"). So:
+#
+#   automated    The declared checks, together, settle the indicator. Requires `sufficiency`
+#                arguing why nothing material is left over. Expected to be rare.
+#   partial      Checks exist and are real, but do not settle it. Requires `unautomated`
+#                naming what they miss. This is the honest default for most indicators.
+#   manual       No automation, by decision rather than by omission. Requires an owner, an
+#                artifact, and a reason automation is the wrong tool.
+#   unaddressed  Nothing yet. Requires a reason and a named next step.
+#
+# `cadence` is separate from coverage and does real work. Twenty-six of the 46 indicators
+# say "persistently reviewed", and FedRAMP defines Persistently (FRD-PER) as recurring
+# activity rather than a state. A configuration snapshot therefore cannot satisfy those
+# indicators on its own no matter how good it is — but a *scheduled* collection with
+# retained bundle history can, because the history is the evidence of recurrence. The
+# coverage report checks the claimed cadence against what the evidence locker actually
+# contains and reports a route whose schedule is aspirational.
+
+KSI-CED-RAT:
+  coverage: manual
+  cadence: annual
+  manual_evidence:
+    owner: Security education lead
+    artifact: Training effectiveness review, with completion rates per cohort and the change made in response
+    why_not_automated: >
+      Completion percentages are trivially automatable from any LMS and are not what the
+      indicator asks for. It asks whether the training was *effective*, across four named
+      cohorts, and effectiveness is a judgement about whether behaviour changed. Automating
+      the completion metric and calling the indicator covered would be the most tempting
+      false pass in the catalog.
+
+KSI-CMT-LMC:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.logging.trail-integrity
+    - github.change.pr-review
+  unautomated:
+    - >
+      "Monitored" is only half evidenced. The checks prove change events are recorded in a
+      tamper-evident store and that code changes carry an approval trail; neither proves
+      anyone acts on an alert. Alert-to-response linkage needs the ticketing system, which
+      is not wired in.
+    - Infrastructure changed outside CI (console actions, vendor consoles) is recorded in CloudTrail but not traced to an approval.
+
+KSI-CMT-RMV:
+  coverage: partial
+  cadence: daily
+  checks:
+    - github.change.branch-protection
+  unautomated:
+    - >
+      The check establishes that version-controlled resources cannot be changed without
+      review, which is the precondition for redeploy-over-modify. It does not measure the
+      ratio of redeployments to in-place modifications, which is what the indicator is
+      actually about. That needs deployment telemetry correlated against CloudTrail
+      write events, and "wherever reasonable" needs a documented exception list.
+
+KSI-CMT-RVP:
+  coverage: partial
+  cadence: daily
+  checks:
+    - github.change.branch-protection
+  unautomated:
+    - >
+      Protection settings are the mechanism, not the review of the procedure. The indicator
+      asks whether the *documented procedure's effectiveness* is persistently reviewed;
+      evidencing that requires the review itself — bypass-actor changes, emergency-change
+      retrospectives — and only the settings half is automated here.
+
+KSI-CMT-VTD:
+  coverage: partial
+  cadence: daily
+  checks:
+    - github.change.pr-review
+    - pipeline.iac.policy-gate
+  unautomated:
+    - >
+      Two points in the pipeline are evidenced: that review was required, and that the policy
+      gate evaluated every file in the declared roots. "Throughout deployment" means more
+      points than that — build, test, staging promotion, production release — and the runs at
+      those points are not collected.
+    - >
+      Overrides are invisible. A gate that can be bypassed with an administrator merge or a
+      re-run is only as strong as its bypass rate, and the count of bypasses is the number an
+      assessor should ask for. It is not in this evidence.
+  next: Collect per-deployment gate outcomes and the bypass count, so the claim becomes a rate rather than a snapshot of configuration.
+
+KSI-CNA-DFP:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.iam.privileged-access
+  unautomated:
+    - >
+      Privilege definition is checked; functionality definition is not. "Strictly defined"
+      for infrastructure means an enumerated intended service surface, which needs an
+      authoritative architecture inventory to compare against and there is not one yet.
+
+KSI-CNA-EIS:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.config.recorder-state
+    - pipeline.iac.policy-gate
+  unautomated:
+    - >
+      The checks prove an assessment service is recording and evaluating, and that a gate
+      blocks non-conforming infrastructure before merge. Enforcement is therefore evidenced
+      at the point of change but not after it: remediation actions on deployed drift, their
+      success rate, and mean time to correct are the half that distinguishes this indicator
+      from KSI-MLA-EVC, and none of them are collected.
+  next: Collect remediation outcomes and time-to-correct from the assessment service, so enforcement is measured after deployment as well as before it.
+  note: Optional at Class B, required at Class C.
+
+KSI-CNA-IBP:
+  coverage: unaddressed
+  reason: >
+    Comparing third-party resource configuration against the original provider's guidance
+    needs a per-vendor baseline to compare against, and those baselines are not uniformly
+    machine-readable. CIS Benchmarks would be the obvious source and they are behind member
+    distribution, so they cannot be vendored into a public repository.
+  next: >
+    Use ComplianceAsCode/content, which is Apache-2.0 and ships machine-readable profiles
+    derived from vendor and CIS guidance, as the comparison baseline for the resource types
+    in the boundary.
+
+KSI-CNA-MAT:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.network.ingress-exposure
+  unautomated:
+    - >
+      Attack surface is evidenced at the network edge only. The indicator's second clause —
+      that lateral movement is minimised if compromised — is a reachability property, not an
+      ingress property, and needs east-west path analysis rather than a rule inventory.
+
+KSI-CNA-OFA:
+  coverage: unaddressed
+  reason: >
+    High availability is an architecture property that this harness cannot read from
+    configuration alone: multi-AZ placement is visible, but "appropriately optimised" is
+    relative to the recovery objectives in KSI-RPL-RRO, which are not yet declared in
+    machine-readable form.
+  next: >
+    Declare RTO/RPO per resource class in the profile, then check placement and redundancy
+    against the declared objective rather than against a fixed opinion.
+
+KSI-CNA-RNT:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.network.ingress-exposure
+  unautomated:
+    - Egress is not evaluated. The indicator names inbound *and* outbound; the check reads ingress rules only.
+    - Traffic controls implemented at a CDN or WAF in front of the boundary are outside what the check reads.
+
+KSI-CNA-RVP:
+  coverage: unaddressed
+  reason: >
+    Denial-of-service protection state is readable, but the indicator asks whether its
+    *effectiveness* is persistently reviewed, which means test or incident evidence rather
+    than a feature flag. Reading the flag and reporting the indicator covered would be a
+    false pass.
+  next: Collect protection state as a supporting check, and route the effectiveness review to a manual artifact with a named cadence.
+
+KSI-CNA-ULN:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.network.ingress-exposure
+  unautomated:
+    - >
+      Security-group rules are one logical-networking control among several. Subnet
+      topology, network ACLs, service endpoints and any service mesh are unread, so the
+      check cannot claim traffic-flow control is enforced overall.
+
+KSI-IAM-AAM:
+  coverage: unaddressed
+  reason: >
+    Account lifecycle automation is evidenced at the identity provider and the HR system,
+    neither of which is in scope for this harness yet. The AWS-side view shows the result of
+    provisioning, not whether it was automated — and the indicator is specifically about the
+    automation.
+  next: Add an IdP collector (joiner/mover/leaver events reconciled against the HR source of truth) before claiming anything here.
+
+KSI-IAM-APM:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.iam.mfa-coverage
+  unautomated:
+    - >
+      The check reads the cloud account's own principals. Where workforce access arrives
+      through federation, the authenticator strength that actually matters lives in the IdP
+      — whether enrolled factors are FIDO2 rather than TOTP — and that is unread. A federated
+      estate can pass this check with no phishing-resistant factor anywhere.
+    - "Passwordless \"when feasible\" implies a documented feasibility judgement; there is no artifact for it."
+
+KSI-IAM-ELP:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.iam.privileged-access
+  unautomated:
+    - >
+      Wildcard and administrative grants are detected — the coarse failure. Least privilege
+      in the sense the indicator means it is the gap between granted and *used* permission,
+      which needs access-analyzer or last-accessed telemetry to measure.
+    - Device access is not evaluated at all; the indicator covers users and devices.
+
+KSI-IAM-JIT:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.iam.privileged-access
+  unautomated:
+    - >
+      Standing privilege is detectable and is checked. The just-in-time half — that elevation
+      is time-bound, requested, and approved — needs the elevation system's request history,
+      and its absence is precisely what a standing-privilege finding cannot tell you.
+
+KSI-IAM-SNU:
+  coverage: unaddressed
+  reason: >
+    Non-user authentication is the largest unaddressed surface in this catalog: workload
+    identity, service accounts, machine-to-machine credentials. Partial coverage here would
+    be misleading, because a check over IAM users says nothing about the roles and
+    federated workloads that carry most machine authentication.
+  next: >
+    Check for long-lived access keys, and separately for OIDC-federated roles replacing
+    static credentials in CI. Both are readable today; neither is written yet.
+
+KSI-IAM-SUS:
+  coverage: unaddressed
+  reason: >
+    The indicator is about response, not detection: privileged accounts being disabled or
+    secured *in response to* suspicious activity. Evidence is a correlation between a
+    detection event and an account state change, which needs both the detection source and
+    the response record.
+  next: Correlate detection findings against IAM state-change events in CloudTrail, and report the interval between them.
+
+KSI-INR-AAR:
+  coverage: manual
+  cadence: per-incident
+  manual_evidence:
+    owner: Incident response lead
+    artifact: After-action report per reportable incident, with lessons learned traced to the change they caused
+    why_not_automated: >
+      Existence of a report is automatable from the ticketing system; the indicator's real
+      claim is that lessons are *persistently incorporated*, which is a traceability
+      argument from a finding to a change that shipped. FRR process IEC governs the
+      reporting obligation and the report content is the evidence.
+
+KSI-INR-RIR:
+  coverage: manual
+  cadence: annual
+  manual_evidence:
+    owner: Incident response lead
+    artifact: Tabletop or live exercise record with the procedure revisions it produced
+    why_not_automated: Reviewing a documented procedure's effectiveness is an exercise, and the artifact of an exercise is a narrative.
+
+KSI-INR-RPI:
+  coverage: manual
+  cadence: quarterly
+  manual_evidence:
+    owner: Incident response lead
+    artifact: Cross-incident trend review naming patterns not visible in any single incident
+    why_not_automated: >
+      Pattern-finding across incidents is exactly where a model is useful for drafting and
+      exactly where it must not produce the conclusion. Kept manual with tooling assistance
+      rather than automated.
+
+KSI-MLA-ALA:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.logging.log-access
+  unautomated:
+    - >
+      Who *can* read log storage is checked. The indicator additionally requires the model
+      be role and attribute based, just-in-time, and keyed to organisationally defined data
+      sensitivity — and there is no sensitivity classification for log data to key it to yet.
+  note: Optional at Class B, required at Class C.
+
+KSI-MLA-EVC:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.config.recorder-state
+    - pipeline.iac.policy-gate
+  unautomated:
+    - >
+      Both halves are now evidenced — deployed configuration by the assessment service, and
+      infrastructure as code by the pre-merge gate, which the indicator singles out
+      "especially". What neither proves is that the two agree: a resource can pass the gate
+      as code and drift afterwards, and nothing here links a deployed resource back to the
+      IaC revision that produced it.
+    - >
+      The gate reads Terraform configuration, so any attribute whose value comes from a
+      variable, a local, or a module output is reported as undecidable rather than judged.
+      Running it against `terraform show -json` plan output closes most of that, and the
+      policies already accept plan input, but the pipeline does not yet produce a plan.
+  next: Run the gate against plan output in CI so unresolved expressions become decidable, and tag deployed resources with the IaC revision so the two halves can be reconciled.
+
+KSI-MLA-LET:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.logging.trail-integrity
+  unautomated:
+    - >
+      The check proves the trail is on, multi-region, and integrity-validated. The indicator
+      is about the *maintained list* of resources and event types and its periodic review —
+      a declared expectation to compare reality against. Without that list the check can
+      only report what logging exists, never what is missing.
+  next: Declare the expected resource and event-type inventory in the profile so the check becomes a reconciliation rather than an inventory.
+
+KSI-MLA-OSM:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.logging.trail-integrity
+  unautomated:
+    - >
+      Centralised and tamper-resistant are evidenced (single trail, log-file validation, restrictive
+      storage policy). Whether a SIEM ingests and correlates it is not — that is the platform's own
+      state, and no check reads it.
+
+KSI-MLA-RVL:
+  coverage: unaddressed
+  reason: >
+    Log review is an activity. Evidence is query history, alert dispositions, or analyst
+    sign-off, none of which is readable from the logging configuration this harness collects.
+  next: Read detection-rule state and alert dispositions from the monitoring platform once one is in scope.
+
+KSI-PIY-GIV:
+  coverage: unaddressed
+  reason: >
+    An inventory is generated for several checks already, but as a side effect of scoping a
+    population rather than as an authoritative real-time inventory of all information
+    resources. Presenting a by-product as the inventory would overstate both its coverage
+    and its authority.
+  next: >
+    Promote the population-scoping work into a first-class inventory check with a declared
+    authoritative source per resource class, then reconcile the two.
+
+KSI-PIY-RES:
+  coverage: manual
+  cadence: quarterly
+  manual_evidence:
+    owner: CISO
+    artifact: Executive security review minutes, with decisions and the resources they released
+    why_not_automated: Executive support is demonstrated by decisions and funding, and neither has a machine-readable source.
+
+KSI-PIY-RIS:
+  coverage: manual
+  cadence: annual
+  manual_evidence:
+    owner: CISO
+    artifact: Security investment review measuring spend against risk reduction
+    why_not_automated: >
+      This is the indicator quantitative risk analysis actually answers. Loss-exceedance
+      modelling turns "we spent this" into "this much expected loss was avoided", which is
+      the effectiveness claim the indicator wants. The modelling is deliberate analyst work,
+      not a collector.
+
+KSI-PIY-RSD:
+  coverage: manual
+  cadence: annual
+  manual_evidence:
+    owner: Head of engineering
+    artifact: SDLC security review, mapped to CISA Secure by Design principles
+    why_not_automated: >
+      The pipeline's security controls are partly evidenced by the change-management and
+      supply-chain checks, but alignment with a set of design *principles* is an argument
+      about practice, and the indicator names that alignment explicitly.
+
+KSI-PIY-RVD:
+  coverage: manual
+  cadence: annual
+  manual_evidence:
+    owner: Security lead
+    artifact: Vulnerability disclosure programme review with intake volume, time to triage, and time to fix
+    why_not_automated: >
+      Report intake and timing are automatable from the intake channel once one exists;
+      whether the programme is *effective* is a judgement about researcher experience and
+      outcome quality. FRR process VDR governs the obligation.
+
+KSI-RPL-ABO:
+  coverage: unaddressed
+  reason: >
+    Backup configuration is readable and recovery objectives are not declared anywhere
+    machine-readable, so there is nothing to check alignment against. A backup check without
+    a declared objective reports that backups exist, which is not the indicator.
+  next: Declare RPO per resource class in the profile, then check backup frequency and retention against it. Same dependency as KSI-CNA-OFA.
+
+KSI-RPL-ARP:
+  coverage: manual
+  cadence: annual
+  manual_evidence:
+    owner: Continuity owner
+    artifact: Recovery plan reviewed against current objectives, with the gaps found and closed
+    why_not_automated: Alignment between a written plan and an objective is a reading of both.
+
+KSI-RPL-RRO:
+  coverage: manual
+  cadence: annual
+  manual_evidence:
+    owner: Continuity owner
+    artifact: RTO/RPO definitions with the business-need and capability analysis behind them
+    why_not_automated: >
+      The objectives are an input to the programme, not an output of it. Declaring them in
+      machine-readable form is what unblocks KSI-RPL-ABO and KSI-CNA-OFA, so this manual
+      artifact is a prerequisite for two automated ones.
+
+KSI-RPL-TRC:
+  coverage: manual
+  cadence: annual
+  manual_evidence:
+    owner: Continuity owner
+    artifact: Recovery test record with measured recovery time against the objective
+    why_not_automated: >
+      A restore test could be automated and ideally is; the evidence that matters is the
+      measured outcome against the objective, and until objectives are declared the
+      measurement has no denominator.
+
+KSI-SCR-MIT:
+  coverage: partial
+  cadence: daily
+  checks:
+    - github.supply-chain.workflow-pinning
+  unautomated:
+    - >
+      Build-time dependency provenance is checked at one point: whether third-party CI
+      actions are pinned to an immutable revision rather than a mutable tag. Application
+      dependency provenance, SBOM completeness, and vendor risk assessment are all
+      unaddressed, and they are the larger part of supply chain risk.
+
+KSI-SCR-MON:
+  coverage: unaddressed
+  reason: >
+    Upstream vulnerability monitoring exists in most estates via the code host's own
+    alerting; it is not collected here yet, and the indicator also admits contractual
+    notification as a mechanism, which is a document rather than a signal.
+  next: Collect dependency-alert state per repository, and record the contractual-notification mechanism as a manual supplement.
+
+KSI-SVC-ACM:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.config.recorder-state
+  unautomated:
+    - >
+      Drift detection is evidenced by the assessment service's own state. That the
+      configuration is *managed using automation* is a claim about the pipeline, and the
+      link from a deployed resource back to the IaC revision that produced it is not
+      established by any check here.
+
+KSI-SVC-ASM:
+  coverage: unaddressed
+  reason: >
+    Secret management state is readable — rotation configuration, key rotation, secret age —
+    and is not collected yet. Marked unaddressed rather than partial because the credential
+    surface that matters most (secrets held in CI, in the IdP, and in third-party services)
+    sits outside the cloud account, and a check over one vault would imply coverage of all.
+  next: Check rotation configuration and secret age in the cloud vault first, then CI-held secrets, and report them as separate populations rather than one.
+
+KSI-SVC-EIS:
+  coverage: manual
+  cadence: quarterly
+  manual_evidence:
+    owner: Security engineering lead
+    artifact: Security improvement review naming what was evaluated, what was chosen, and what shipped
+    why_not_automated: >
+      Findings are automated throughout this harness; the indicator's claim is that
+      improvements are persistently *made*, which is a remediation-throughput argument.
+      Reporting open findings alone would evidence evaluation while saying nothing about
+      improvement.
+
+KSI-SVC-PRR:
+  coverage: manual
+  cadence: per-change
+  manual_evidence:
+    owner: Change approver
+    artifact: Post-change review confirming residual elements were identified and removed
+    why_not_automated: >
+      Residual risk after a change is defined relative to the intent of that change, so
+      there is no fixed rule to evaluate. Detecting orphaned resources is a useful
+      supporting signal and not the indicator.
+  note: Optional at Class B, required at Class C.
+
+KSI-SVC-RUD:
+  coverage: manual
+  cadence: per-request
+  manual_evidence:
+    owner: Data protection owner
+    artifact: Deletion request record showing scope, completion, and backup treatment
+    why_not_automated: >
+      Deletion is request-driven and its correctness depends on the customer agreement.
+      Automating a claim that data is gone is a claim about absence, which is the hardest
+      thing for a collector to establish honestly.
+  note: Optional at Class B, required at Class C.
+
+KSI-SVC-SIN:
+  coverage: partial
+  cadence: daily
+  checks:
+    - aws.data.encryption-at-rest
+  unautomated:
+    - Encryption in transit is not checked. The indicator covers information generally, and at-rest state is one half.
+    - >
+      Key custody is unevaluated. Whether encryption is provider-managed or customer-managed
+      is the distinction a federal customer cares about, and the check reports that
+      encryption exists rather than who holds the key.
+    - "\"Otherwise secured from unwanted modification\" is an integrity claim; only confidentiality is examined."
+
+KSI-SVC-VCM:
+  coverage: unaddressed
+  reason: >
+    Authenticity and integrity of machine-to-machine communication means mutual
+    authentication and certificate validation on internal paths. That is a property of the
+    service mesh or the application's own transport configuration, and neither is in scope
+    for the current collectors.
+  next: Read TLS policy and certificate validation state where the platform exposes it; treat application-level mTLS as a separate check.
+  note: Optional at Class B, required at Class C.
+
+KSI-SVC-VRI:
+  coverage: partial
+  cadence: daily
+  checks:
+    - github.supply-chain.workflow-pinning
+  unautomated:
+    - >
+      A revision-pinned action is a cryptographic integrity claim about one class of
+      resource, which is why this check appears here as well as under KSI-SCR-MIT. Image
+      signing, artifact attestation and boot integrity for running resources are all
+      unaddressed, and they are what the indicator principally means.

@@ -1,0 +1,96 @@
+name: policy
+
+# The preventive half of the control set: OPA policy unit tests, then the gate itself, then the
+# gate's own result folded into the evidence locker as a bundle.
+#
+# That last step is the part most compliance pipelines skip. A gate that fails a build is a real
+# control, but a red X in a run that ages out is not evidence of one — next quarter there is
+# nothing to show. Retaining the report and converting it to a bundle is what makes the gate
+# reportable alongside everything else.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  OPA_VERSION: v1.19.1
+  CONFTEST_VERSION: 0.69.0
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Both tools are pinned to a version rather than installed from latest. A policy engine
+      # that silently changes evaluation semantics under a compliance gate is the same class of
+      # problem as an unpinned action.
+      - name: Install OPA and conftest
+        run: |
+          curl -fsSL -o /usr/local/bin/opa \
+            "https://openpolicyagent.org/downloads/${OPA_VERSION}/opa_linux_amd64_static"
+          chmod +x /usr/local/bin/opa
+          curl -fsSL -o /tmp/conftest.tar.gz \
+            "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
+          tar -xzf /tmp/conftest.tar.gz -C /usr/local/bin conftest
+          opa version
+          conftest --version
+
+      # Runs the policy unit tests, gates the conforming configuration, and asserts that the
+      # deliberately non-conforming directory still fails. That last assertion is the one that
+      # catches a policy set which has quietly stopped matching anything.
+      - name: Run the policy gate with its negative control
+        run: npm run policy
+
+      - name: Fold the gate result into the evidence locker
+        run: |
+          node src/cli.mjs collect \
+            --profile examples/northwind.profile.yaml \
+            --only pipeline \
+            --out .evidence
+
+      - name: Show the resulting bundle
+        run: cat .evidence/pipeline.iac.policy-gate/*.json
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: policy-evidence
+          path: |
+            .policy/
+            .evidence/pipeline.iac.policy-gate/
+          retention-days: 90
+
+  scan:
+    # Checkov covers ground the hand-written Rego does not, and it is deliberately advisory here.
+    # Its findings are not mapped to indicators, and an unmapped finding cannot be reported as KSI
+    # evidence — so treating it as a blocking gate would mean blocking on something this harness
+    # cannot account for. It runs to catch what the local policies miss.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: bridgecrewio/checkov-action@99bb2caf247dfd9f03cf984373bc6043d4e32ebf # v12.1347.0
+        with:
+          directory: policy/terraform
+          framework: terraform
+          output_format: cli,sarif
+          output_file_path: console,checkov.sarif
+          soft_fail: true
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: checkov-sarif
+          path: checkov.sarif
+          retention-days: 30

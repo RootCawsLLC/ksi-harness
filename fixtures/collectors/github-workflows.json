@@ -1,0 +1,30 @@
+{
+  "repositories": [
+    {
+      "repo": "northwind/platform",
+      "workflows": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "content": "name: ci\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2\n      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0\n      - uses: ./.github/actions/build\n      - run: npm test\n"
+        },
+        {
+          "path": ".github/workflows/release.yml",
+          "content": "name: release\non:\n  release:\n    types: [published]\njobs:\n  publish:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: docker://alpine:3.20\n      - uses: some-vendor/publish-action@v2\n      - uses: another-vendor/notify\n"
+        }
+      ]
+    },
+    {
+      "repo": "northwind/infra",
+      "workflows": [
+        {
+          "path": ".github/workflows/terraform.yml",
+          "content": "name: terraform\non: [pull_request]\njobs:\n  plan:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2\n      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2\n      - uses: aquasecurity/trivy-action@master\n"
+        }
+      ]
+    },
+    {
+      "repo": "northwind/docs",
+      "workflows": []
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "name": "ksi-harness",
+  "version": "0.1.0",
+  "description": "Continuous control monitoring for FedRAMP 20x. Pins the FedRAMP Consolidated Rules as source of truth, collects live cloud evidence with population reconciliation, and emits schema-valid 20x artifacts.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "author": "RootCawsLLC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RootCawsLLC/ksi-harness.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "ksi": "src/cli.mjs"
+  },
+  "scripts": {
+    "test": "node --test \"tests/*.test.mjs\"",
+    "prepare": "node scripts/setup-git.mjs",
+    "setup": "node scripts/setup-git.mjs",
+    "vendor:verify": "node scripts/vendor-sync.mjs verify",
+    "vendor:sync": "node scripts/vendor-sync.mjs sync",
+    "catalog": "node src/cli.mjs catalog",
+    "routes:validate": "node src/cli.mjs routes validate",
+    "collect:fixture": "node src/cli.mjs collect --profile examples/northwind.profile.yaml --fixture fixtures/collectors --out .evidence",
+    "coverage": "node src/cli.mjs coverage --evidence .evidence",
+    "emit:20x": "node src/cli.mjs emit ocr --evidence .evidence --profile examples/northwind.profile.yaml",
+    "emit:sdr": "node src/cli.mjs emit sdr --evidence .evidence --profile examples/northwind.profile.yaml --out out/sdr.json",
+    "emit:oscal": "node src/cli.mjs emit oscal-ar --evidence .evidence --out out/oscal-assessment-results.json",
+    "drift": "node src/cli.mjs drift",
+    "policy": "node scripts/policy-gate.mjs",
+    "policy:test": "opa test policy/rego -v",
+    "demo": "node scripts/demo.mjs"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "yaml": "^2.8.1"
+  },
+  "optionalDependencies": {
+    "@aws-sdk/client-cloudtrail": "^3.x",
+    "@aws-sdk/client-cloudwatch-logs": "^3.x",
+    "@aws-sdk/client-config-service": "^3.x",
+    "@aws-sdk/client-ec2": "^3.x",
+    "@aws-sdk/client-iam": "^3.x",
+    "@aws-sdk/client-kms": "^3.x",
+    "@aws-sdk/client-s3": "^3.x",
+    "@aws-sdk/client-secrets-manager": "^3.x",
+    "@aws-sdk/client-sts": "^3.x"
+  }
+}

@@ -13,6 +13,52 @@ provider: Northwind Systems, Inc.
 # stays on Rev5, with a pilot targeted for FY27.
 certification_class: c
 
+# The authorization boundary, when it is a product mode rather than a network perimeter.
+#
+# Every other scope construct here is infrastructural — accounts, projects, regions, repos —
+# and that works when the boundary is drawn around resources. It does not when the boundary is
+# drawn around a *capability*, because that boundary moves when a feature flag moves and a
+# harness enumerating infrastructure will not notice.
+#
+# So membership is a selector on the resource itself, and every enumerated resource lands in
+# exactly one of three states: in, out, or unattributed. The third is the point. A resource
+# nobody has attributed is in the boundary or outside it depending on who is asked, which is
+# the condition an authorization exists to remove — so it fails rather than being filtered out.
+boundary:
+  description: >
+    Text-to-Speech and Speech-to-Text, in zero-retention mode only. Voice cloning, analytics
+    and telephony integrations are outside the boundary and are not deployed in the government
+    environment.
+
+  selector:
+    gcp_label: fedramp-boundary
+    aws_tag: FedRAMPBoundary
+    in_values: [true, in-scope]
+    out_values: [false, out-of-scope]
+
+  in_scope:
+    - id: tts
+      name: Text to Speech
+      condition: Zero retention mode only
+    - id: stt
+      name: Speech to Text
+      condition: Zero retention mode only
+
+  # Nothing here can confirm a product capability is switched off — that is a claim about
+  # configuration, not infrastructure. Each exclusion therefore names the mechanism and the
+  # person who attests to it, the same discipline the `manual` coverage level applies.
+  out_of_scope:
+    - id: voice-cloning
+      name: Voice cloning
+      excluded_by: >
+        Not deployed in the government environment; the model endpoints are absent rather
+        than disabled.
+      attested_by: Platform engineering lead
+    - id: telephony
+      name: Telephony integrations
+      excluded_by: Disabled by default and unavailable on the government tier.
+      attested_by: Product security lead
+
 aws:
   accounts:
     - id: "123456789012"

@@ -1,0 +1,38 @@
+# This repository, as its own subject.
+#
+# Every other example here runs on fixtures, which is honest but limited: fixtures prove the grader
+# works, not that it survives contact with a real API. This profile points the GitHub collectors at
+# ksi-harness itself, so at least one part of the demo runs on evidence nobody authored.
+#
+# It is deliberately the GitHub half only. There is no cloud account behind this repository, and
+# inventing an AWS scope here would produce exactly the kind of evidence this project argues
+# against — a bundle that looks real and reconciles against nothing.
+#
+# Collect with:
+#   $env:GITHUB_TOKEN = (gh auth token)          # PowerShell
+#   export GITHUB_TOKEN=$(gh auth token)         # bash
+#   node src/cli.mjs collect --profile examples/self.profile.yaml --only github --out .evidence-live
+#
+# Expect the two change-management checks to disagree, and read that as the point rather than a bug.
+# `branch-protection` passes because the settings on `main` do require review. `pr-review` fails
+# because the commits that built this repository were pushed straight to `main` before that
+# protection existed, and no configuration change can retroactively make them reviewed. Settings
+# describe intent; commits are what happened. A harness that only read the settings would report
+# this repository as fully controlled, which is the failure mode the two checks exist to separate.
+
+service_name: ksi-harness
+provider: RootCawsLLC
+
+# Nothing here is certified. The class is declared only because the catalog resolves indicator
+# optionality against it, and Class C is what the rest of the examples assume.
+certification_class: c
+
+github:
+  repositories:
+    - name: RootCawsLLC/ksi-harness
+      branch: main
+  window_days: 30
+
+contacts:
+  security: security@rootcaws.example
+  incident_reporting: security@rootcaws.example

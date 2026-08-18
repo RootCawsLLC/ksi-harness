@@ -10,8 +10,10 @@ import * as gcpLogging from './gcp/logging.mjs';
 import * as gcpNetwork from './gcp/network.mjs';
 import * as gcpPolicy from './gcp/policy.mjs';
 import * as githubChange from './github/change.mjs';
+import * as githubDependencies from './github/dependencies.mjs';
 import * as githubSupplyChain from './github/supply-chain.mjs';
 import * as pipelinePolicyGate from './pipeline/policy-gate.mjs';
+import * as thirdpartyRegister from './thirdparty/register.mjs';
 
 /**
  * Every implemented collector.
@@ -36,6 +38,8 @@ export const COLLECTORS = Object.freeze([
   boundaryAttribution,
   githubChange,
   githubSupplyChain,
+  githubDependencies,
+  thirdpartyRegister,
   pipelinePolicyGate,
 ]);
 

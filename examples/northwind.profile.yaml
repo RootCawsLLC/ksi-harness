@@ -136,6 +136,16 @@ github:
       branch: main
   window_days: 30
 
+  # How long an open upstream vulnerability may remain open before it is a finding rather
+  # than a queue. Declared here because it is a decision the programme makes: a critical open
+  # for two days and one open for two hundred are not the same fact, and a fixed threshold
+  # baked into the collector would be somebody else's decision.
+  vulnerability_sla_days:
+    critical: 7
+    high: 30
+    medium: 90
+    low: 180
+
 # The pre-merge policy gate. `iac_roots` is the declared scope for infrastructure as code, and it
 # is enumerated from the working tree rather than taken from the policy tool's own report: a file
 # that exists in a gated root but never reached the gate has to be detectable, and it is not if
@@ -254,12 +264,28 @@ certification:
   third_party:
     certified:
       - id: FR1805751477
+        name: Google Cloud Platform
+        provider: Google
         use_case: Primary compute, storage and networking for the synthesis path.
+        owner: Platform engineering lead
+        # The authorization is taken from this attestation and its refresh interval, not from
+        # the marketplace — so a dependency whose status changed between attestations is not
+        # detected until the refresh falls due. Stated as a gap on KSI-SCR-MIT.
+        attestation:
+          date: 2026-06-01
+          refresh_days: 365
+        # Hosts let an observed outbound integration be matched back to this entry.
+        hosts: [googleapis.com, google.com]
     non_certified:
       - name: Atlas
         provider: MongoDB
         website: https://www.mongodb.com/atlas
-        use_case: >
-          Tenant metadata and job queue state. Commercial tier, not FedRAMP certified.
-          Resolution is open: move to a certified tier, bring the data in-boundary, or
-          scope it out.
+        use_case: Tenant metadata and job queue state. Commercial tier, not FedRAMP certified.
+        # A non-certified dependency inside a boundary targeting certification is not
+        # automatically a failure — it is a question, and it becomes a failure when nobody
+        # owns the answer or the date passes without one.
+        owner: Data platform lead
+        resolution:
+          plan: Migrate to Atlas for Government, or bring the data in-boundary
+          target_date: 2027-03-31
+        hosts: [mongodb.com, mongodb.net]

@@ -38,7 +38,9 @@
     "demo": "node scripts/demo.mjs",
     "routes:baseline": "node src/cli.mjs routes baseline --out src/routes/routes.baseline.yaml",
     "emit:overview": "node src/cli.mjs emit overview --profile examples/northwind.profile.yaml --out out/overview.json",
-    "timestamp": "node src/cli.mjs timestamp --evidence .evidence"
+    "timestamp": "node src/cli.mjs timestamp --evidence .evidence",
+    "store": "node src/cli.mjs store --profile examples/northwind.profile.yaml",
+    "publish": "node src/cli.mjs publish --profile examples/northwind.profile.yaml --evidence .evidence"
   },
   "dependencies": {
     "ajv": "^8.17.1",

@@ -9,6 +9,8 @@ import { rulesProvenance } from './catalog/rules.mjs';
 import { runAll } from './collectors/run-all.mjs';
 import { ALL_CHECKS } from './collectors/registry.mjs';
 import { chainBreaks, computeManifest, readLocker, timestampPath, writeManifest, writeTimestamp } from './evidence/locker.mjs';
+import { appendAnchor, readAnchorLog, reconcileAgainstAnchor } from './evidence/anchor.mjs';
+import { resolveStore } from './evidence/store.mjs';
 import { requestTimestamp, verifyToken } from './evidence/timestamp.mjs';
 import { buildState } from './evidence/state.mjs';
 import { emitterFor, EMITTERS } from './emit/index.mjs';
@@ -87,6 +89,12 @@ const USAGE = `ksi-harness — continuous control monitoring for FedRAMP 20x
 
   ksi timestamp [--evidence DIR] [--tsa URL]
       Obtain an RFC 3161 trusted timestamp over the manifest root.
+
+  ksi publish --profile F [--evidence DIR] [--anchor FILE]
+      Publish the locker to the declared write-once store, and record its root.
+
+  ksi store --profile F
+      What the declared evidence store guarantees, and whether it really does.
 
   ksi drift [--md FILE]
       Compare the pinned ruleset against upstream and name the routes affected.
@@ -354,7 +362,30 @@ async function main() {
         }
       }
 
-      const bad = locker.unreadable.length + locker.tampered.length + breaks.length;
+      // The chain proves the consistency of what is here and can say nothing about what is
+      // gone — delete two-thirds of a check's history, regenerate the manifest, and every
+      // check above still passes. The anchor log is the only thing that notices, which is
+      // why a locker without one is reported as unverified rather than as clean.
+      let anchorProblems = 0;
+      const anchorPath = (flags.anchor !== true && flags.anchor) || null;
+      if (anchorPath) {
+        const { manifest: current } = { manifest: computeManifest(evidenceDir, { generatedAt: new Date().toISOString() }) };
+        const reconciliation = reconcileAgainstAnchor(current, readAnchorLog(anchorPath));
+        for (const finding of reconciliation.findings) {
+          console.error(`anchor      [${finding.kind}] ${finding.detail}`);
+        }
+        anchorProblems = reconciliation.findings.length;
+        if (reconciliation.ok) {
+          console.log(`anchor      reconciles against ${reconciliation.entries} entry(s), last ${reconciliation.anchored_at}`);
+        }
+      } else {
+        console.log(
+          'anchor      not checked — pass --anchor FILE. Without it, evidence that was deleted rather than ' +
+            'altered leaves no trace here.'
+        );
+      }
+
+      const bad = locker.unreadable.length + locker.tampered.length + breaks.length + anchorProblems;
       console.log(bad === 0 ? 'Every bundle verifies and every chain is intact.' : `${bad} problem(s).`);
       return bad === 0 ? 0 : 1;
     }
@@ -384,6 +415,57 @@ async function main() {
         '\nThe authority signature is not verified here — that needs its certificate chain. Verify with:\n' +
           `  openssl ts -verify -in ${tokenPath} -data ${evidenceDir}/MANIFEST.json -CAfile <tsa-ca.pem>`
       );
+      return 0;
+    }
+
+    case 'store': {
+      // Says what the declared store guarantees, then checks it actually does. A bucket with
+      // Object Lock and one without are indistinguishable from the client until something
+      // asks, which is how an ordinary bucket comes to be called an evidence vault.
+      const profile = flags.profile ? readProfile(flags.profile) : null;
+      const store = resolveStore(profile, { dir: evidenceDir });
+      const described = store.describe();
+
+      console.log(`${described.kind}  ${described.location}`);
+      console.log(`  durability: ${described.durability}`);
+      console.log(`  ${described.why}`);
+
+      try {
+        const proof = await store.assertImmutable();
+        console.log(`\n  verified write-once: ${JSON.stringify(proof)}`);
+        return 0;
+      } catch (err) {
+        console.error(`\n  NOT write-once:\n  ${err.message}`);
+        return 1;
+      }
+    }
+
+    case 'publish': {
+      const profile = readProfile(flags.profile);
+      const store = resolveStore(profile, { dir: evidenceDir });
+      const { manifest } = writeManifest(evidenceDir, { generatedAt: new Date().toISOString() });
+
+      if (!manifest.bundle_count) {
+        console.error(`No bundles in ${evidenceDir}; there is nothing to publish.`);
+        return 1;
+      }
+
+      const result = await store.publish(evidenceDir);
+      console.log(`${result.published} object(s) published, ${result.skipped ?? 0} already present — ${result.location ?? store.location}`);
+
+      // The anchor is the half that survives the store being wrong. It records how much
+      // evidence there was supposed to be, somewhere the locker's owner does not control, so
+      // a truncated locker is detectable even where it was not preventable.
+      const anchorPath = (flags.anchor !== true && flags.anchor) || profile?.evidence?.anchor_log || null;
+      if (anchorPath) {
+        const entry = appendAnchor(anchorPath, manifest, { runUri: process.env.KSI_RUN_URL ?? null });
+        console.log(`anchored root ${entry.root_sha256.slice(0, 12)} (${entry.bundle_count} bundle(s)) to ${anchorPath}`);
+      } else {
+        console.warn(
+          'No anchor log configured (evidence.anchor_log or --anchor). Deletion from this store is prevented ' +
+            'but would not be detectable if the store itself were ever bypassed.'
+        );
+      }
       return 0;
     }
 

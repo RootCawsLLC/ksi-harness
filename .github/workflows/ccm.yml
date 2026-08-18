@@ -75,6 +75,11 @@ jobs:
       # because this repository monitors itself and every fact in its locker is already public.
       KSI_EVIDENCE_BRANCH: ${{ vars.KSI_EVIDENCE_BRANCH || 'evidence' }}
       LOCKER: .locker/evidence
+      # How much evidence there was supposed to be. Deliberately outside the locker: the chain,
+      # the manifest, the signature and the timestamp all live inside `.evidence/`, so they
+      # protect it against alteration and not against removal. This file is what notices a
+      # locker that came back smaller than it went in.
+      ANCHOR_LOG: .locker/anchor.jsonl
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -96,8 +101,19 @@ jobs:
 
       # Verify what was restored before adding to it. A chain break found here means the locker was
       # rewritten between runs, and collecting on top of it would extend a chain that already lies.
+      #
+      # The anchor is checked alongside it because the chain cannot see deletion: it proves the
+      # consistency of what is present and says nothing about what is gone, so a locker with
+      # two-thirds of a check's history removed and its manifest regenerated passes every other
+      # check in this file.
       - name: Verify the restored locker
-        run: node src/cli.mjs verify --evidence "$LOCKER"
+        run: |
+          if [ -f "$ANCHOR_LOG" ]; then
+            node src/cli.mjs verify --evidence "$LOCKER" --anchor "$ANCHOR_LOG"
+          else
+            echo "No anchor log at $ANCHOR_LOG yet; verifying integrity only."
+            node src/cli.mjs verify --evidence "$LOCKER"
+          fi
 
       # Which mode applies is decided once, here, and reported. The alternative — falling back to
       # fixtures without saying so — would put demo data in a locker that everything downstream
@@ -204,6 +220,15 @@ jobs:
             --bundle "$LOCKER/MANIFEST.sigstore.json" \
             "$LOCKER/MANIFEST.json"
           echo "Signed manifest root: $(jq -r .root_sha256 "$LOCKER/MANIFEST.json")"
+
+      # Record how much evidence there is, before publishing it. The anchor entry is what a later
+      # run compares against, so it has to be written from the state this run actually produced —
+      # and it is chained, so the log cannot be trimmed to match a truncated locker either.
+      - name: Anchor the manifest root
+        if: steps.mode.outputs.mode != 'fixtures'
+        env:
+          KSI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node src/cli.mjs publish --profile "$PROFILE" --evidence "$LOCKER" --anchor "$ANCHOR_LOG"
 
       # Last step in the collection path, and the counterpart to the restore. Without it the next
       # run starts from nothing and every cadence assessment goes back to reporting "only one run

@@ -226,6 +226,37 @@ access key would fail two of this harness's own checks, which is worth sitting w
 `ksi collect` exits non-zero when a collector could not run at all, so a credentials failure cannot
 pass as a quiet, evidence-free success.
 
+### This repository is one of its own subjects
+
+Fixtures prove the grader works. They do not prove it survives a real API, so the GitHub half runs
+against `ksi-harness` itself:
+
+```bash
+export GITHUB_TOKEN=$(gh auth token)
+ksi collect --profile examples/self.profile.yaml --only github --out .evidence-live
+```
+
+```
+fail  github.change.pr-review              (4 item(s))
+pass  github.change.branch-protection      (1 item(s))
+pass  github.supply-chain.workflow-pinning (16 item(s))
+```
+
+**The two change-management checks disagree, and that is the entire argument for running both.**
+`main` genuinely does require a review, dismiss stale approvals on new commits, include
+administrators, and permit no bypass actor — so `branch-protection` passes on evidence nobody
+authored. `pr-review` fails anyway, because the commits that built this repository were pushed
+straight to `main` before that protection existed, and no settings change makes them retroactively
+reviewed.
+
+A harness that read only the configuration would report this repository as fully controlled. Reading
+the settings tells you what is *supposed* to happen; reading the commits tells you what did. The gap
+between those two is where unreviewed code lives, and it is the reason both checks exist rather than
+whichever one is cheaper to collect.
+
+The failure is left standing. Fixing the number would mean rewriting history or deleting the
+population, and both are worse than a report that says plainly what happened.
+
 ---
 
 ## Continuous, on a schedule

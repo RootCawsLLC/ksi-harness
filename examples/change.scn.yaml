@@ -1,0 +1,64 @@
+# A declared significant change, for `ksi emit scn`.
+#
+# The parts of a Significant Change Notification that matter are judgements: whether a change is
+# Adaptive or Transformative, why it is being made, what it does to customers, and when. None of
+# that is observable in configuration, and a harness that generated it would be inventing a
+# decision nobody made — the same reason `sdr.mjs` leaves the narrative sections to a person.
+#
+# What the emitter does contribute is the mechanical half: it resolves `indicators` against the
+# pinned ruleset, expands them into the 800-53 controls they carry, and appends what the evidence
+# currently says about each one. Answering "which controls does this change implicate" by hand
+# means reading the crosswalk and missing one.
+#
+#   ksi emit scn --change examples/change.scn.yaml \
+#     --evidence .evidence --overview-uri https://northwind.example/fedramp/overview.json \
+#     --out out/scn.json
+
+change_type: Adaptive
+change_type_explanation: >
+  The service boundary, the data flows and the customer responsibility model are unchanged. This
+  replaces the ingress path within the existing boundary, which SCN-CSO-EVA treats as adaptive.
+
+description: Replace the public application load balancer with an ingress path terminating TLS at CloudFront.
+
+reason: >
+  The current listener terminates TLS on the load balancer inside the VPC, which leaves the
+  edge-to-origin hop under the provider's own certificate rather than the customer's. Moving
+  termination to the edge also removes the last security group that permits inbound 443 from
+  0.0.0.0/0 directly to a compute subnet.
+
+customer_impact: >
+  No change to the API contract, endpoints or customer configuration responsibilities. Customers
+  pinning the load balancer's IP addresses rather than the DNS name must move to the DNS name;
+  those addresses were never a documented interface and no customer is known to depend on them.
+
+# The indicators this change bears on. Each is resolved against the pinned ruleset and expanded
+# into its 800-53 controls, and the current evidence position for each is appended to the impact
+# analysis so the reviewer can see the baseline the change starts from.
+indicators:
+  - KSI-CNA-MAT
+  - KSI-CNA-RNT
+  - KSI-CNA-ULN
+  - KSI-SVC-SIN
+
+impact_analysis: >
+  The change reduces the internet-reachable surface from two listeners to one and moves TLS
+  termination to a managed edge. The residual risk during cutover is a window in which both paths
+  are live, which the plan below bounds to a single business day and which the ingress-exposure
+  check will report on its normal daily cadence.
+
+plan:
+  summary: >
+    Stand the new ingress path up alongside the existing one, shift traffic by weighted DNS over
+    one business day, then remove the old listener and its security group. The policy gate blocks
+    a merge that reintroduces unrestricted inbound on a non-public port, and
+    `aws.network.ingress-exposure` verifies the deployed state afterwards.
+  planned_start: 2026-09-08
+  planned_completion: 2026-09-19
+  milestones:
+    - description: New ingress path deployed and serving a 5% traffic weight
+      target_date: 2026-09-10
+    - description: Full traffic cutover, old listener still present
+      target_date: 2026-09-15
+    - description: Old listener and its security group removed; ingress-exposure check clean over the new population
+      target_date: 2026-09-19

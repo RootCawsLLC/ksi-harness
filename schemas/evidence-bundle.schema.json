@@ -45,19 +45,51 @@
       "description": "Completeness reconciliation. This is the field that buys reviewer reliance and the reason a screenshot cannot: it states how many items were expected, how many were examined, and explains any difference. A bundle where examined != expected without a stated reconciliation is a failed collection, not a passing check.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["expected", "examined", "complete"],
+      "required": ["expected", "examined", "complete", "decidable"],
       "properties": {
         "expected": { "type": "integer", "minimum": 0 },
         "examined": { "type": "integer", "minimum": 0 },
         "complete": { "type": "boolean" },
+        "decidable": {
+          "description": "Items that actually tested the assertion, i.e. every item whose status is not 'not-applicable'. Zero of them means the assertion was never exercised and the result is capped at 'warn' however clean the rest looks, because 'tested nothing' and 'found nothing wrong' have to be distinguishable or an empty listing reads as compliance.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "unexamined": {
+          "description": "Everything the enumeration named that the check could not reach, itemised. Preferred over a prose reconciliation: 'three accounts denied the call' is a list rather than a sentence, and a list can be counted, diffed and escalated.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "reason"],
+            "properties": {
+              "id": { "type": "string" },
+              "reason": { "type": "string" }
+            }
+          }
+        },
         "reconciliation": {
-          "description": "Required when complete is false: what the difference is and why.",
+          "description": "Required when complete is false: what the difference is and why. Derived from unexamined when that is supplied.",
           "type": "string"
         },
         "source_of_truth": {
-          "description": "Where the expected count came from, e.g. 'iam:GetCredentialReport - all principals with console access, plus root'.",
+          "description": "Where the examined items came from, e.g. 'iam:GetCredentialReport - one row per principal, plus root'.",
+          "type": "string"
+        },
+        "enumerated_from": {
+          "description": "Where the expected count came from. It has to be an enumeration made before grading and independent of the items themselves: a denominator derived from the same array as the numerator can never disagree with it, so its completeness claim is arithmetic rather than evidence.",
           "type": "string"
         }
+      }
+    },
+    "chain": {
+      "description": "Links this bundle to the previous one for the same check. Part of the hashed body rather than of the integrity block, deliberately: a hash stored beside the data it covers gets recomputed by whoever edits that data, so on its own it detects corruption and not tampering. A chain means an edit invalidates every later bundle, and concealing one means rewriting the locker up to a head that was published elsewhere.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index"],
+      "properties": {
+        "previous_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+        "index": { "type": "integer", "minimum": 0 }
       }
     },
     "result": {

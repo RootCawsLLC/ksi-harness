@@ -1,0 +1,29 @@
+# Review routing. Read the caveat before turning this into a requirement.
+#
+# What this file does: names who should be asked to look at what. That is useful the moment
+# there is more than one contributor, and it costs nothing before then.
+#
+# What it must not be allowed to do here: stand in for independent review. Every pull request
+# on this repository is opened by `xnasusx` and carries commits authored by `RootCawsLLC`, and
+# those are two accounts belonging to one person. Enabling "Require review from Code Owners" in
+# branch protection would therefore make an approval from RootCawsLLC *satisfy* the requirement
+# while being self-approval in substance — the configuration would read as fully controlled and
+# the review would not have happened.
+#
+# That is the precise divergence this repository ships two checks to expose. `pr-review` reads
+# the commit history rather than the settings, and it grades an approval from the commit's own
+# author as a failure: "Only approval on #N is from the commit author (RootCawsLLC)". So the
+# harness would catch it, correctly, and the repository would be running a control that exists
+# to detect a hole its own configuration had institutionalised.
+#
+# Leave `require_code_owner_reviews` off until there is a second reviewer who is a second person.
+# When there is, this file starts doing real work and the caveat can go.
+
+*                       @RootCawsLLC
+
+# The files where a careless change quietly weakens a claim rather than breaking a build.
+# Grouped so they are visible as a set rather than discovered one review at a time.
+/src/evidence/          @RootCawsLLC
+/src/routes/routes.yaml @RootCawsLLC
+/vendor/fedramp/        @RootCawsLLC
+/docs/adr/              @RootCawsLLC

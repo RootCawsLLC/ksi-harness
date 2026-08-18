@@ -8,9 +8,11 @@ import { catalog, resolveIndicator, termsFor } from './catalog/ksi.mjs';
 import { rulesProvenance } from './catalog/rules.mjs';
 import { runAll } from './collectors/run-all.mjs';
 import { ALL_CHECKS } from './collectors/registry.mjs';
+import { chainBreaks, computeManifest, readLocker } from './evidence/locker.mjs';
 import { buildState } from './evidence/state.mjs';
 import { emitterFor, EMITTERS } from './emit/index.mjs';
 import { coverageJson, coverageMarkdown, coverageText } from './report/coverage.mjs';
+import { diffLocker, diffMarkdown, diffText } from './report/diff.mjs';
 import { checkDrift, driftMarkdown } from './report/drift.mjs';
 import { loadRoutes, validateRoutes } from './routes/routes.mjs';
 
@@ -70,6 +72,13 @@ const USAGE = `ksi-harness — continuous control monitoring for FedRAMP 20x
 
   ksi emit KIND --overview-uri URI [--evidence DIR] [--out FILE] [--base-uri URI]
       Emit an artifact. KIND: ${Object.keys(EMITTERS).join(' | ')}
+      scn additionally needs --change FILE (see examples/change.scn.yaml).
+
+  ksi diff [--evidence DIR] [--from TS] [--to TS] [--md FILE] [--json FILE]
+      What changed in the evidence between two points in the locker.
+
+  ksi verify [--evidence DIR] [--manifest FILE]
+      Verify every bundle's content hash and every check's hash chain.
 
   ksi drift [--md FILE]
       Compare the pinned ruleset against upstream and name the routes affected.
@@ -237,6 +246,9 @@ async function main() {
         overviewUri: flags['overview-uri'] === true ? undefined : flags['overview-uri'],
         baseUri: flags['base-uri'] === true ? null : flags['base-uri'],
         title: flags.title === true ? undefined : flags.title,
+        // A significant change is a decision, not an observation, so the emitter that files
+        // one takes the decision as an input rather than inferring it from drift.
+        change: flags.change && flags.change !== true ? parse(readFileSync(String(flags.change), 'utf8')) : null,
       });
       const serialised = `${JSON.stringify(document, null, 2)}\n`;
       if (flags.out) console.log(`wrote ${write(String(flags.out), serialised)}`);
@@ -249,6 +261,63 @@ async function main() {
         );
       }
       return 0;
+    }
+
+    case 'diff': {
+      const diff = diffLocker(evidenceDir, {
+        from: flags.from === true ? null : flags.from ?? null,
+        to: flags.to === true ? null : flags.to ?? null,
+      });
+      if (flags.md) console.log(`wrote ${write(String(flags.md), diffMarkdown(diff))}`);
+      if (flags.json) console.log(`wrote ${write(String(flags.json), `${JSON.stringify(diff, null, 2)}\n`)}`);
+      if (!flags.md && !flags.json) console.log(diffText(diff));
+      // A regression is not a failed run. The caller decides whether a change in posture
+      // should stop a pipeline, and `--fail-on-regression` is how it says so.
+      if (flags['fail-on-regression'] && diff.counts.regressed_items) {
+        console.error(`\n${diff.counts.regressed_items} regression(s) since the compared collection.`);
+        return 1;
+      }
+      return 0;
+    }
+
+    case 'verify': {
+      // Integrity and chain are separate questions and the second is the one that matters. A
+      // bundle edited by someone who also recomputed its hash passes the first and fails the
+      // second, because the bundle after it still carries the hash the edited one used to have.
+      const locker = readLocker(evidenceDir);
+      const breaks = chainBreaks(locker);
+
+      console.log(`${locker.bundles.length} bundle(s) across ${locker.checks.size} check(s) in ${evidenceDir}`);
+      for (const bad of locker.unreadable) console.error(`unreadable  ${bad.check_id}/${bad.file}: ${bad.error}`);
+      for (const bad of locker.tampered) console.error(`hash        ${bad.check_id}/${bad.file}: content does not match its own digest`);
+      for (const brk of breaks) {
+        console.error(
+          `chain       ${brk.check_id} run ${brk.index} (${brk.collected_at}): ` +
+            (brk.kind === 'chain'
+              ? `expected previous ${String(brk.expected).slice(0, 12)}, stored ${String(brk.stored).slice(0, 12)}`
+              : 'content hash does not verify')
+        );
+      }
+
+      if (flags.manifest && flags.manifest !== true) {
+        // Recomputed in memory, never written. A verifier that regenerated the manifest in
+        // place would overwrite the artifact it was asked to check and then agree with itself.
+        const stored = JSON.parse(readFileSync(String(flags.manifest), 'utf8'));
+        const current = computeManifest(evidenceDir, { generatedAt: stored.generated_at });
+        if (stored.root_sha256 !== current.root_sha256) {
+          console.error(
+            `manifest    root ${stored.root_sha256.slice(0, 12)} does not match the locker's current ` +
+              `${current.root_sha256.slice(0, 12)}. A locker rewritten end to end has a consistent chain and a ` +
+              `different head; this is the check that notices.`
+          );
+          return 1;
+        }
+        console.log(`manifest    root matches (${current.root_sha256.slice(0, 12)})`);
+      }
+
+      const bad = locker.unreadable.length + locker.tampered.length + breaks.length;
+      console.log(bad === 0 ? 'Every bundle verifies and every chain is intact.' : `${bad} problem(s).`);
+      return bad === 0 ? 0 : 1;
     }
 
     case 'drift': {

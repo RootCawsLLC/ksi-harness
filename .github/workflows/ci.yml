@@ -47,6 +47,12 @@ jobs:
             | tar -xz -C /tmp actionlint
           /tmp/actionlint -color
 
+      # Third-party actions are pinned to revisions and the npm tree is locked, which is the right
+      # posture and also the one that goes stale invisibly. Dependabot proposes the updates; this
+      # is what notices a high-severity advisory before dependabot gets to it.
+      - name: Audit the runtime dependency tree
+        run: npm run audit
+
       - run: npm test
 
   artifacts:
@@ -63,11 +69,23 @@ jobs:
       # Proves the whole path end to end on every change: collect, report, emit, schema-validate.
       # The emitters fail the run rather than writing a document FedRAMP would reject on
       # submission, so a schema regression is caught here rather than in a certification cycle.
-      - name: Collect fixture evidence
-        run: npm run collect:fixture
+      # Twice, so the locker holds two collections. One run cannot exercise the hash chain, the
+      # manifest, or `ksi diff` — and a pipeline that only ever produces one collection is exactly
+      # the bug that made the cadence assessment inert, so the end-to-end path should not be able
+      # to pass without a second one.
+      - name: Collect fixture evidence, twice
+        run: |
+          npm run collect:fixture
+          npm run collect:fixture
+
+      - name: Verify the evidence chain and the manifest root
+        run: node src/cli.mjs verify --evidence .evidence --manifest .evidence/MANIFEST.json
 
       - name: Coverage report
         run: node src/cli.mjs coverage --evidence .evidence --md out/coverage.md --json out/coverage.json
+
+      - name: Change report between the two collections
+        run: node src/cli.mjs diff --evidence .evidence --md out/diff.md
 
       - name: Emit FedRAMP 20x artifacts
         run: |
@@ -81,6 +99,14 @@ jobs:
             --profile examples/northwind.profile.yaml \
             --overview-uri "https://northwind.example/fedramp/overview.json" \
             --out out/ocr.json
+
+      - name: Emit a Significant Change Notification
+        run: |
+          node src/cli.mjs emit scn \
+            --evidence .evidence \
+            --change examples/change.scn.yaml \
+            --overview-uri "https://northwind.example/fedramp/overview.json" \
+            --out out/scn.json
 
       - name: Emit OSCAL assessment results
         run: node src/cli.mjs emit oscal-ar --evidence .evidence --out out/oscal-assessment-results.json

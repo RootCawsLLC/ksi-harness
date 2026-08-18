@@ -1,4 +1,5 @@
 import { writeBundle } from '../evidence/bundle.mjs';
+import { chainHeads, writeManifest } from '../evidence/locker.mjs';
 import { COLLECTORS, providerOf } from './registry.mjs';
 
 /**
@@ -10,7 +11,12 @@ import { COLLECTORS, providerOf } from './registry.mjs';
  * `failures` and the caller decides the exit code.
  *
  * `collectedAt` is fixed once for the whole run rather than per collector, so every bundle in
- * one collection shares a timestamp and the locker's daily filenames line up.
+ * one collection shares a timestamp and a reviewer can tell one collection from the next.
+ *
+ * Each bundle is chained onto the last one written for the same check, which is why the
+ * existing locker is read before anything is collected. A run against an empty locker starts
+ * fresh chains, and that is exactly what a pipeline which discards its locker between runs
+ * does every time — see the persistence steps in ccm.yml.
  */
 export async function runAll({
   profile,
@@ -20,21 +26,27 @@ export async function runAll({
   outDir,
   only = null,
   log = () => {},
+  manifest = true,
+  runUri = null,
 }) {
   const bundles = [];
   const failures = [];
   const written = [];
+  const previousHashes = outDir ? chainHeads(outDir) : new Map();
 
   for (const collector of COLLECTORS) {
     const checks = collector.CHECKS.filter((c) => !only || only.includes(c.id) || only.includes(providerOf(c.id)));
     if (checks.length === 0) continue;
 
     try {
-      const produced = await collector.collect({ profile, collectedAt, fixture, sourceCommit });
+      const produced = await collector.collect({ profile, collectedAt, fixture, sourceCommit, previousHashes });
       const kept = produced.filter((b) => !only || only.includes(b.check_id) || only.includes(providerOf(b.check_id)));
       bundles.push(...kept);
       for (const bundle of kept) {
-        log(`  ${bundle.result.padEnd(5)} ${bundle.check_id}  (${bundle.items.length} item(s))`);
+        const gap = bundle.population.complete
+          ? ''
+          : `  [${bundle.population.examined}/${bundle.population.expected} examined]`;
+        log(`  ${bundle.result.padEnd(5)} ${bundle.check_id}  (${bundle.items.length} item(s))${gap}`);
         if (outDir) written.push(writeBundle(bundle, outDir));
       }
     } catch (err) {
@@ -46,5 +58,13 @@ export async function runAll({
     }
   }
 
-  return { bundles, failures, written, collectedAt };
+  // The manifest pins each chain head at a point in time, so a locker rewritten end to end —
+  // which produces a perfectly consistent chain — is still detectable against a manifest that
+  // was signed when the old head was current.
+  let manifestResult = null;
+  if (outDir && manifest && bundles.length) {
+    manifestResult = writeManifest(outDir, { generatedAt: collectedAt, runUri });
+  }
+
+  return { bundles, failures, written, collectedAt, manifest: manifestResult };
 }

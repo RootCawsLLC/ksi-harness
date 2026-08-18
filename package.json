@@ -37,7 +37,8 @@
     "audit": "npm audit --omit=dev --audit-level=high",
     "demo": "node scripts/demo.mjs",
     "routes:baseline": "node src/cli.mjs routes baseline --out src/routes/routes.baseline.yaml",
-    "emit:overview": "node src/cli.mjs emit overview --profile examples/northwind.profile.yaml --out out/overview.json"
+    "emit:overview": "node src/cli.mjs emit overview --profile examples/northwind.profile.yaml --out out/overview.json",
+    "timestamp": "node src/cli.mjs timestamp --evidence .evidence"
   },
   "dependencies": {
     "ajv": "^8.17.1",

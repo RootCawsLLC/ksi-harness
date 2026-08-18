@@ -146,6 +146,22 @@ pipeline:
   policy_source: policy/rego
   policy_report: .policy/conftest-report.json
 
+# Evidence handling.
+evidence:
+  # The RFC 3161 Time Stamping Authority that attests the manifest root after each collection.
+  #
+  # Deliberately has no default. Which third party attests a programme's evidence is a
+  # decision for the programme, and quietly picking one would put an unreviewed dependency in
+  # the chain of custody. Public authorities that work here include DigiCert
+  # (http://timestamp.digicert.com), Sectigo (http://timestamp.sectigo.com) and FreeTSA
+  # (http://freetsa.org/tsr); pick one whose retention and CA policy you have actually read.
+  #
+  # One token per collection over the manifest root, not one per bundle: the manifest already
+  # names every bundle hash and every chain head, so the token attests that the whole locker
+  # in that state existed by that time. Consecutive runs then bracket every bundle between two
+  # attested times, which is a tighter claim than a timestamp a bundle asserts about itself.
+  tsa_url: http://timestamp.digicert.com
+
 # Contacts that appear in generated 20x artifacts.
 contacts:
   security: security@northwind.example

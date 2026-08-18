@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 import { parse } from 'yaml';
@@ -8,7 +8,8 @@ import { catalog, resolveIndicator, termsFor } from './catalog/ksi.mjs';
 import { rulesProvenance } from './catalog/rules.mjs';
 import { runAll } from './collectors/run-all.mjs';
 import { ALL_CHECKS } from './collectors/registry.mjs';
-import { chainBreaks, computeManifest, readLocker } from './evidence/locker.mjs';
+import { chainBreaks, computeManifest, readLocker, timestampPath, writeManifest, writeTimestamp } from './evidence/locker.mjs';
+import { requestTimestamp, verifyToken } from './evidence/timestamp.mjs';
 import { buildState } from './evidence/state.mjs';
 import { emitterFor, EMITTERS } from './emit/index.mjs';
 import { coverageJson, coverageMarkdown, coverageText } from './report/coverage.mjs';
@@ -83,6 +84,9 @@ const USAGE = `ksi-harness — continuous control monitoring for FedRAMP 20x
 
   ksi verify [--evidence DIR] [--manifest FILE]
       Verify every bundle's content hash and every check's hash chain.
+
+  ksi timestamp [--evidence DIR] [--tsa URL]
+      Obtain an RFC 3161 trusted timestamp over the manifest root.
 
   ksi drift [--md FILE]
       Compare the pinned ruleset against upstream and name the routes affected.
@@ -329,11 +333,58 @@ async function main() {
           return 1;
         }
         console.log(`manifest    root matches (${current.root_sha256.slice(0, 12)})`);
+
+        // A stored token is only evidence about the data whose digest it carries. If the
+        // locker has moved on since it was stamped, the token still verifies — against the
+        // old root — and saying so is the difference between a timestamp and a decoration.
+        if (existsSync(timestampPath(evidenceDir))) {
+          const token = readFileSync(timestampPath(evidenceDir));
+          const covers = stored.timestamp?.covers_root_sha256 ?? current.root_sha256;
+          const result = verifyToken(token, covers);
+          if (!result.ok) {
+            console.error(`timestamp   ${result.note}`);
+            return 1;
+          }
+          const stale = covers !== current.root_sha256;
+          console.log(
+            `timestamp   attested ${result.genTime} over root ${result.digestHex.slice(0, 12)}` +
+              `${stale ? ' — STALE: the locker has changed since it was stamped' : ''}`
+          );
+          console.log('            authority signature not checked here; use openssl ts -verify');
+        }
       }
 
       const bad = locker.unreadable.length + locker.tampered.length + breaks.length;
       console.log(bad === 0 ? 'Every bundle verifies and every chain is intact.' : `${bad} problem(s).`);
       return bad === 0 ? 0 : 1;
+    }
+
+    case 'timestamp': {
+      // The manifest root is what gets stamped rather than each bundle: one call per
+      // collection, and it loses nothing, because the manifest names every bundle hash and
+      // every chain head. Consecutive runs then bracket each bundle between two attested
+      // times, which is a tighter claim than a self-asserted instant.
+      const profile = flags.profile ? readProfile(flags.profile) : null;
+      const url = (flags.tsa !== true && flags.tsa) || process.env.KSI_TSA_URL || profile?.evidence?.tsa_url || null;
+
+      const { manifest } = writeManifest(evidenceDir, { generatedAt: new Date().toISOString() });
+      if (!manifest.bundle_count) {
+        console.error(`No bundles in ${evidenceDir}; there is nothing to attest.`);
+        return 1;
+      }
+
+      console.log(`Requesting a timestamp over root ${manifest.root_sha256.slice(0, 16)}…`);
+      const attestation = await requestTimestamp(manifest.root_sha256, { url });
+      const { tokenPath } = writeTimestamp(evidenceDir, attestation.token, attestation);
+
+      console.log(`  authority   ${attestation.authority}`);
+      console.log(`  attested at ${attestation.genTime}`);
+      console.log(`  token       ${tokenPath}`);
+      console.log(
+        '\nThe authority signature is not verified here — that needs its certificate chain. Verify with:\n' +
+          `  openssl ts -verify -in ${tokenPath} -data ${evidenceDir}/MANIFEST.json -CAfile <tsa-ca.pem>`
+      );
+      return 0;
     }
 
     case 'drift': {

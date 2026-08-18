@@ -142,6 +142,35 @@ export function writeManifest(dir, options = {}) {
   return { path, manifest };
 }
 
+/** Where the RFC 3161 token for a locker's manifest lives. */
+export const timestampPath = (dir) => join(dir, 'MANIFEST.tsr');
+
+/**
+ * Records a trusted timestamp over the manifest root.
+ *
+ * The token is written beside the manifest as DER, which is the format `openssl ts -verify`
+ * expects — so the authority's signature can be checked with a standard tool rather than
+ * only by this repository's own code. The attested time also goes into the manifest itself,
+ * which changes the manifest and therefore its root; that is why the attested time is stored
+ * separately under `timestamp` rather than being folded into the digested entries, and why
+ * `root_sha256` still covers only the check entries.
+ */
+export function writeTimestamp(dir, token, attestation) {
+  writeFileSync(timestampPath(dir), token);
+
+  const path = join(dir, 'MANIFEST.json');
+  const manifest = JSON.parse(readFileSync(path, 'utf8'));
+  manifest.timestamp = {
+    authority: attestation.authority ?? null,
+    attested_at: attestation.genTime,
+    covers_root_sha256: attestation.digestHex,
+    token: 'MANIFEST.tsr',
+    signature_verified_here: false,
+  };
+  writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  return { path, tokenPath: timestampPath(dir), manifest };
+}
+
 /**
  * Observed collection interval, in days, from the run history.
  *

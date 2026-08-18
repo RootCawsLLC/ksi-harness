@@ -1,16 +1,24 @@
 name: ccm
 
-# Continuous control monitoring: collect against live systems on a schedule, report, and open an
-# issue when the evidence stops supporting a claim.
+# Continuous control monitoring: collect against live systems on a schedule, report, and escalate
+# when the evidence stops supporting a claim.
 #
-# The schedule is the control. Several indicators use the word "persistently", which FedRAMP
-# defines rather than leaves to the reader, and a check that runs when someone remembers to run it
-# does not satisfy it. The harness records collection history and compares the observed interval
-# against the cadence each route declares, so an unreliable schedule shows up as a cadence failure
-# in the coverage report rather than as an absence nobody notices.
+# The schedule is the control. Several indicators use the word "persistently", which FedRAMP defines
+# rather than leaves to the reader, and a check that runs when someone remembers to run it does not
+# satisfy it. The harness records collection history and compares the observed interval against the
+# cadence each route declares, so an unreliable schedule shows up as a cadence failure in the
+# coverage report rather than as an absence nobody notices.
 #
-# Credentials come from OIDC rather than long-lived keys — aws.iam.mfa-coverage and
-# aws.iam.privileged-access both fail on standing access, and a permanent CI access key in a
+# There are three collection modes, and the run says which one it used rather than blurring them:
+#
+#   live         A collector role is configured, so everything the profile declares is collected.
+#   github-live  No cloud role, but the GitHub half needs no secret beyond the workflow token, so it
+#                runs for real against the repositories the profile declares. This is the default,
+#                and it is why "continuous" here is a description rather than an aspiration.
+#   fixtures     Explicitly requested. Produces demo evidence and never escalates.
+#
+# Credentials for the cloud half come from OIDC rather than long-lived keys — aws.iam.mfa-coverage
+# and aws.iam.privileged-access both fail on standing access, and a permanent CI access key in a
 # repository secret is exactly that. The role should be read-only.
 
 on:
@@ -26,12 +34,20 @@ on:
 
 permissions:
   contents: read
+  # Branch protection is readable only with administration scope. Without it the collector records
+  # "token lacks permission to verify this" as a warning, which is honest but is not evidence.
+  administration: read
+  pull-requests: read
   id-token: write
   issues: write
 
 jobs:
   collect:
     runs-on: ubuntu-latest
+    env:
+      # Override with a repository variable to monitor a different boundary. The default is this
+      # repository, which is the only boundary these credentials can actually see.
+      PROFILE: ${{ vars.KSI_PROFILE || 'examples/self.profile.yaml' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -43,37 +59,46 @@ jobs:
       - name: Verify the FedRAMP ruleset pin
         run: npm run vendor:verify
 
-      # Whether a live run is possible is decided once, here, and reported. The alternative —
-      # falling back to fixtures without saying so — would put demo data in a locker that
-      # everything downstream treats as real, which is the worst bug this repository could ship.
+      # Which mode applies is decided once, here, and reported. The alternative — falling back to
+      # fixtures without saying so — would put demo data in a locker that everything downstream
+      # treats as real, which is the worst bug this repository could ship.
       - name: Decide the collection mode
         id: mode
         env:
           ROLE: ${{ secrets.AWS_COLLECTOR_ROLE_ARN }}
         run: |
-          if [ "${{ inputs.fixtures_only }}" = "true" ] || [ -z "$ROLE" ]; then
-            echo "live=false" >> "$GITHUB_OUTPUT"
-            echo "No collector role configured, or fixtures requested: this run produces fixture evidence." >&2
+          if [ "${{ inputs.fixtures_only }}" = "true" ]; then
+            mode=fixtures
+          elif [ -n "$ROLE" ]; then
+            mode=live
           else
-            echo "live=true" >> "$GITHUB_OUTPUT"
+            mode=github-live
           fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "Collection mode: $mode (profile $PROFILE)"
 
       - name: Assume the read-only collector role
-        if: steps.mode.outputs.live == 'true'
+        if: steps.mode.outputs.mode == 'live'
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           role-to-assume: ${{ secrets.AWS_COLLECTOR_ROLE_ARN }}
           aws-region: us-east-1
           role-session-name: ksi-harness-ccm
 
-      - name: Collect live evidence
-        if: steps.mode.outputs.live == 'true'
+      - name: Collect every declared check
+        if: steps.mode.outputs.mode == 'live'
         env:
           GITHUB_TOKEN: ${{ secrets.KSI_GITHUB_READ_TOKEN || github.token }}
-        run: node src/cli.mjs collect --profile examples/northwind.profile.yaml --out .evidence
+        run: node src/cli.mjs collect --profile "$PROFILE" --out .evidence
+
+      - name: Collect the checks these credentials can actually evidence
+        if: steps.mode.outputs.mode == 'github-live'
+        env:
+          GITHUB_TOKEN: ${{ secrets.KSI_GITHUB_READ_TOKEN || github.token }}
+        run: node src/cli.mjs collect --profile "$PROFILE" --only github --out .evidence
 
       - name: Collect fixture evidence
-        if: steps.mode.outputs.live != 'true'
+        if: steps.mode.outputs.mode == 'fixtures'
         run: npm run collect:fixture
 
       - name: Coverage report
@@ -81,9 +106,9 @@ jobs:
           node src/cli.mjs coverage --evidence .evidence --md out/coverage.md --json out/coverage.json
           cat out/coverage.md >> "$GITHUB_STEP_SUMMARY"
 
-      # Drift in the upstream ruleset is a separate failure from drift in the environment, and it
-      # is the one nobody watches. A new indicator, or a changed statement, silently invalidates
-      # the routing map and every narrative generated from it.
+      # Drift in the upstream ruleset is a separate failure from drift in the environment, and it is
+      # the one nobody watches. A new indicator, or a changed statement, silently invalidates the
+      # routing map and every narrative generated from it.
       - name: Check the upstream ruleset for drift
         continue-on-error: true
         run: node src/cli.mjs drift --md out/drift.md
@@ -95,26 +120,18 @@ jobs:
           path: |
             out/
             .evidence/
-          # Long enough to cover a quarterly OCR window with room to spare. Real evidence
-          # retention belongs in a private append-only store, not in workflow artifacts.
+          # Long enough to cover a quarterly OCR window with room to spare. Real evidence retention
+          # belongs in a private append-only store, not in workflow artifacts.
           retention-days: 120
 
-      - name: Open an issue when the evidence stops supporting a claim
-        if: steps.mode.outputs.live == 'true'
+      # Escalation never runs on fixture evidence: an issue raised from demo data is worse than no
+      # issue at all. See scripts/ccm-issue.mjs for why this is a script rather than inline shell —
+      # the first version silently did nothing for two separate reasons.
+      - name: Escalate controls that ran and failed
+        if: steps.mode.outputs.mode != 'fixtures'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          findings=$(node -e "
-            const s = require('./out/coverage.json');
-            const open = s.findings ?? [];
-            if (!open.length) process.exit(0);
-            console.log(open.map(f => '- **' + f.indicator + '** (' + f.evidence_state + '): ' +
-              f.checks.map(c => c.check_id + ' = ' + c.result).join(', ')).join('\n'));
-          ")
-          if [ -n "$findings" ]; then
-            printf 'Continuous monitoring found indicators whose evidence no longer supports the declared coverage.\n\n%s\n' "$findings" > body.md
-            gh issue create \
-              --title "CCM: evidence does not support declared coverage ($(date -u +%Y-%m-%d))" \
-              --body-file body.md \
-              --label ccm || true
-          fi
+          KSI_MODE: ${{ steps.mode.outputs.mode }}
+          KSI_PROFILE: ${{ vars.KSI_PROFILE || 'examples/self.profile.yaml' }}
+          KSI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/ccm-issue.mjs out/coverage.json

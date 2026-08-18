@@ -28,14 +28,23 @@ function itemMap(bundle) {
   return new Map((bundle?.items ?? []).map((i) => [i.id, i]));
 }
 
-export function diffLocker(evidenceDir, { from = null, to = null } = {}) {
+/**
+ * @param latest compare each check's two most recent collections rather than its whole history.
+ *
+ * The default spans first-to-last, which answers "what has changed since this locker began" —
+ * right for a report a person reads. It is wrong for alerting, where the question is "what
+ * changed in the run that just happened": a control that broke and then recovered is invisible
+ * across the full span, because both endpoints are green and the interesting part happened in
+ * between. Defaulting alerting to the full span would have silently swallowed every recovery.
+ */
+export function diffLocker(evidenceDir, { from = null, to = null, latest = false } = {}) {
   const locker = readLocker(evidenceDir);
   const routes = checkToIndicators();
   const checks = [];
 
   for (const [checkId, { history }] of [...locker.checks].sort(([a], [b]) => a.localeCompare(b))) {
-    const before = from ? bundleAt(history, from) : history[0];
-    const after = to ? bundleAt(history, to) : history[history.length - 1];
+    const before = latest ? history[history.length - 2] : from ? bundleAt(history, from) : history[0];
+    const after = latest ? history[history.length - 1] : to ? bundleAt(history, to) : history[history.length - 1];
 
     // One run is a collection, not a trend. Saying so is more useful than rendering a diff
     // against itself and letting the reader assume nothing changed.

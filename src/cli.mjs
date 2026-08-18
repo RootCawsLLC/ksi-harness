@@ -9,16 +9,18 @@ import { rulesProvenance } from './catalog/rules.mjs';
 import { runAll } from './collectors/run-all.mjs';
 import { ALL_CHECKS } from './collectors/registry.mjs';
 import { chainBreaks, computeManifest, readLocker, timestampPath, writeManifest, writeTimestamp } from './evidence/locker.mjs';
+import { buildNotification } from './alert/notification.mjs';
+import { resolveSink, shouldDeliver } from './alert/sinks.mjs';
 import { appendAnchor, readAnchorLog, reconcileAgainstAnchor } from './evidence/anchor.mjs';
 import { resolveStore } from './evidence/store.mjs';
 import { requestTimestamp, verifyToken } from './evidence/timestamp.mjs';
-import { buildState } from './evidence/state.mjs';
+import { buildState, openFindings } from './evidence/state.mjs';
 import { emitterFor, EMITTERS } from './emit/index.mjs';
 import { coverageJson, coverageMarkdown, coverageText } from './report/coverage.mjs';
 import { diffLocker, diffMarkdown, diffText } from './report/diff.mjs';
 import { checkDrift, driftMarkdown } from './report/drift.mjs';
 import { buildBaseline } from './routes/baseline.mjs';
-import { loadRoutes, validateRoutes } from './routes/routes.mjs';
+import { checkToIndicators, loadRoutes, validateRoutes } from './routes/routes.mjs';
 
 /**
  * Command line entry point.
@@ -81,7 +83,7 @@ const USAGE = `ksi-harness — continuous control monitoring for FedRAMP 20x
       Emit an artifact. KIND: ${Object.keys(EMITTERS).join(' | ')}
       scn additionally needs --change FILE (see examples/change.scn.yaml).
 
-  ksi diff [--evidence DIR] [--from TS] [--to TS] [--md FILE] [--json FILE]
+  ksi diff [--evidence DIR] [--from TS] [--to TS] [--latest] [--md FILE] [--json FILE]
       What changed in the evidence between two points in the locker.
 
   ksi verify [--evidence DIR] [--manifest FILE]
@@ -95,6 +97,9 @@ const USAGE = `ksi-harness — continuous control monitoring for FedRAMP 20x
 
   ksi store --profile F
       What the declared evidence store guarantees, and whether it really does.
+
+  ksi notify --profile F [--evidence DIR] [--sink stdout] [--always]
+      Deliver what changed since the last collection to the declared sink.
 
   ksi drift [--md FILE]
       Compare the pinned ruleset against upstream and name the routes affected.
@@ -295,6 +300,7 @@ async function main() {
       const diff = diffLocker(evidenceDir, {
         from: flags.from === true ? null : flags.from ?? null,
         to: flags.to === true ? null : flags.to ?? null,
+        latest: Boolean(flags.latest),
       });
       if (flags.md) console.log(`wrote ${write(String(flags.md), diffMarkdown(diff))}`);
       if (flags.json) console.log(`wrote ${write(String(flags.json), `${JSON.stringify(diff, null, 2)}\n`)}`);
@@ -466,6 +472,40 @@ async function main() {
             'but would not be detectable if the store itself were ever bypassed.'
         );
       }
+      return 0;
+    }
+
+    case 'notify': {
+      const profile = flags.profile ? readProfile(flags.profile) : null;
+      const sink = resolveSink(profile, { override: flags.sink !== true ? flags.sink : null });
+      const state = buildState({ evidenceDir, klass, profile });
+
+      // The diff supplies the narrative — which control started failing, which recovered — so
+      // the message says what moved rather than restating the whole table. With only one
+      // collection it reports no transitions, which is correct: nothing has been observed to
+      // change yet, and the findings were reported when the run that found them was read.
+      const notification = buildNotification({
+        findings: openFindings(state),
+        diff: diffLocker(evidenceDir, { latest: true }),
+        indicatorsByCheck: checkToIndicators(),
+        mode: process.env.KSI_MODE ?? 'unknown',
+        profile: flags.profile ?? 'unknown',
+        runUrl: process.env.KSI_RUN_URL ?? null,
+        generatedAt: state.generated_at,
+      });
+
+      const described = sink.describe();
+      console.log(`${described.kind} → ${described.target}`);
+      console.log(`  ${notification.severity}: ${notification.title}`);
+
+      if (!shouldDeliver(notification, sink, { always: Boolean(flags.always) })) {
+        console.log('  nothing transitioned since the previous collection; not delivering.');
+        console.log('  A control failing for forty days is one piece of news, not forty. Pass --always to override.');
+        return 0;
+      }
+
+      const result = await sink.deliver(notification);
+      console.log(result.delivered ? `  delivered to ${result.target ?? described.target}` : `  ${result.action}: ${result.reason}`);
       return 0;
     }
 

@@ -255,11 +255,20 @@ jobs:
       # Escalation never runs on fixture evidence: an issue raised from demo data is worse than no
       # issue at all. See scripts/ccm-issue.mjs for why this is a script rather than inline shell —
       # the first version silently did nothing for two separate reasons.
-      - name: Escalate controls that ran and failed
+      # Notifies on *transition* rather than on state. A control failing for forty days is one
+      # piece of news and thirty-nine reasons to stop reading, and a channel people have muted
+      # is alerting that looks present and does nothing — the same silent-success shape this
+      # repository hunts everywhere else.
+      #
+      # The sink comes from the profile. The github-issue sink is the one that can stand down,
+      # because it owns a living issue it can close; a webhook or chat sink can only append, so
+      # it fires on transitions only. An escalation that cannot stand down is half a control.
+      - name: Notify on controls that changed state
         if: steps.mode.outputs.mode != 'fixtures'
         env:
           GH_TOKEN: ${{ github.token }}
           KSI_MODE: ${{ steps.mode.outputs.mode }}
-          KSI_PROFILE: ${{ vars.KSI_PROFILE || 'examples/self.profile.yaml' }}
           KSI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: node scripts/ccm-issue.mjs out/coverage.json
+          KSI_ALERT_WEBHOOK: ${{ secrets.KSI_ALERT_WEBHOOK }}
+          KSI_SLACK_WEBHOOK: ${{ secrets.KSI_SLACK_WEBHOOK }}
+        run: node src/cli.mjs notify --profile "$PROFILE" --evidence "$LOCKER" --sink "${{ vars.KSI_ALERT_SINK || 'github-issue' }}"

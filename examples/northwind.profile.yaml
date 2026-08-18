@@ -35,6 +35,51 @@ aws:
   # lets the check tell those apart.
   public_ports: [80, 443]
 
+# The GCP half of the boundary. Three of these keys are denominators rather than settings,
+# and that is the point: `audited_services` is the list KSI-MLA-LET asks to be maintained,
+# `required_constraints` is a statement of intended state that Organization Policy is then
+# checked against, and `cmek_required_buckets` is what turns "note the key custody" into a
+# claim that can fail. A check whose denominator came from the environment could only ever
+# report what is there.
+gcp:
+  organization_id: "419827365104"
+  projects:
+    - id: northwind-voice-prod
+    - id: northwind-voice-logs
+
+  # Services whose Data Access logs must be on. These default to OFF on GCP, which is the
+  # most common reason an investigation finds no record of a read.
+  audited_services:
+    - storage.googleapis.com
+    - iam.googleapis.com
+    - cloudkms.googleapis.com
+    - secretmanager.googleapis.com
+
+  # Principals permitted to read log data. Anything else with read access on a sink
+  # destination is a least-privilege finding rather than a configuration detail.
+  log_readers:
+    - group:security@northwind.example
+    - serviceAccount:siem-ingest@northwind-voice-logs.iam.gserviceaccount.com
+
+  # Buckets that must hold customer-managed keys. Everything in GCS is encrypted at rest
+  # unconditionally, so this declaration is what gives the check something to falsify.
+  cmek_required_buckets:
+    - northwind-customer-audio
+    - northwind-voice-models
+
+  # Organization Policy constraints required on every declared project. These are enforced
+  # when the API call is made rather than after the fact, which makes them the preventive
+  # counterpart to the detective collectors — the same pairing as the Terraform gate.
+  required_constraints:
+    - id: iam.disableServiceAccountKeyCreation
+      why: prevents downloadable service account keys being created at all
+    - id: storage.publicAccessPrevention
+      why: prevents a bucket being made public regardless of its own IAM
+    - id: sql.restrictPublicIp
+      why: prevents a database being given a public address
+    - id: compute.requireOsLogin
+      why: forces SSH through IAM rather than metadata-distributed keys
+
 github:
   repositories:
     - name: northwind/platform

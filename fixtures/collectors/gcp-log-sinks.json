@@ -1,0 +1,24 @@
+{
+  "note": "audit-archive is the correct shape: routes out of the project, locked retention, readers limited to the declared set. app-debug writes back into the project it audits, so the record is alterable by whoever can alter the project. legacy-siem is enumerated but its destination bucket could not be read, which is a gap rather than a compliant sink.",
+  "project": "elevenlabs-fedramp-demo",
+  "declared_readers": ["group:security@elevenlabs.io", "serviceAccount:siem-ingest@elevenlabs-logs.iam.gserviceaccount.com"],
+  "unexamined": [
+    { "id": "sink/legacy-siem", "reason": "PERMISSION_DENIED reading the destination bucket IAM policy" }
+  ],
+  "sinks": [
+    {
+      "name": "audit-archive",
+      "destination": "storage.googleapis.com/projects/elevenlabs-logs/buckets/audit-archive",
+      "disabled": false,
+      "retention": { "days": 400, "locked": true },
+      "readers": ["group:security@elevenlabs.io"]
+    },
+    {
+      "name": "app-debug",
+      "destination": "storage.googleapis.com/projects/elevenlabs-fedramp-demo/buckets/debug-logs",
+      "disabled": false,
+      "retention": { "days": 30, "locked": false },
+      "readers": ["group:engineering@elevenlabs.io"]
+    }
+  ]
+}

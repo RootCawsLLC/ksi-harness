@@ -4,6 +4,7 @@ node_modules/
 # one deliberate exception below.
 out/
 .policy/
+.checkov/
 .tools/
 
 # Evidence lockers.

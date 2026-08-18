@@ -110,7 +110,7 @@ Read [ADR 0002](docs/adr/0002-coverage-honesty.md) before touching `routes.yaml`
 
 ```bash
 npm run setup            # pin the local git commit identity (writes local config only)
-npm test                 # 136 tests
+npm test                 # 142 tests
 npm run policy           # policy unit tests + gate + negative control
 npm run vendor:verify    # the ruleset pin still matches
 npm run routes:validate  # routing map against catalog and registry

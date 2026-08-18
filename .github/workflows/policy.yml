@@ -20,6 +20,7 @@ permissions:
 env:
   OPA_VERSION: v1.19.1
   CONFTEST_VERSION: 0.69.0
+  CHECKOV_VERSION: 3.3.11
 
 jobs:
   gate:
@@ -72,25 +73,45 @@ jobs:
           retention-days: 90
 
   scan:
-    # Checkov covers ground the hand-written Rego does not, and it is deliberately advisory here.
-    # Its findings are not mapped to indicators, and an unmapped finding cannot be reported as KSI
-    # evidence — so treating it as a blocking gate would mean blocking on something this harness
-    # cannot account for. It runs to catch what the local policies miss.
+    # Checkov covers ground the hand-written Rego does not, and its findings are advisory here.
+    # They are not mapped to indicators, and an unmapped finding cannot be reported as KSI evidence,
+    # so blocking on them would mean blocking on something this harness cannot account for. It runs
+    # to catch what the local policies miss.
+    #
+    # Advisory does not mean unverified. Checkov is installed from a pinned release rather than
+    # through the published action, which pinned a years-old image and failed open on bad flags,
+    # and the run is checked for having actually happened. See scripts/checkov-assert.mjs.
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: bridgecrewio/checkov-action@99bb2caf247dfd9f03cf984373bc6043d4e32ebf # v12.1347.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          directory: policy/terraform
-          framework: terraform
-          output_format: cli,sarif
-          output_file_path: console,checkov.sarif
-          soft_fail: true
+          node-version: 22
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+
+      - name: Install checkov
+        run: |
+          pip install --disable-pip-version-check "checkov==${CHECKOV_VERSION}"
+          checkov --version
+
+      # Soft-failing keeps the findings advisory. The assertion step below is what makes the run
+      # itself non-optional, so a scanner that stops working is a red build rather than a quiet one.
+      - name: Scan the Terraform fixtures
+        run: |
+          checkov --directory policy/terraform \
+            --framework terraform \
+            --output json --output sarif \
+            --output-file-path .checkov \
+            --soft-fail
+
+      - name: Confirm the scan actually evaluated the tree
+        run: node scripts/checkov-assert.mjs .checkov/results_json.json
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: checkov-sarif
-          path: checkov.sarif
+          name: checkov-report
+          path: .checkov/
           retention-days: 30

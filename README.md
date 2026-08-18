@@ -234,8 +234,8 @@ pass as a quiet, evidence-free success.
 
 | Workflow | What it does |
 |---|---|
-| `ci.yml` | Verify the pin, validate routes, 136 tests, then collect → report → emit → schema-validate end to end |
-| `policy.yml` | OPA unit tests, the gate with its negative control, then the gate result as an evidence bundle. Checkov advisory |
+| `ci.yml` | Verify the pin, validate routes, 142 tests, then collect → report → emit → schema-validate end to end |
+| `policy.yml` | OPA unit tests, the gate with its negative control, then the gate result as an evidence bundle. Checkov findings are advisory, but its execution is verified |
 | `ccm.yml` | Daily collection via OIDC, coverage report, ruleset drift check, and an issue when evidence stops supporting a claim |
 
 The schedule is itself the control. Several indicators use the word "persistently" — which FedRAMP
@@ -255,7 +255,7 @@ validation text.
 ## Tests
 
 ```bash
-npm test          # 136 tests
+npm test          # 142 tests
 npm run policy    # policy unit tests + gate + negative control (39 Rego tests)
 ```
 

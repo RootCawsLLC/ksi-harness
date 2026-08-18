@@ -92,10 +92,17 @@ This is why the routes credit this layer as `partial` and never as sufficient on
 
 ## Consequences
 
-- Checkov runs in CI but is advisory (`soft_fail`, `continue-on-error`). Its findings are not
-  mapped to indicators, and an unmapped finding cannot be reported as KSI evidence — so gating on
-  it would mean blocking on something this harness cannot account for. It runs to catch what the
-  hand-written policies miss, and its output is retained as SARIF.
+- Checkov's **findings** are advisory (`soft_fail`), because they are not mapped to indicators and
+  an unmapped finding cannot be reported as KSI evidence — gating on it would mean blocking on
+  something this harness cannot account for. It runs to catch what the hand-written policies miss,
+  and its JSON and SARIF output is retained.
+- Checkov's **execution** is not advisory. The first version of this pipeline used the published
+  `checkov-action`, which pinned a years-old image, rejected the output flags it was handed, exited
+  on an argument error, and still reported success — so the scanner was absent behind a green tick.
+  Checkov is now installed from a pinned release and the report is checked for having actually
+  evaluated the tree, with the same negative control the conftest gate uses: the non-conforming
+  fixtures must fail it. "Found nothing" and "never ran" look identical in a passing pipeline, so
+  the difference has to be asserted rather than assumed.
 - Bypasses are still invisible. A gate that can be skipped with an administrator merge is only as
   strong as its bypass rate, and that number is the one an assessor should ask for. It is named as
   an unautomated gap on `KSI-CMT-VTD` rather than quietly omitted.

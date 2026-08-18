@@ -237,25 +237,36 @@ ksi collect --profile examples/self.profile.yaml --only github --out .evidence-l
 ```
 
 ```
-fail  github.change.pr-review              (4 item(s))
-pass  github.change.branch-protection      (1 item(s))
-pass  github.supply-chain.workflow-pinning (16 item(s))
+fail  github.change.pr-review
+pass  github.change.branch-protection
+pass  github.supply-chain.workflow-pinning
 ```
 
 **The two change-management checks disagree, and that is the entire argument for running both.**
 `main` genuinely does require a review, dismiss stale approvals on new commits, include
 administrators, and permit no bypass actor — so `branch-protection` passes on evidence nobody
-authored. `pr-review` fails anyway, because the commits that built this repository were pushed
-straight to `main` before that protection existed, and no settings change makes them retroactively
-reviewed.
+authored. `pr-review` fails anyway, and it fails in two distinguishable ways:
+
+- `Pushed directly to main with no pull request` — the commits that built this repository, made
+  before the protection existed. No settings change makes them retroactively reviewed.
+- `Merged via #N with no approving review` — a change that *did* go through a pull request and pass
+  every required check, merged by an administrator who temporarily lifted the admin requirement
+  because a solo maintainer cannot approve their own pull request.
+
+**The second one is the interesting one: the harness caught its own author bypassing its own gate.**
+Nothing in the branch protection settings records that this happened. The setting was restored
+within seconds and reads as fully compliant now, and the only durable trace is in the commit
+history — which is exactly where this check looks.
 
 A harness that read only the configuration would report this repository as fully controlled. Reading
 the settings tells you what is *supposed* to happen; reading the commits tells you what did. The gap
-between those two is where unreviewed code lives, and it is the reason both checks exist rather than
-whichever one is cheaper to collect.
+between the two is where unreviewed code lives, and it is why both checks exist rather than
+whichever is cheaper to collect. It is also why `KSI-CMT-VTD` carries **bypass rate** as a named
+unautomated gap in `routes.yaml` rather than a silent omission: that number is the one an assessor
+should ask for, and this repository's own is not zero.
 
-The failure is left standing. Fixing the number would mean rewriting history or deleting the
-population, and both are worse than a report that says plainly what happened.
+The failure is left standing. Making it green would mean rewriting history or trimming the
+population, and both are worse than a report that says what happened.
 
 ---
 

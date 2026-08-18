@@ -1,0 +1,14 @@
+{
+  "note": "Everything in GCS and Persistent Disk is encrypted at rest unconditionally, so the question with an answer is key custody. voice-models is declared as requiring a customer-managed key and does not have one, which is the only failure this check can genuinely find.",
+  "project": "elevenlabs-fedramp-demo",
+  "cmek_required": ["voice-models", "customer-audio"],
+  "buckets": [
+    { "name": "customer-audio", "default_kms_key": "projects/elevenlabs-fedramp-demo/locations/us/keyRings/fedramp/cryptoKeys/audio" },
+    { "name": "voice-models", "default_kms_key": null },
+    { "name": "public-web-assets", "default_kms_key": null }
+  ],
+  "disks": [
+    { "name": "tts-worker-01", "kms_key": "projects/elevenlabs-fedramp-demo/locations/us/keyRings/fedramp/cryptoKeys/compute" },
+    { "name": "build-cache-01", "kms_key": null }
+  ]
+}

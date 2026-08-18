@@ -44,6 +44,7 @@ KSI-CMT-LMC:
   checks:
     - aws.logging.trail-integrity
     - github.change.pr-review
+    - gcp.logging.audit-config
   unautomated:
     - >
       "Monitored" is only half evidenced. The checks prove change events are recorded in a
@@ -113,6 +114,7 @@ KSI-CNA-EIS:
   checks:
     - aws.config.recorder-state
     - pipeline.iac.policy-gate
+    - gcp.policy.org-constraints
   unautomated:
     - >
       The checks prove an assessment service is recording and evaluating, and that a gate
@@ -140,6 +142,7 @@ KSI-CNA-MAT:
   cadence: daily
   checks:
     - aws.network.ingress-exposure
+    - gcp.network.ingress-exposure
   unautomated:
     - >
       Attack surface is evidenced at the network edge only. The indicator's second clause —
@@ -162,6 +165,7 @@ KSI-CNA-RNT:
   cadence: daily
   checks:
     - aws.network.ingress-exposure
+    - gcp.network.ingress-exposure
   unautomated:
     - Egress is not evaluated. The indicator names inbound *and* outbound; the check reads ingress rules only.
     - Traffic controls implemented at a CDN or WAF in front of the boundary are outside what the check reads.
@@ -180,6 +184,7 @@ KSI-CNA-ULN:
   cadence: daily
   checks:
     - aws.network.ingress-exposure
+    - gcp.network.ingress-exposure
   unautomated:
     - >
       Security-group rules are one logical-networking control among several. Subnet
@@ -298,6 +303,7 @@ KSI-MLA-ALA:
   cadence: daily
   checks:
     - aws.logging.log-access
+    - gcp.logging.sink-integrity
   unautomated:
     - >
       Who *can* read log storage is checked. The indicator additionally requires the model
@@ -330,6 +336,7 @@ KSI-MLA-LET:
   cadence: daily
   checks:
     - aws.logging.trail-integrity
+    - gcp.logging.audit-config
   unautomated:
     - >
       The check proves the trail is on, multi-region, and integrity-validated. The indicator
@@ -343,6 +350,7 @@ KSI-MLA-OSM:
   cadence: daily
   checks:
     - aws.logging.trail-integrity
+    - gcp.logging.sink-integrity
   unautomated:
     - >
       Centralised and tamper-resistant are evidenced (single trail, log-file validation, restrictive
@@ -472,6 +480,7 @@ KSI-SVC-ACM:
   cadence: daily
   checks:
     - aws.config.recorder-state
+    - gcp.policy.org-constraints
   unautomated:
     - >
       Drift detection is evidenced by the assessment service's own state. That the
@@ -529,6 +538,7 @@ KSI-SVC-SIN:
   cadence: daily
   checks:
     - aws.data.encryption-at-rest
+    - gcp.data.encryption-at-rest
   unautomated:
     - Encryption in transit is not checked. The indicator covers information generally, and at-rest state is one half.
     - >

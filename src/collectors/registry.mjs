@@ -3,7 +3,11 @@ import * as awsData from './aws/data.mjs';
 import * as awsIam from './aws/iam.mjs';
 import * as awsLogging from './aws/logging.mjs';
 import * as awsNetwork from './aws/network.mjs';
+import * as gcpData from './gcp/data.mjs';
 import * as gcpIam from './gcp/iam.mjs';
+import * as gcpLogging from './gcp/logging.mjs';
+import * as gcpNetwork from './gcp/network.mjs';
+import * as gcpPolicy from './gcp/policy.mjs';
 import * as githubChange from './github/change.mjs';
 import * as githubSupplyChain from './github/supply-chain.mjs';
 import * as pipelinePolicyGate from './pipeline/policy-gate.mjs';
@@ -24,6 +28,10 @@ export const COLLECTORS = Object.freeze([
   awsData,
   awsConfig,
   gcpIam,
+  gcpLogging,
+  gcpNetwork,
+  gcpData,
+  gcpPolicy,
   githubChange,
   githubSupplyChain,
   pipelinePolicyGate,

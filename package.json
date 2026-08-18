@@ -40,7 +40,8 @@
     "emit:overview": "node src/cli.mjs emit overview --profile examples/northwind.profile.yaml --out out/overview.json",
     "timestamp": "node src/cli.mjs timestamp --evidence .evidence",
     "store": "node src/cli.mjs store --profile examples/northwind.profile.yaml",
-    "publish": "node src/cli.mjs publish --profile examples/northwind.profile.yaml --evidence .evidence"
+    "publish": "node src/cli.mjs publish --profile examples/northwind.profile.yaml --evidence .evidence",
+    "notify": "node src/cli.mjs notify --profile examples/northwind.profile.yaml --evidence .evidence --sink stdout"
   },
   "dependencies": {
     "ajv": "^8.17.1",

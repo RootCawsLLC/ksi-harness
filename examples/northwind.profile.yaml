@@ -156,6 +156,26 @@ pipeline:
   policy_source: policy/rego
   policy_report: .policy/conftest-report.json
 
+# Where findings go when a control changes state.
+#
+# Nothing is defaulted. A finding names a failing control and the resources behind it, so the
+# sink is a decision about who sees an inventory of where this boundary is weakest — not
+# something a tool should guess. Run "ksi notify --sink stdout" to see what would be sent.
+#
+# The rule the notifier enforces: alert on transition, not on state. A control that has been
+# failing for forty days is one piece of news and thirty-nine reasons to stop reading, and a
+# channel people have muted is alerting that looks present and does nothing.
+alerting:
+  sink:
+    # webhook is the honest default when the receiving stack is not yet known: the payload is
+    # the notification itself rather than a shape borrowed from one vendor, because anything
+    # that can receive a webhook can reshape JSON. slack, github-issue and stdout are also
+    # available; see src/alert/sinks.mjs.
+    kind: webhook
+    # Read from the environment rather than written here. Most webhook URLs are credentials,
+    # and this file is committed.
+    url_env: KSI_ALERT_WEBHOOK
+
 # Evidence handling.
 evidence:
   # Where the locker actually lives, and whether it can be deleted.

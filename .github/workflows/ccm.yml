@@ -171,6 +171,18 @@ jobs:
       # a different head. Signing the manifest — which pins every head at a point in time — with a
       # keyless certificate bound to this workflow's identity is what closes that, because it is a
       # signature this repository's own code cannot forge.
+      # Trusted time, before signing. The chain establishes the order of a check's history but
+      # every timestamp in it comes from this runner's clock, so a bundle asserts its own age.
+      # A Time Stamping Authority signs the manifest root together with its own time, which
+      # turns "this evidence claims to be from Tuesday" into a third party attesting that it
+      # existed by Tuesday. Skipped rather than failed when no authority is configured: which
+      # one to trust is a programme decision, not a default this workflow should make.
+      - name: Obtain a trusted timestamp over the manifest root
+        if: steps.mode.outputs.mode != 'fixtures' && vars.KSI_TSA_URL != ''
+        env:
+          KSI_TSA_URL: ${{ vars.KSI_TSA_URL }}
+        run: node src/cli.mjs timestamp --evidence "$LOCKER"
+
       # cosign is installed from its release rather than through sigstore/cosign-installer for the
       # same reason actionlint is in ci.yml: this repository ships a check that fails any
       # third-party action pinned to a mutable tag, and pinning one to a revision means carrying a

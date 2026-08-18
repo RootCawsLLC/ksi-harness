@@ -49,6 +49,28 @@ const steps = [
     argv: ['src/cli.mjs', 'collect', '--profile', PROFILE, '--fixture', 'fixtures/collectors', '--out', EVIDENCE],
   },
   {
+    title: 'Collect a second time',
+    why:
+      'One collection is a collection; two are a cadence. The second run chains onto the first rather than ' +
+      'overwriting it, which is what lets the report test a schedule claim and what makes an edited bundle ' +
+      'detectable. A pipeline that discards its locker between runs never gets here.',
+    argv: ['src/cli.mjs', 'collect', '--profile', PROFILE, '--fixture', 'fixtures/collectors', '--out', EVIDENCE],
+  },
+  {
+    title: 'Verify every hash and every chain',
+    why:
+      'A content hash stored beside the data it covers is recomputed by whoever edits that data, so on its own ' +
+      'it detects corruption and not tampering. The chain is what an edited bundle cannot get past.',
+    argv: ['src/cli.mjs', 'verify', '--evidence', EVIDENCE, '--manifest', `${EVIDENCE}/MANIFEST.json`],
+  },
+  {
+    title: 'What changed between the two collections',
+    why:
+      'The question a coverage report cannot answer. Item-level, because a check that was failing before and is ' +
+      'failing now shows a flat result while the resource that failed may have been fixed and another broken.',
+    argv: ['src/cli.mjs', 'diff', '--evidence', EVIDENCE],
+  },
+  {
     title: 'The coverage report',
     why:
       'The point of the project. Zero indicators are reported as fully automated, against twenty with real ' +
@@ -75,6 +97,20 @@ const steps = [
       '--profile', PROFILE,
       '--overview-uri', OVERVIEW,
       '--out', 'out/ocr.json',
+    ],
+  },
+  {
+    title: 'A Significant Change Notification',
+    why:
+      'The type, rationale and timeline of a change are decisions, so they come from a declared change record. ' +
+      'What the emitter contributes is the half that is mechanical and easy to get wrong: which indicators the ' +
+      'change touches, which 800-53 controls they carry, and what the evidence says about each of them today.',
+    argv: [
+      'src/cli.mjs', 'emit', 'scn',
+      '--evidence', EVIDENCE,
+      '--change', 'examples/change.scn.yaml',
+      '--overview-uri', OVERVIEW,
+      '--out', 'out/scn.json',
     ],
   },
   {

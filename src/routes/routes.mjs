@@ -27,7 +27,12 @@ export const COVERAGE_LEVELS = Object.freeze(['automated', 'partial', 'manual', 
  * from the staleness check rather than silently passing it.
  */
 export const CADENCES = Object.freeze({
-  continuous: 1,
+  // `continuous` was an alias for `daily`, which made the two indistinguishable in both
+  // directions: a claim of continuous collection was satisfied by a daily job, and the locker
+  // could not have shown otherwise because bundles were named by date and a second collection
+  // on the same day silently overwrote the first. Bundles now carry a full timestamp, so
+  // sub-daily collection is observable and the distinction is worth drawing.
+  continuous: 0.25,
   daily: 1,
   weekly: 7,
   monthly: 31,

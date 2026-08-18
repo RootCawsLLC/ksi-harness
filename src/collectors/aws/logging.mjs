@@ -1,7 +1,7 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { callerIdentity, fixtureScope, loadFixture, optional, resolveAccounts, service } from '../lib/aws.mjs';
+import { fixtureScope, loadFixture, mergeGraded, optional, passRate, perAccount, service } from '../lib/aws.mjs';
 
-export const VERSION = '1.0.0';
+export const VERSION = '2.0.0';
 export const PATH = 'src/collectors/aws/logging.mjs';
 
 export const CHECKS = [
@@ -35,7 +35,7 @@ export const CHECKS = [
  * `trails + 1`. Any check whose subject is "the account has at least one X" needs this
  * shape; without it, absence reads as compliance.
  */
-export function gradeTrailIntegrity(trails, accountId) {
+export function gradeTrailIntegrity(trails, accountId, { unexamined = [] } = {}) {
   const items = trails.map((trail) => {
     const problems = [];
     if (!trail.IsLogging) problems.push('not currently logging');
@@ -86,10 +86,11 @@ export function gradeTrailIntegrity(trails, accountId) {
   return {
     items,
     population: {
-      expected: trails.length + 1,
-      examined: items.length,
+      expected: 1 + trails.length + unexamined.length,
+      unexamined,
       source_of_truth:
         'cloudtrail:DescribeTrails with cloudtrail:GetTrailStatus per trail, plus one account-level claim',
+      enumerated_from: 'cloudtrail:DescribeTrails, counted before any trail status was fetched',
     },
     metric: {
       metric_id: 'aws.cloudtrail.compliant_trails',
@@ -118,7 +119,7 @@ export function externalReaders(policy, accountId) {
   return [...out];
 }
 
-export function gradeLogAccess(buckets, accountId, accountBlockPublicAccess) {
+export function gradeLogAccess(buckets, accountId, accountBlockPublicAccess, { unexamined = [] } = {}) {
   const items = buckets.map((bucket) => {
     const problems = [];
     if (!bucket.blockPublicAccess) problems.push('bucket-level block public access is not fully enabled');
@@ -146,18 +147,21 @@ export function gradeLogAccess(buckets, accountId, accountBlockPublicAccess) {
   return {
     items,
     population: {
-      expected: buckets.length + 1,
-      examined: items.length,
+      expected: 1 + buckets.length + unexamined.length,
+      unexamined,
       source_of_truth:
         'Destination buckets named by cloudtrail:DescribeTrails, plus one account-level claim from s3control:GetPublicAccessBlock',
+      enumerated_from:
+        'the distinct S3 destinations named by cloudtrail:DescribeTrails, counted before any bucket configuration was read',
     },
+    metric: { metric_id: 'aws.s3.log_buckets_without_external_read', value: passRate(items), unit: 'ratio' },
   };
 }
 
 /* ------------------------------------------------------------------ fetching */
 
-async function fetchTrails(region) {
-  const { client, sdk } = await service('cloudtrail', region);
+async function fetchTrails(region, credentials) {
+  const { client, sdk } = await service('cloudtrail', region, credentials);
   // includeShadowTrails false: a multi-region trail is reported in every region, and counting
   // the shadows would inflate the population with copies of one trail.
   const described = await client.send(new sdk.DescribeTrailsCommand({ includeShadowTrails: false }));
@@ -178,38 +182,46 @@ async function fetchTrails(region) {
   return trails;
 }
 
-async function fetchLogStorage(region, trails, accountId) {
-  const { client, sdk } = await service('s3', region);
+async function fetchLogStorage(region, trails, accountId, credentials) {
+  const { client, sdk } = await service('s3', region, credentials);
   const names = [...new Set(trails.map((t) => t.S3BucketName).filter(Boolean))];
 
   const buckets = [];
+  const unexamined = [];
   for (const name of names) {
-    const bpa = await optional(client.send(new sdk.GetPublicAccessBlockCommand({ Bucket: name })), [
-      'NoSuchPublicAccessBlockConfiguration',
-    ]);
-    const cfg = bpa?.PublicAccessBlockConfiguration;
-    const policyRaw = await optional(client.send(new sdk.GetBucketPolicyCommand({ Bucket: name })), [
-      'NoSuchBucketPolicy',
-    ]);
-    const acl = await client.send(new sdk.GetBucketAclCommand({ Bucket: name }));
-    const publicAcl = (acl.Grants ?? []).some((g) =>
-      String(g.Grantee?.URI ?? '').includes('acs.amazonaws.com/groups/global')
-    );
+    try {
+      const bpa = await optional(client.send(new sdk.GetPublicAccessBlockCommand({ Bucket: name })), [
+        'NoSuchPublicAccessBlockConfiguration',
+      ]);
+      const cfg = bpa?.PublicAccessBlockConfiguration;
+      const policyRaw = await optional(client.send(new sdk.GetBucketPolicyCommand({ Bucket: name })), [
+        'NoSuchBucketPolicy',
+      ]);
+      const acl = await client.send(new sdk.GetBucketAclCommand({ Bucket: name }));
+      const publicAcl = (acl.Grants ?? []).some((g) =>
+        String(g.Grantee?.URI ?? '').includes('acs.amazonaws.com/groups/global')
+      );
 
-    buckets.push({
-      name,
-      blockPublicAccess: Boolean(
-        cfg?.BlockPublicAcls && cfg?.BlockPublicPolicy && cfg?.IgnorePublicAcls && cfg?.RestrictPublicBuckets
-      ),
-      policy: policyRaw?.Policy ? JSON.parse(policyRaw.Policy) : null,
-      publicAcl,
-    });
+      buckets.push({
+        name,
+        blockPublicAccess: Boolean(
+          cfg?.BlockPublicAcls && cfg?.BlockPublicPolicy && cfg?.IgnorePublicAcls && cfg?.RestrictPublicBuckets
+        ),
+        policy: policyRaw?.Policy ? JSON.parse(policyRaw.Policy) : null,
+        publicAcl,
+      });
+    } catch (err) {
+      // A log destination this credential cannot read is a gap in the population. Grading it
+      // as an exposed bucket would invent a finding from a permission; dropping it would
+      // report clean over a destination nobody looked at.
+      unexamined.push({ id: `bucket/${name}`, reason: err.message });
+    }
   }
 
-  return { buckets, accountId };
+  return { buckets, accountId, unexamined };
 }
 
-async function fetchAccountBlockPublicAccess(region, accountId) {
+async function fetchAccountBlockPublicAccess(region, accountId, credentials) {
   // s3control is a separate client; treated as optional so a missing configuration is
   // distinguishable from a denied call. A denial propagates.
   let sdk;
@@ -218,7 +230,7 @@ async function fetchAccountBlockPublicAccess(region, accountId) {
   } catch {
     return null;
   }
-  const client = new sdk.S3ControlClient({ region });
+  const client = new sdk.S3ControlClient({ region, credentials });
   const got = await optional(client.send(new sdk.GetPublicAccessBlockCommand({ AccountId: accountId })), [
     'NoSuchPublicAccessBlockConfiguration',
   ]);
@@ -228,68 +240,88 @@ async function fetchAccountBlockPublicAccess(region, accountId) {
 
 /* ------------------------------------------------------------------- collect */
 
-export async function collect({ profile, collectedAt, fixture, sourceCommit }) {
+export async function collect({ profile, collectedAt, fixture, sourceCommit, previousHashes = new Map() }) {
   const common = { collectorPath: PATH, collectorVersion: VERSION, collectedAt, sourceCommit };
-  const bundles = [];
+  const chainOf = (checkId) => ({
+    previousHash: previousHashes.get(checkId)?.hash ?? null,
+    chainIndex: previousHashes.get(checkId)?.index ?? 0,
+  });
 
   if (fixture) {
     const trailFixture = loadFixture(fixture, 'aws-cloudtrail');
-    const trailGrade = gradeTrailIntegrity(trailFixture.trails, trailFixture.account);
-    bundles.push(
+    const storage = loadFixture(fixture, 'aws-log-storage');
+    return [
       buildBundle({
         ...common,
+        ...chainOf(CHECKS[0].id),
         checkId: CHECKS[0].id,
         ksis: CHECKS[0].ksis,
         assertion: CHECKS[0].assertion,
         scope: fixtureScope(fixture, 'aws-cloudtrail'),
-        ...trailGrade,
-      })
-    );
-
-    const storage = loadFixture(fixture, 'aws-log-storage');
-    const accessGrade = gradeLogAccess(storage.buckets, storage.account, storage.account_block_public_access);
-    bundles.push(
+        ...gradeTrailIntegrity(trailFixture.trails, trailFixture.account, { unexamined: trailFixture.unexamined ?? [] }),
+      }),
       buildBundle({
         ...common,
+        ...chainOf(CHECKS[1].id),
         checkId: CHECKS[1].id,
         ksis: CHECKS[1].ksis,
         assertion: CHECKS[1].assertion,
         scope: fixtureScope(fixture, 'aws-log-storage'),
-        ...accessGrade,
-      })
-    );
-    return bundles;
+        ...gradeLogAccess(storage.buckets, storage.account, storage.account_block_public_access, {
+          unexamined: storage.unexamined ?? [],
+        }),
+      }),
+    ];
   }
 
-  const accounts = resolveAccounts(profile);
-  const region = accounts[0].regions?.[0] ?? 'us-east-1';
-  const identity = await callerIdentity(region);
-  const scope = { account: identity.account, credential_arn: identity.arn, region };
+  const { parts, unexamined, accounts } = await perAccount(profile, async ({ account, region, credentials }) => {
+    const trails = await fetchTrails(region, credentials);
+    const storage = await fetchLogStorage(region, trails, account.id, credentials);
+    const accountBpa = await fetchAccountBlockPublicAccess(region, account.id, credentials);
+    return {
+      trails: gradeTrailIntegrity(trails, account.id),
+      access: gradeLogAccess(storage.buckets, account.id, accountBpa === null ? false : accountBpa, {
+        unexamined: storage.unexamined,
+      }),
+    };
+  });
 
-  const trails = await fetchTrails(region);
-  bundles.push(
+  const scope = { accounts: accounts.map((a) => a.id), collector_role: profile?.aws?.collector_role ?? null };
+
+  return [
     buildBundle({
       ...common,
+      ...chainOf(CHECKS[0].id),
       checkId: CHECKS[0].id,
       ksis: CHECKS[0].ksis,
       assertion: CHECKS[0].assertion,
       scope,
-      ...gradeTrailIntegrity(trails, identity.account),
-    })
-  );
-
-  const { buckets } = await fetchLogStorage(region, trails, identity.account);
-  const accountBpa = await fetchAccountBlockPublicAccess(region, identity.account);
-  bundles.push(
+      ...mergeGraded(
+        parts.map((p) => ({ scope: p.scope, graded: p.graded.trails })),
+        {
+          sourceOfTruth: 'cloudtrail:DescribeTrails with cloudtrail:GetTrailStatus per trail, in each declared account',
+          enumeratedFrom: 'the accounts declared in the profile, counted before any of them was reached',
+          metric: { metric_id: 'aws.cloudtrail.compliant_trails', unit: 'count' },
+          unexamined,
+        }
+      ),
+    }),
     buildBundle({
       ...common,
+      ...chainOf(CHECKS[1].id),
       checkId: CHECKS[1].id,
       ksis: CHECKS[1].ksis,
       assertion: CHECKS[1].assertion,
       scope,
-      ...gradeLogAccess(buckets, identity.account, accountBpa === null ? false : accountBpa),
-    })
-  );
-
-  return bundles;
+      ...mergeGraded(
+        parts.map((p) => ({ scope: p.scope, graded: p.graded.access })),
+        {
+          sourceOfTruth: 'S3 destinations named by cloudtrail:DescribeTrails, plus the account-level public access block',
+          enumeratedFrom: 'the accounts declared in the profile, counted before any of them was reached',
+          metric: { metric_id: 'aws.s3.log_buckets_without_external_read', unit: 'ratio' },
+          unexamined,
+        }
+      ),
+    }),
+  ];
 }

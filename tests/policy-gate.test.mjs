@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { findIacFiles, gradeGate, ksisInMessage } from '../src/collectors/pipeline/policy-gate.mjs';
+import { buildBundle } from '../src/evidence/bundle.mjs';
 
 /**
  * The population reconciliation is the whole reason this collector exists rather than a CI step
@@ -12,7 +13,25 @@ import { findIacFiles, gradeGate, ksisInMessage } from '../src/collectors/pipeli
  * report, and a collector that counted the report's own entries would call that a clean pass
  * over a shrinking denominator. Enumerating the working tree independently is what turns "every
  * file was evaluated" into a claim that can be falsified.
+ *
+ * The split these tests now assume: grading declares the denominator and itemises what it could
+ * not reach, and the bundle contract is what turns that into `examined`, `complete` and a
+ * reconciliation. A grade function that computed its own completeness could disagree with the
+ * bundle built from it, which is one authority too many for the field everything else relies on.
  */
+
+const bundleFrom = (graded) =>
+  buildBundle({
+    checkId: 'pipeline.iac.policy-gate',
+    ksis: ['KSI-CMT-VTD'],
+    collectorPath: 'src/collectors/pipeline/policy-gate.mjs',
+    collectorVersion: '2.0.0',
+    collectedAt: '2026-08-18T04:00:00.000Z',
+    assertion: 'Every Terraform file in a gated root was evaluated by the policy gate.',
+    scope: {},
+    items: graded.items,
+    population: graded.population,
+  });
 
 const report = (filename, { failures = [], warnings = [], successes = 5 } = {}) => ({
   filename,
@@ -25,9 +44,13 @@ const report = (filename, { failures = [], warnings = [], successes = 5 } = {}) 
 test('a file evaluated with no findings passes', () => {
   const graded = gradeGate({ report: [report('infra/main.tf')], expectedFiles: ['infra/main.tf'] });
   assert.equal(graded.items[0].status, 'pass');
-  assert.equal(graded.population.complete, undefined);
   assert.equal(graded.population.expected, 1);
-  assert.equal(graded.population.examined, 1);
+  assert.deepEqual(graded.population.unexamined, []);
+
+  const bundle = bundleFrom(graded);
+  assert.equal(bundle.population.examined, 1);
+  assert.equal(bundle.population.complete, true);
+  assert.equal(bundle.result, 'pass');
 });
 
 test('a denied finding fails the file', () => {
@@ -54,19 +77,31 @@ test('a file present in a gated root but absent from the report is reported, not
     expectedFiles: ['infra/main.tf', 'infra/forgotten.tf'],
   });
 
-  const forgotten = graded.items.find((i) => i.id === 'infra/forgotten.tf');
-  assert.equal(forgotten.status, 'warn');
-  assert.match(forgotten.detail, /never evaluated/);
-
+  // The unevaluated file is a hole in the population rather than a member of it. Carrying it
+  // as an examined warning would have let the denominator absorb the very gap it exists to
+  // expose, and `complete` would have been true over a file nothing ever looked at.
+  assert.deepEqual(graded.items.map((i) => i.id), ['infra/main.tf']);
+  const forgotten = graded.population.unexamined.find((u) => u.id === 'infra/forgotten.tf');
+  assert.ok(forgotten, 'the unevaluated file is itemised');
+  assert.match(forgotten.reason, /never evaluated/);
   assert.equal(graded.population.expected, 2);
-  assert.equal(graded.population.examined, 1, 'an unevaluated file is not examined');
-  assert.match(graded.population.reconciliation, /1 file\(s\) exist in a gated root but were not evaluated/);
+
+  const bundle = bundleFrom(graded);
+  assert.equal(bundle.population.examined, 1, 'an unevaluated file is not examined');
+  assert.equal(bundle.population.complete, false);
+  assert.match(bundle.population.reconciliation, /infra\/forgotten\.tf/);
+  assert.equal(bundle.result, 'warn', 'an incomplete population cannot report a pass');
 });
 
 test('an unevaluated file is excluded from examined so the bundle cannot report a complete population', () => {
   const graded = gradeGate({ report: [], expectedFiles: ['infra/a.tf', 'infra/b.tf'] });
-  assert.equal(graded.population.examined, 0);
-  assert.ok(graded.population.reconciliation, 'a gap with no explanation would be refused by buildBundle');
+  assert.equal(graded.population.unexamined.length, 2);
+
+  const bundle = bundleFrom(graded);
+  assert.equal(bundle.population.examined, 0);
+  assert.equal(bundle.population.complete, false);
+  assert.ok(bundle.population.reconciliation, 'a gap with no explanation would be refused by buildBundle');
+  assert.equal(bundle.result, 'warn');
 });
 
 test('a file the report covers but no root declares is surfaced rather than dropped', () => {
@@ -83,7 +118,7 @@ test('separator style does not change the result, because reports and globs disa
     expectedFiles: ['infra/modules/main.tf'],
   });
   assert.equal(graded.items[0].status, 'pass');
-  assert.equal(graded.population.examined, 1);
+  assert.deepEqual(graded.population.unexamined, []);
 });
 
 test('findings for the same file across namespaces are merged into one verdict', () => {
@@ -96,7 +131,7 @@ test('findings for the same file across namespaces are merged into one verdict',
   });
   assert.equal(graded.items.length, 1);
   assert.equal(graded.items[0].status, 'fail');
-  assert.equal(graded.population.examined, 1);
+  assert.equal(bundleFrom(graded).population.examined, 1);
 });
 
 /* ------------------------------------------------------- indicators from findings */

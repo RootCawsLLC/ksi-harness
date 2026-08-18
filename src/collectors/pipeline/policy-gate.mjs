@@ -89,18 +89,20 @@ export function gradeGate({ report, expectedFiles, reportRoot }) {
   }
 
   const items = [];
+  const notEvaluated = [];
   const flagged = new Set();
 
   for (const file of expectedFiles) {
     const record = byFile.get(file);
 
     if (!record) {
-      // Not a pass and not a fail: the gate has nothing to say about this file. Treating an
-      // unevaluated file as passing is the failure mode this population exists to catch.
-      items.push({
+      // Not a pass and not a fail: the gate has nothing to say about this file, so it is a
+      // hole in the population rather than an item in it. Treating an unevaluated file as
+      // passing is the failure mode this population exists to catch, and carrying it as an
+      // examined warning would have let the denominator absorb it.
+      notEvaluated.push({
         id: file,
-        status: 'warn',
-        detail: 'Present in a gated root but absent from the policy report, so it was never evaluated.',
+        reason: 'present in a gated root but absent from the policy report, so it was never evaluated',
       });
       continue;
     }
@@ -139,19 +141,17 @@ export function gradeGate({ report, expectedFiles, reportRoot }) {
   // surfacing rather than discarding.
   const unexpected = [...byFile.keys()].filter((f) => !expectedFiles.includes(f));
 
-  const examined = items.filter((i) => i.status !== 'warn' || !i.detail.startsWith('Present in a gated root')).length;
   const population = {
     expected: expectedFiles.length,
-    examined,
+    unexamined: notEvaluated,
     source_of_truth:
       'Every .tf and .tf.json file under the declared infrastructure roots, enumerated from the working tree ' +
       'rather than from the policy report',
+    enumerated_from:
+      'the working tree under the declared iac_roots, walked before the policy report was opened. Counting the ' +
+      'report\'s own entries would make the reconciliation circular: a file skipped by a bad --policy path would ' +
+      'simply not appear, and the gate would report clean over a shrinking denominator.',
   };
-  if (examined !== expectedFiles.length) {
-    population.reconciliation =
-      `${expectedFiles.length - examined} file(s) exist in a gated root but were not evaluated by the policy ` +
-      `gate. They are reported as warnings above and are not counted as passing.`;
-  }
 
   return {
     items,
@@ -177,7 +177,7 @@ function resolveRoots(profile) {
 
 /* ------------------------------------------------------------------- collect */
 
-export async function collect({ profile, collectedAt, fixture, sourceCommit }) {
+export async function collect({ profile, collectedAt, fixture, sourceCommit, previousHashes = new Map() }) {
   const check = CHECKS[0];
   const common = {
     collectorPath: PATH,
@@ -187,6 +187,8 @@ export async function collect({ profile, collectedAt, fixture, sourceCommit }) {
     checkId: check.id,
     ksis: check.ksis,
     assertion: check.assertion,
+    previousHash: previousHashes.get(check.id)?.hash ?? null,
+    chainIndex: previousHashes.get(check.id)?.index ?? 0,
   };
 
   if (fixture) {

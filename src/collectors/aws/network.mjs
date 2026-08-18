@@ -1,7 +1,7 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { callerIdentity, describePorts, fixtureScope, loadFixture, pages, passRate, resolveAccounts, service } from '../lib/aws.mjs';
+import { describePorts, fixtureScope, loadFixture, mergeGraded, pages, passRate, perAccount, service } from '../lib/aws.mjs';
 
-export const VERSION = '1.0.0';
+export const VERSION = '2.0.0';
 export const PATH = 'src/collectors/aws/network.mjs';
 
 export const CHECKS = [
@@ -51,8 +51,14 @@ function coversOnly(permission, allowedPorts) {
  * Ports 80 and 443 open to the internet are the intended state for a public service, so they
  * pass rather than fail — but the item still records the exposure, because the reviewer of a
  * boundary needs the whole public surface enumerated, not just its errors.
+ *
+ * The scope-level item is not decoration. Without it, a region holding no security groups —
+ * or a listing that a filter or a permission quietly emptied — produced a population that
+ * was empty, complete and free of failures, which the bundle contract read as a pass. Every
+ * VPC has a default security group, so zero of them is a signal about the collection rather
+ * than about the network.
  */
-export function gradeIngressExposure(groups, { publicPorts = DEFAULT_PUBLIC_PORTS } = {}) {
+export function gradeIngressExposure(groups, { publicPorts = DEFAULT_PUBLIC_PORTS, scopeId = 'account', unexamined = [] } = {}) {
   const items = groups.map((group) => {
     const attached = (group.attachments ?? []).length;
     const findings = [];
@@ -95,12 +101,26 @@ export function gradeIngressExposure(groups, { publicPorts = DEFAULT_PUBLIC_PORT
     };
   });
 
+  items.unshift(
+    groups.length > 0
+      ? { id: `scope/${scopeId}`, status: 'pass', detail: `${groups.length} security group(s) enumerated for assessment` }
+      : {
+          id: `scope/${scopeId}`,
+          status: 'warn',
+          detail:
+            'No security groups were enumerated here. Every VPC carries a default security group, so an empty ' +
+            'listing describes the collection rather than the network — a filtered query, a region with no VPC, ' +
+            'or a permission this credential does not hold.',
+        }
+  );
+
   return {
     items,
     population: {
-      expected: groups.length,
-      examined: items.length,
+      expected: 1 + groups.length + unexamined.length,
+      unexamined,
       source_of_truth: 'ec2:DescribeSecurityGroups resolved against ec2:DescribeNetworkInterfaces for attachment',
+      enumerated_from: 'the regions declared in the profile, counted before any of them was queried',
     },
     metric: { metric_id: 'aws.ec2.security_groups_without_open_ingress', value: passRate(items), unit: 'ratio' },
   };
@@ -108,8 +128,8 @@ export function gradeIngressExposure(groups, { publicPorts = DEFAULT_PUBLIC_PORT
 
 /* ------------------------------------------------------------------ fetching */
 
-async function fetchSecurityGroups(region) {
-  const { client, sdk } = await service('ec2', region);
+async function fetchSecurityGroups(region, credentials) {
+  const { client, sdk } = await service('ec2', region, credentials);
   const groups = await pages(client, sdk.DescribeSecurityGroupsCommand, {}, (r) => r.SecurityGroups);
   const interfaces = await pages(client, sdk.DescribeNetworkInterfacesCommand, {}, (r) => r.NetworkInterfaces);
 
@@ -130,36 +150,66 @@ async function fetchSecurityGroups(region) {
 
 /* ------------------------------------------------------------------- collect */
 
-export async function collect({ profile, collectedAt, fixture, sourceCommit }) {
+export async function collect({ profile, collectedAt, fixture, sourceCommit, previousHashes = new Map() }) {
   const common = { collectorPath: PATH, collectorVersion: VERSION, collectedAt, sourceCommit };
   const publicPorts = profile?.aws?.public_ports ?? DEFAULT_PUBLIC_PORTS;
+  const chain = {
+    previousHash: previousHashes.get(CHECKS[0].id)?.hash ?? null,
+    chainIndex: previousHashes.get(CHECKS[0].id)?.index ?? 0,
+  };
 
   if (fixture) {
     const data = loadFixture(fixture, 'aws-security-groups');
     return [
       buildBundle({
         ...common,
+        ...chain,
         checkId: CHECKS[0].id,
         ksis: CHECKS[0].ksis,
         assertion: CHECKS[0].assertion,
         scope: fixtureScope(fixture, 'aws-security-groups', { declared_public_ports: publicPorts }),
-        ...gradeIngressExposure(data.security_groups, { publicPorts }),
+        ...gradeIngressExposure(data.security_groups, {
+          publicPorts,
+          scopeId: `${data.account}/${data.region}`,
+        }),
       }),
     ];
   }
 
-  const accounts = resolveAccounts(profile);
-  const region = accounts[0].regions?.[0] ?? 'us-east-1';
-  const identity = await callerIdentity(region);
+  // Regions are enumerated from the profile and each one that cannot be read becomes a named
+  // gap. Dropping an unreachable region would shrink the denominator to the regions that
+  // answered, which is how a boundary reports clean over the half of itself it could see.
+  const { parts, unexamined, accounts } = await perAccount(profile, async ({ account, regions, credentials }) => {
+    const groups = [];
+    const regionGaps = [];
+    for (const region of regions) {
+      try {
+        groups.push(...(await fetchSecurityGroups(region, credentials)));
+      } catch (err) {
+        regionGaps.push({ id: `region/${region}`, reason: err.message });
+      }
+    }
+    return gradeIngressExposure(groups, { publicPorts, scopeId: account.id, unexamined: regionGaps });
+  });
 
   return [
     buildBundle({
       ...common,
+      ...chain,
       checkId: CHECKS[0].id,
       ksis: CHECKS[0].ksis,
       assertion: CHECKS[0].assertion,
-      scope: { account: identity.account, credential_arn: identity.arn, region, declared_public_ports: publicPorts },
-      ...gradeIngressExposure(await fetchSecurityGroups(region), { publicPorts }),
+      scope: {
+        accounts: accounts.map((a) => a.id),
+        collector_role: profile?.aws?.collector_role ?? null,
+        declared_public_ports: publicPorts,
+      },
+      ...mergeGraded(parts, {
+        sourceOfTruth: 'ec2:DescribeSecurityGroups per declared region, resolved against ec2:DescribeNetworkInterfaces',
+        enumeratedFrom: 'the accounts and regions declared in the profile, counted before any was queried',
+        metric: { metric_id: 'aws.ec2.security_groups_without_open_ingress', unit: 'ratio' },
+        unexamined,
+      }),
     }),
   ];
 }

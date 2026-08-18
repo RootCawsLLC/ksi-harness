@@ -1,0 +1,31 @@
+version: 2
+
+# Two ecosystems, both of which this repository ships a control about.
+#
+# `github.supply-chain.workflow-pinning` fails any third-party action pinned to a mutable tag, so
+# the actions here are pinned to commit revisions — which means nothing updates them unless
+# something is watching. That is the trade a revision pin makes, and dependabot is the other half
+# of it. Without this file the pinning check would be satisfied by a set of actions frozen at
+# whatever was current the day they were written, which is a supply-chain posture rather than a
+# supply-chain control.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: actions
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+    groups:
+      # The AWS SDK publishes daily across ten clients. Grouped, or the queue is nothing else.
+      aws-sdk:
+        patterns:
+          - "@aws-sdk/*"

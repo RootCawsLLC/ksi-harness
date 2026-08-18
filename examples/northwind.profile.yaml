@@ -17,6 +17,19 @@ aws:
   accounts:
     - id: "123456789012"
       regions: [us-east-1]
+    - id: "210987654321"
+      regions: [us-east-1, us-west-2]
+
+  # The read-only role this harness assumes in each account. A bare name expands to
+  # `arn:aws:iam::<account>:role/<name>`; a full ARN may use `{account}` as a placeholder.
+  #
+  # Required as soon as more than one account is in scope, and the run is refused without it.
+  # Collecting several accounts on one ambient credential would file the same account's evidence
+  # under every account id in the boundary — a complete-looking report over a boundary that was
+  # never visited, which is worse than not running. An account this role cannot be assumed into
+  # becomes a named gap in every affected population rather than an absence.
+  collector_role: KsiHarnessReadOnly
+
   # Ports the service is intended to expose to the internet. Anything else reachable from
   # 0.0.0.0/0 is a finding rather than a design decision, and stating the intent here is what
   # lets the check tell those apart.

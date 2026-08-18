@@ -1,7 +1,7 @@
 import { catalog } from '../catalog/ksi.mjs';
 import { rulesProvenance } from '../catalog/rules.mjs';
 import { CADENCES, loadRoutes, validateRoutes } from '../routes/routes.mjs';
-import { ageInDays, observedIntervalDays, readLocker } from './locker.mjs';
+import { ageInDays, chainBreaks, observedIntervalDays, readLocker } from './locker.mjs';
 
 /**
  * Folding the catalog, the routing map and the evidence locker into one control state.
@@ -172,6 +172,11 @@ export function buildState({ evidenceDir, klass = 'c', routes = loadRoutes(), no
       // A tampered bundle is reported rather than dropped. Silently discarding it would hide
       // the one event the content hash exists to detect.
       tampered: locker.tampered,
+      // A break in a check's hash chain is the stronger signal, and the one an edited bundle
+      // cannot avoid by recomputing its own hash. Reported separately because the two mean
+      // different things: a content mismatch is usually corruption, a chain mismatch is not.
+      chain_breaks: chainBreaks(locker),
+      unreadable: locker.unreadable,
       fixture_bundles: locker.bundles.filter((b) => b.scope?.fixture).length,
     },
     counts: {

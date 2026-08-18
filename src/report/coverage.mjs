@@ -101,6 +101,21 @@ export function coverageMarkdown(state) {
     lines.push(`> **${state.evidence.tampered.length} bundle(s) failed content-hash verification.**`);
     lines.push('');
   }
+  if (state.evidence.chain_breaks?.length) {
+    lines.push(
+      `> **${state.evidence.chain_breaks.length} break(s) in the evidence hash chain.** A bundle was edited and its ` +
+        'own hash recomputed, or history was rewritten. Affected checks: ' +
+        `${[...new Set(state.evidence.chain_breaks.map((b) => `\`${b.check_id}\``))].join(', ')}.`
+    );
+    lines.push('');
+  }
+  if (state.evidence.unreadable?.length) {
+    lines.push(
+      `> **${state.evidence.unreadable.length} bundle file(s) could not be parsed** and are absent from every number ` +
+        'below.'
+    );
+    lines.push('');
+  }
 
   lines.push(`**Automated coverage** — ${bar(c.coverage, c.applicable)}`);
   lines.push('');
@@ -222,6 +237,9 @@ export function coverageText(state) {
       (state.evidence.fixture_bundles ? `  (${state.evidence.fixture_bundles} from fixtures — NOT REAL EVIDENCE)` : ''),
   ];
   if (state.counts.cadence_unmet) rows.push(`cadence unmet: ${state.counts.cadence_unmet}`);
+  if (state.evidence.chain_breaks?.length) rows.push(`EVIDENCE CHAIN BROKEN: ${state.evidence.chain_breaks.length} break(s)`);
+  if (state.evidence.tampered.length) rows.push(`TAMPERED BUNDLES: ${state.evidence.tampered.length}`);
+  if (state.evidence.unreadable?.length) rows.push(`UNREADABLE BUNDLES: ${state.evidence.unreadable.length}`);
   if (!state.routes_valid) rows.push(`ROUTES INVALID: ${state.route_errors.length} error(s)`);
   return rows.join('\n');
 }

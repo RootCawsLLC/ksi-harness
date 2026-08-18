@@ -76,6 +76,62 @@ test('an unknown emitter names the ones that exist', () => {
   assert.throws(() => emitterFor('xlsx'), /Unknown emitter "xlsx"\. Available:/);
 });
 
+/* -------------------------------------------------------------------------- SCN */
+
+const CHANGE = {
+  change_type: 'Adaptive',
+  description: 'Replace the public load balancer with an edge-terminated ingress path.',
+  reason: 'Removes the last security group permitting inbound 443 from 0.0.0.0/0 to a compute subnet.',
+  indicators: ['KSI-CNA-MAT', 'KSI-SVC-SIN'],
+  plan: { summary: 'Weighted DNS cutover over one business day.', planned_start: '2026-09-08' },
+};
+
+test('the SCN validates against the vendored FedRAMP schema', () => {
+  const document = emitterFor('scn').emit(state, { overviewUri: OVERVIEW, change: CHANGE });
+  assert.equal(validateArtifact('scn', document).ok, true);
+});
+
+// The tedious half of filing an SCN is working out which controls a change implicates, and it is
+// where a filing quietly omits one. That mapping is in the pinned ruleset, so it is resolved
+// rather than transcribed.
+test('the impacted controls are resolved from the ruleset rather than taken from the change record', () => {
+  const document = emitterFor('scn').emit(state, { overviewUri: OVERVIEW, change: CHANGE });
+  assert.ok(document.impactedControls.includes('KSI-CNA-MAT'));
+  assert.ok(document.impactedControls.includes('KSI-SVC-SIN'));
+  assert.ok(
+    document.impactedControls.some((c) => /^[a-z]{2}-\d/i.test(c)),
+    'the 800-53 controls those indicators carry are expanded too'
+  );
+});
+
+// A change proposed while the indicators it touches are already failing is a different filing
+// from the same change proposed from a clean baseline, and the reviewer should not need a second
+// document to find that out.
+test('the impact analysis carries the current evidence position for every impacted indicator', () => {
+  const document = emitterFor('scn').emit(state, { overviewUri: OVERVIEW, change: CHANGE });
+  assert.match(document.impactAnalysis, /Evidence baseline at the time of this notification/);
+  assert.match(document.impactAnalysis, /KSI-CNA-MAT .*coverage \w+, evidence \w+/);
+});
+
+test('an SCN refuses to invent the decision it is notifying about', () => {
+  assert.throws(() => emitterFor('scn').emit(state, { overviewUri: OVERVIEW }), /needs --change FILE/);
+  assert.throws(
+    () => emitterFor('scn').emit(state, { overviewUri: OVERVIEW, change: { ...CHANGE, indicators: [] } }),
+    /needs "indicators"/
+  );
+  assert.throws(
+    () => emitterFor('scn').emit(state, { overviewUri: OVERVIEW, change: { ...CHANGE, change_type: 'Routine' } }),
+    /is not one of Adaptive, Transformative/
+  );
+});
+
+test('an SCN naming an indicator outside the pinned ruleset is refused rather than filed', () => {
+  assert.throws(
+    () => emitterFor('scn').emit(state, { overviewUri: OVERVIEW, change: { ...CHANGE, indicators: ['KSI-XXX-YYY'] } }),
+    /is not an indicator in the pinned ruleset/
+  );
+});
+
 /* -------------------------------------------------------------------------- SDR */
 
 test('the SDR validates against the vendored FedRAMP schema', () => {

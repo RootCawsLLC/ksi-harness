@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { grantsWildcard, trustPrincipals } from '../src/collectors/aws/iam.mjs';
+import { adminGrant, gradePrivilegedAccess, grantsWildcard, trustPrincipals } from '../src/collectors/aws/iam.mjs';
 import { externalReaders } from '../src/collectors/aws/logging.mjs';
 import { classifyUse, extractUses } from '../src/collectors/github/supply-chain.mjs';
 import { describePorts, passRate } from '../src/collectors/lib/grade.mjs';
@@ -49,6 +49,92 @@ test('a conditioned wildcard grant is not standing privilege', () => {
     Statement: [{ Effect: 'Allow', Action: '*', Resource: '*', Condition: { Bool: { 'aws:MultiFactorAuthPresent': 'true' } } }],
   };
   assert.equal(grantsWildcard(doc), false);
+});
+
+// The first version treated any Condition at all as removing the grant, so a condition that
+// constrains nothing about who holds administrative access — a region, a source address, a tag —
+// disqualified a wildcard admin statement entirely. Elevation-bound conditions are how
+// just-in-time access is actually expressed; `aws:RequestedRegion` is not one of them.
+test('a condition that does not bind elevation leaves the grant standing', () => {
+  const doc = {
+    Statement: [
+      { Effect: 'Allow', Action: '*', Resource: '*', Condition: { StringEquals: { 'aws:RequestedRegion': 'us-east-1' } } },
+    ],
+  };
+  assert.equal(grantsWildcard(doc), true, 'administrative in every region but one is still administrative');
+  const grant = adminGrant(doc);
+  assert.equal(grant.admin, true);
+  assert.equal(grant.constrained, false);
+  assert.deepEqual(grant.conditions, ['aws:requestedregion']);
+});
+
+// Allow-everything-except-a-few on every resource is administrative by construction, and it is
+// completely invisible to a test that only reads `Action`.
+test('a NotAction grant on every resource is administrative', () => {
+  const doc = { Statement: [{ Effect: 'Allow', NotAction: ['s3:*'], Resource: '*' }] };
+  assert.equal(grantsWildcard(doc), true);
+  assert.match(adminGrant(doc).via[0], /NotAction grant excluding only s3:\*/);
+});
+
+// iam:PassRole and the policy-rewrite family are admin-equivalent without saying so. A check
+// that only matches Action "*" reports them as unprivileged.
+test('privilege-escalation actions on every resource are administrative in effect', () => {
+  assert.equal(
+    grantsWildcard({ Statement: [{ Effect: 'Allow', Action: ['iam:CreatePolicyVersion', 'iam:PassRole'], Resource: '*' }] }),
+    true
+  );
+  assert.equal(grantsWildcard({ Statement: [{ Effect: 'Allow', Action: 'iam:Attach*', Resource: '*' }] }), true);
+  assert.equal(
+    grantsWildcard({ Statement: [{ Effect: 'Allow', Action: 'iam:GetRole', Resource: '*' }] }),
+    false,
+    'reading a role is not escalating to it'
+  );
+});
+
+test('a permissions boundary downgrades a user finding rather than clearing it', () => {
+  const graded = gradePrivilegedAccess(
+    [
+      {
+        type: 'user',
+        name: 'priya',
+        attached: ['AdministratorAccess'],
+        inline: [],
+        attachedDocuments: [],
+        permissionsBoundary: 'arn:aws:iam::123456789012:policy/EngineerBoundary',
+        trustedPrincipals: [],
+      },
+    ],
+    { accountId: '123456789012' }
+  );
+  const item = graded.items.find((i) => i.id === 'user/priya');
+  assert.equal(item.status, 'warn', 'a boundary is a real constraint, and this check has not read it');
+  assert.match(item.detail, /EngineerBoundary/);
+});
+
+test('an elevation-bound admin grant is not standing privilege', () => {
+  const graded = gradePrivilegedAccess(
+    [
+      {
+        type: 'role',
+        name: 'BreakGlass',
+        attached: [],
+        inline: [
+          {
+            name: 'jit',
+            document: {
+              Statement: [
+                { Effect: 'Allow', Action: '*', Resource: '*', Condition: { Bool: { 'aws:MultiFactorAuthPresent': 'true' } } },
+              ],
+            },
+          },
+        ],
+        attachedDocuments: [],
+        trustedPrincipals: ['arn:aws:iam::123456789012:saml-provider/Okta'],
+      },
+    ],
+    { accountId: '123456789012' }
+  );
+  assert.equal(graded.items.find((i) => i.id === 'role/BreakGlass').status, 'pass');
 });
 
 test('a scoped grant and a deny are not administrative', () => {

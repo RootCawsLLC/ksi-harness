@@ -72,7 +72,7 @@ export function classifyUse(use) {
     : { kind: 'tag-third-party', status: 'fail', detail: `${name} pinned to mutable tag "${revision}"` };
 }
 
-export function gradeWorkflowPinning(repos) {
+export function gradeWorkflowPinning(repos, { declared = null, unexamined = [] } = {}) {
   const items = [];
   let expected = 0;
 
@@ -102,12 +102,24 @@ export function gradeWorkflowPinning(repos) {
     }
   }
 
+  // A repository the profile declares but that never answered adds one to the denominator and
+  // nothing to the numerator, so a boundary that quietly lost a repository reports incomplete
+  // rather than clean over whatever remained.
+  const missing = declared ? declared.filter((r) => !repos.some((x) => x.repo === r.name)) : [];
+  const gaps = [
+    ...unexamined,
+    ...missing.map((r) => ({ id: r.name, reason: 'declared in the profile but no workflow listing was returned' })),
+  ];
+
   return {
     items,
     population: {
-      expected,
-      examined: items.length,
+      expected: expected + gaps.length,
+      unexamined: gaps,
       source_of_truth: 'Every `uses:` reference in every file under .github/workflows in each declared repository',
+      enumerated_from:
+        'the repositories declared in the profile; each one that answered contributes its own workflow references, ' +
+        'and each one that did not is itemised rather than dropped',
     },
     metric: { metric_id: 'github.supply_chain.pinned_actions', value: passRate(items), unit: 'ratio' },
   };
@@ -146,19 +158,24 @@ async function fetchWorkflows(repos) {
 
 /* ------------------------------------------------------------------- collect */
 
-export async function collect({ profile, collectedAt, fixture, sourceCommit }) {
+export async function collect({ profile, collectedAt, fixture, sourceCommit, previousHashes = new Map() }) {
   const common = { collectorPath: PATH, collectorVersion: VERSION, collectedAt, sourceCommit };
+  const chain = {
+    previousHash: previousHashes.get(CHECKS[0].id)?.hash ?? null,
+    chainIndex: previousHashes.get(CHECKS[0].id)?.index ?? 0,
+  };
 
   if (fixture) {
     const data = loadFixture(fixture, 'github-workflows');
     return [
       buildBundle({
         ...common,
+        ...chain,
         checkId: CHECKS[0].id,
         ksis: CHECKS[0].ksis,
         assertion: CHECKS[0].assertion,
         scope: fixtureScope(fixture, 'github-workflows'),
-        ...gradeWorkflowPinning(data.repositories),
+        ...gradeWorkflowPinning(data.repositories, { unexamined: data.unexamined ?? [] }),
       }),
     ];
   }
@@ -167,11 +184,12 @@ export async function collect({ profile, collectedAt, fixture, sourceCommit }) {
   return [
     buildBundle({
       ...common,
+      ...chain,
       checkId: CHECKS[0].id,
       ksis: CHECKS[0].ksis,
       assertion: CHECKS[0].assertion,
       scope: { repositories: repos.map((r) => r.name) },
-      ...gradeWorkflowPinning(await fetchWorkflows(repos)),
+      ...gradeWorkflowPinning(await fetchWorkflows(repos), { declared: repos }),
     }),
   ];
 }

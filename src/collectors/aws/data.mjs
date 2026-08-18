@@ -1,7 +1,7 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { callerIdentity, fixtureScope, loadFixture, optional, pages, passRate, resolveAccounts, service } from '../lib/aws.mjs';
+import { fixtureScope, loadFixture, mergeGraded, optional, pages, passRate, perAccount, service } from '../lib/aws.mjs';
 
-export const VERSION = '1.0.0';
+export const VERSION = '2.0.0';
 export const PATH = 'src/collectors/aws/data.mjs';
 
 export const CHECKS = [
@@ -27,7 +27,7 @@ export const CHECKS = [
  * because a federal customer's question is not "is it encrypted" but "who holds the key" —
  * and that is exactly the gap the route for KSI-SVC-SIN names as unautomated.
  */
-export function gradeEncryptionAtRest(storage) {
+export function gradeEncryptionAtRest(storage, { scopeId = 'account', unexamined = [] } = {}) {
   const items = [];
 
   for (const bucket of storage.buckets ?? []) {
@@ -61,9 +61,9 @@ export function gradeEncryptionAtRest(storage) {
 
   items.unshift(
     storage.ebs_encryption_by_default
-      ? { id: 'account/ebs-default-encryption', status: 'pass', detail: 'New block volumes are encrypted by default' }
+      ? { id: `account/${scopeId}/ebs-default-encryption`, status: 'pass', detail: 'New block volumes are encrypted by default' }
       : {
-          id: 'account/ebs-default-encryption',
+          id: `account/${scopeId}/ebs-default-encryption`,
           status: 'fail',
           detail:
             'Default encryption for new block volumes is off, so the next volume created can be unencrypted without ' +
@@ -71,15 +71,16 @@ export function gradeEncryptionAtRest(storage) {
         }
   );
 
-  const expected = (storage.buckets?.length ?? 0) + (storage.volumes?.length ?? 0) + 1;
+  const enumerated = (storage.buckets?.length ?? 0) + (storage.volumes?.length ?? 0);
   return {
     items,
     population: {
-      expected,
-      examined: items.length,
+      expected: 1 + enumerated + unexamined.length,
+      unexamined,
       source_of_truth:
         's3:ListBuckets with s3:GetBucketEncryption per bucket, ec2:DescribeVolumes, plus one account-level claim ' +
         'from ec2:GetEbsEncryptionByDefault',
+      enumerated_from: 's3:ListBuckets and ec2:DescribeVolumes, counted before any encryption configuration was read',
     },
     metric: { metric_id: 'aws.storage.encrypted_at_rest', value: passRate(items), unit: 'ratio' },
   };
@@ -87,23 +88,31 @@ export function gradeEncryptionAtRest(storage) {
 
 /* ------------------------------------------------------------------ fetching */
 
-async function fetchStorage(region) {
-  const { client: s3, sdk: s3sdk } = await service('s3', region);
+async function fetchStorage(region, credentials) {
+  const { client: s3, sdk: s3sdk } = await service('s3', region, credentials);
   const listed = await s3.send(new s3sdk.ListBucketsCommand({}));
 
   const buckets = [];
+  const unexamined = [];
   for (const bucket of listed.Buckets ?? []) {
-    const got = await optional(s3.send(new s3sdk.GetBucketEncryptionCommand({ Bucket: bucket.Name })), [
-      'ServerSideEncryptionConfigurationNotFoundError',
-    ]);
-    const rule = got?.ServerSideEncryptionConfiguration?.Rules?.[0]?.ApplyServerSideEncryptionByDefault;
-    buckets.push({
-      name: bucket.Name,
-      encryption: rule ? { type: rule.SSEAlgorithm, key_id: rule.KMSMasterKeyID ?? null } : null,
-    });
+    try {
+      const got = await optional(s3.send(new s3sdk.GetBucketEncryptionCommand({ Bucket: bucket.Name })), [
+        'ServerSideEncryptionConfigurationNotFoundError',
+      ]);
+      const rule = got?.ServerSideEncryptionConfiguration?.Rules?.[0]?.ApplyServerSideEncryptionByDefault;
+      buckets.push({
+        name: bucket.Name,
+        encryption: rule ? { type: rule.SSEAlgorithm, key_id: rule.KMSMasterKeyID ?? null } : null,
+      });
+    } catch (err) {
+      // A bucket in another region, or one this credential cannot read, is a gap rather than
+      // an unencrypted bucket. Grading it as a failure would manufacture a finding out of a
+      // permission, which is the mirror image of the bug this harness is built to avoid.
+      unexamined.push({ id: `bucket/${bucket.Name}`, reason: err.message });
+    }
   }
 
-  const { client: ec2, sdk: ec2sdk } = await service('ec2', region);
+  const { client: ec2, sdk: ec2sdk } = await service('ec2', region, credentials);
   const volumes = (await pages(ec2, ec2sdk.DescribeVolumesCommand, {}, (r) => r.Volumes)).map((v) => ({
     id: v.VolumeId,
     encrypted: v.Encrypted,
@@ -111,40 +120,52 @@ async function fetchStorage(region) {
   }));
   const byDefault = await ec2.send(new ec2sdk.GetEbsEncryptionByDefaultCommand({}));
 
-  return { buckets, volumes, ebs_encryption_by_default: byDefault.EbsEncryptionByDefault };
+  return { buckets, volumes, ebs_encryption_by_default: byDefault.EbsEncryptionByDefault, unexamined };
 }
 
 /* ------------------------------------------------------------------- collect */
 
-export async function collect({ profile, collectedAt, fixture, sourceCommit }) {
+export async function collect({ profile, collectedAt, fixture, sourceCommit, previousHashes = new Map() }) {
   const common = { collectorPath: PATH, collectorVersion: VERSION, collectedAt, sourceCommit };
+  const chain = {
+    previousHash: previousHashes.get(CHECKS[0].id)?.hash ?? null,
+    chainIndex: previousHashes.get(CHECKS[0].id)?.index ?? 0,
+  };
 
   if (fixture) {
     const data = loadFixture(fixture, 'aws-storage');
     return [
       buildBundle({
         ...common,
+        ...chain,
         checkId: CHECKS[0].id,
         ksis: CHECKS[0].ksis,
         assertion: CHECKS[0].assertion,
         scope: fixtureScope(fixture, 'aws-storage'),
-        ...gradeEncryptionAtRest(data),
+        ...gradeEncryptionAtRest(data, { scopeId: data.account ?? 'fixture', unexamined: data.unexamined ?? [] }),
       }),
     ];
   }
 
-  const accounts = resolveAccounts(profile);
-  const region = accounts[0].regions?.[0] ?? 'us-east-1';
-  const identity = await callerIdentity(region);
+  const { parts, unexamined, accounts } = await perAccount(profile, async ({ account, region, credentials }) => {
+    const storage = await fetchStorage(region, credentials);
+    return gradeEncryptionAtRest(storage, { scopeId: account.id, unexamined: storage.unexamined });
+  });
 
   return [
     buildBundle({
       ...common,
+      ...chain,
       checkId: CHECKS[0].id,
       ksis: CHECKS[0].ksis,
       assertion: CHECKS[0].assertion,
-      scope: { account: identity.account, credential_arn: identity.arn, region },
-      ...gradeEncryptionAtRest(await fetchStorage(region)),
+      scope: { accounts: accounts.map((a) => a.id), collector_role: profile?.aws?.collector_role ?? null },
+      ...mergeGraded(parts, {
+        sourceOfTruth: 's3:ListBuckets and ec2:DescribeVolumes in each declared account',
+        enumeratedFrom: 'the accounts declared in the profile, counted before any of them was reached',
+        metric: { metric_id: 'aws.storage.encrypted_at_rest', unit: 'ratio' },
+        unexamined,
+      }),
     }),
   ];
 }

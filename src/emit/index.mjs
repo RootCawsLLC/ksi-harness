@@ -1,5 +1,6 @@
 import * as oscalAssessmentResults from './oscal/assessment-results.mjs';
 import * as ocr from './fedramp-20x/ocr.mjs';
+import * as scn from './fedramp-20x/scn.mjs';
 import * as sdr from './fedramp-20x/sdr.mjs';
 
 /**
@@ -18,6 +19,9 @@ import * as sdr from './fedramp-20x/sdr.mjs';
 export const EMITTERS = Object.freeze({
   sdr: { ...sdr, label: 'FedRAMP 20x Security Decision Record (KSI section)', validated: true },
   ocr: { ...ocr, label: 'FedRAMP 20x Ongoing Certification Report', validated: true },
+  // The only emitter that takes an input besides the state, because a significant change is a
+  // decision rather than an observation. See the header of fedramp-20x/scn.mjs.
+  scn: { ...scn, label: 'FedRAMP 20x Significant Change Notification', validated: true, needsChange: true },
   'oscal-ar': {
     ...oscalAssessmentResults,
     label: 'OSCAL Assessment Results',

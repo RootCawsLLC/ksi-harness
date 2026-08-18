@@ -1,0 +1,9 @@
+# Everything needs a review from the maintainers.
+*                       @RootCawsLLC
+
+# The files where a careless change quietly weakens a claim rather than breaking a build.
+# Grouped here so they are visible as a set rather than discovered one review at a time.
+/src/evidence/          @RootCawsLLC
+/src/routes/routes.yaml @RootCawsLLC
+/vendor/fedramp/        @RootCawsLLC
+/docs/adr/              @RootCawsLLC

@@ -9,13 +9,21 @@ name: ccm
 # cadence each route declares, so an unreliable schedule shows up as a cadence failure in the
 # coverage report rather than as an absence nobody notices.
 #
+# That mechanism only works if the locker survives the run. It used to not. This workflow checked
+# the repository out fresh, collected into a gitignored directory, uploaded it as an artifact that
+# nothing ever read back, and started from nothing again the next morning. `observedIntervalDays`
+# needs two runs to report an interval at all, so every assessment reported "only one run so far",
+# `cadence_unmet` was structurally zero, and the argument that a scheduled collection evidences
+# FRD-PER rested on history the pipeline was throwing away. Restoring and republishing the locker
+# is steps one and last below, and it is the whole reason the rest of this file is worth running.
+#
 # There are three collection modes, and the run says which one it used rather than blurring them:
 #
 #   live         A collector role is configured, so everything the profile declares is collected.
 #   github-live  No cloud role, but the GitHub half needs no secret beyond the workflow token, so it
 #                runs for real against the repositories the profile declares. This is the default,
 #                and it is why "continuous" here is a description rather than an aspiration.
-#   fixtures     Explicitly requested. Produces demo evidence and never escalates.
+#   fixtures     Explicitly requested. Produces demo evidence and never escalates or publishes.
 #
 # Credentials for the cloud half come from OIDC rather than long-lived keys — aws.iam.mfa-coverage
 # and aws.iam.privileged-access both fail on standing access, and a permanent CI access key in a
@@ -51,10 +59,22 @@ permissions:
 jobs:
   collect:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # to publish the evidence locker to its own branch
+      pull-requests: read
+      id-token: write # OIDC, for both the collector role and keyless signing
+      issues: write
     env:
       # Override with a repository variable to monitor a different boundary. The default is this
       # repository, which is the only boundary these credentials can actually see.
       PROFILE: ${{ vars.KSI_PROFILE || 'examples/self.profile.yaml' }}
+      # The branch the locker lives on. A branch keeps evidence history out of the source history,
+      # and it is trivially swapped for the private append-only store a real deployment needs: a
+      # bundle names accounts, roles, buckets and failing resources, which is an accurate inventory
+      # of where a boundary is weakest. Publishing it from a public repository is defensible only
+      # because this repository monitors itself and every fact in its locker is already public.
+      KSI_EVIDENCE_BRANCH: ${{ vars.KSI_EVIDENCE_BRANCH || 'evidence' }}
+      LOCKER: .locker/evidence
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -65,6 +85,19 @@ jobs:
 
       - name: Verify the FedRAMP ruleset pin
         run: npm run vendor:verify
+
+      # Step one, and the fix for the bug that made everything below it decorative. The clone is
+      # deliberately not shallow: the locker's own history is the evidence of recurrence, and a
+      # depth-1 clone would discard it while appearing to work.
+      - name: Restore the evidence locker
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/locker-sync.mjs restore .locker
+
+      # Verify what was restored before adding to it. A chain break found here means the locker was
+      # rewritten between runs, and collecting on top of it would extend a chain that already lies.
+      - name: Verify the restored locker
+        run: node src/cli.mjs verify --evidence "$LOCKER"
 
       # Which mode applies is decided once, here, and reported. The alternative — falling back to
       # fixtures without saying so — would put demo data in a locker that everything downstream
@@ -96,22 +129,35 @@ jobs:
         if: steps.mode.outputs.mode == 'live'
         env:
           GITHUB_TOKEN: ${{ secrets.KSI_GITHUB_READ_TOKEN || github.token }}
-        run: node src/cli.mjs collect --profile "$PROFILE" --out .evidence
+        run: node src/cli.mjs collect --profile "$PROFILE" --out "$LOCKER"
 
       - name: Collect the checks these credentials can actually evidence
         if: steps.mode.outputs.mode == 'github-live'
         env:
           GITHUB_TOKEN: ${{ secrets.KSI_GITHUB_READ_TOKEN || github.token }}
-        run: node src/cli.mjs collect --profile "$PROFILE" --only github --out .evidence
+        run: node src/cli.mjs collect --profile "$PROFILE" --only github --out "$LOCKER"
 
+      # Fixture evidence goes to a throwaway directory, never to the locker. A demo bundle in a
+      # persisted locker would be indistinguishable from real evidence to every later run, and the
+      # `scope.fixture` marker only helps a reader who is looking for it.
       - name: Collect fixture evidence
         if: steps.mode.outputs.mode == 'fixtures'
-        run: npm run collect:fixture
+        run: node src/cli.mjs collect --profile examples/northwind.profile.yaml --fixture fixtures/collectors --out .evidence-demo
 
       - name: Coverage report
+        env:
+          EVIDENCE: ${{ steps.mode.outputs.mode == 'fixtures' && '.evidence-demo' || '.locker/evidence' }}
         run: |
-          node src/cli.mjs coverage --evidence .evidence --md out/coverage.md --json out/coverage.json
+          node src/cli.mjs coverage --evidence "$EVIDENCE" --md out/coverage.md --json out/coverage.json
           cat out/coverage.md >> "$GITHUB_STEP_SUMMARY"
+
+      # What moved since the last collection. This is the artifact continuous monitoring is for and
+      # the one that was impossible to produce while the locker was discarded every run.
+      - name: What changed since the last collection
+        if: steps.mode.outputs.mode != 'fixtures'
+        run: |
+          node src/cli.mjs diff --evidence "$LOCKER" --md out/diff.md --json out/diff.json
+          cat out/diff.md >> "$GITHUB_STEP_SUMMARY"
 
       # Drift in the upstream ruleset is a separate failure from drift in the environment, and it is
       # the one nobody watches. A new indicator, or a changed statement, silently invalidates the
@@ -120,15 +166,53 @@ jobs:
         continue-on-error: true
         run: node src/cli.mjs drift --md out/drift.md
 
+      # The chain proves the locker is internally consistent. It cannot prove the locker was not
+      # rewritten end to end, because a wholesale rewrite produces a perfectly consistent chain with
+      # a different head. Signing the manifest — which pins every head at a point in time — with a
+      # keyless certificate bound to this workflow's identity is what closes that, because it is a
+      # signature this repository's own code cannot forge.
+      # cosign is installed from its release rather than through sigstore/cosign-installer for the
+      # same reason actionlint is in ci.yml: this repository ships a check that fails any
+      # third-party action pinned to a mutable tag, and pinning one to a revision means carrying a
+      # revision somebody has to verify. A checksummed download has neither problem.
+      - name: Sign the evidence manifest with a keyless certificate
+        if: steps.mode.outputs.mode != 'fixtures'
+        env:
+          COSIGN_VERSION: 2.4.3
+        run: |
+          curl -fsSL -o /tmp/cosign \
+            "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-amd64"
+          curl -fsSL -o /tmp/cosign_checksums.txt \
+            "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign_checksums.txt"
+          grep " cosign-linux-amd64$" /tmp/cosign_checksums.txt \
+            | sed 's| cosign-linux-amd64$|  /tmp/cosign|' \
+            | sha256sum -c -
+          chmod +x /tmp/cosign
+          /tmp/cosign sign-blob --yes \
+            --bundle "$LOCKER/MANIFEST.sigstore.json" \
+            "$LOCKER/MANIFEST.json"
+          echo "Signed manifest root: $(jq -r .root_sha256 "$LOCKER/MANIFEST.json")"
+
+      # Last step in the collection path, and the counterpart to the restore. Without it the next
+      # run starts from nothing and every cadence assessment goes back to reporting "only one run
+      # so far", which is the failure this workflow was rewritten to fix.
+      - name: Publish the evidence locker
+        if: steps.mode.outputs.mode != 'fixtures'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          KSI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          KSI_COMMIT_MESSAGE: Evidence collected in ${{ steps.mode.outputs.mode }} mode
+        run: node scripts/locker-sync.mjs publish .locker
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: ccm-${{ github.run_number }}
           path: |
             out/
-            .evidence/
-          # Long enough to cover a quarterly OCR window with room to spare. Real evidence retention
-          # belongs in a private append-only store, not in workflow artifacts.
+          # A convenience copy of the reports. The evidence itself lives on the locker branch, which
+          # is the durable record; an artifact that expires cannot be the retention story for
+          # indicators whose cadence is annual.
           retention-days: 120
 
       # Escalation never runs on fixture evidence: an issue raised from demo data is worse than no

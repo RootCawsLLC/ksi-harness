@@ -1,7 +1,7 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { callerIdentity, fixtureScope, loadFixture, resolveAccounts, service } from '../lib/aws.mjs';
+import { fixtureScope, loadFixture, mergeGraded, perAccount, service } from '../lib/aws.mjs';
 
-export const VERSION = '1.0.0';
+export const VERSION = '2.0.0';
 export const PATH = 'src/collectors/aws/config.mjs';
 
 export const CHECKS = [
@@ -30,7 +30,7 @@ export const CHECKS = [
  * separately from recording state, and a recorder that is recording but not delivering is
  * generating evidence nobody can read.
  */
-export function gradeRecorderState(config, accountId) {
+export function gradeRecorderState(config, accountId, { unexamined = [] } = {}) {
   const items = [];
   const recorders = config.recorders ?? [];
 
@@ -84,11 +84,14 @@ export function gradeRecorderState(config, accountId) {
     items,
     population: {
       // recorders + the account claim + the delivery-channel claim + the rules claim
-      expected: recorders.length + 3,
-      examined: items.length,
+      expected: recorders.length + 3 + unexamined.length,
+      unexamined,
       source_of_truth:
         'config:DescribeConfigurationRecorders with config:DescribeConfigurationRecorderStatus, ' +
         'config:DescribeDeliveryChannels, and config:DescribeConfigRules',
+      enumerated_from:
+        'config:DescribeConfigurationRecorders, counted before any recorder status was resolved, plus the three ' +
+        'account-level claims this check always makes',
     },
     metric: { metric_id: 'aws.config.active_rules', value: ruleCount, unit: 'count' },
   };
@@ -96,8 +99,8 @@ export function gradeRecorderState(config, accountId) {
 
 /* ------------------------------------------------------------------ fetching */
 
-async function fetchConfig(region) {
-  const { client, sdk } = await service('config', region);
+async function fetchConfig(region, credentials) {
+  const { client, sdk } = await service('config', region, credentials);
 
   const described = await client.send(new sdk.DescribeConfigurationRecordersCommand({}));
   const statuses = await client.send(new sdk.DescribeConfigurationRecorderStatusCommand({}));
@@ -136,35 +139,46 @@ async function fetchConfig(region) {
 
 /* ------------------------------------------------------------------- collect */
 
-export async function collect({ profile, collectedAt, fixture, sourceCommit }) {
+export async function collect({ profile, collectedAt, fixture, sourceCommit, previousHashes = new Map() }) {
   const common = { collectorPath: PATH, collectorVersion: VERSION, collectedAt, sourceCommit };
+  const chain = {
+    previousHash: previousHashes.get(CHECKS[0].id)?.hash ?? null,
+    chainIndex: previousHashes.get(CHECKS[0].id)?.index ?? 0,
+  };
 
   if (fixture) {
     const data = loadFixture(fixture, 'aws-config');
     return [
       buildBundle({
         ...common,
+        ...chain,
         checkId: CHECKS[0].id,
         ksis: CHECKS[0].ksis,
         assertion: CHECKS[0].assertion,
         scope: fixtureScope(fixture, 'aws-config'),
-        ...gradeRecorderState(data, data.account),
+        ...gradeRecorderState(data, data.account, { unexamined: data.unexamined ?? [] }),
       }),
     ];
   }
 
-  const accounts = resolveAccounts(profile);
-  const region = accounts[0].regions?.[0] ?? 'us-east-1';
-  const identity = await callerIdentity(region);
+  const { parts, unexamined, accounts } = await perAccount(profile, async ({ account, region, credentials }) =>
+    gradeRecorderState(await fetchConfig(region, credentials), account.id)
+  );
 
   return [
     buildBundle({
       ...common,
+      ...chain,
       checkId: CHECKS[0].id,
       ksis: CHECKS[0].ksis,
       assertion: CHECKS[0].assertion,
-      scope: { account: identity.account, credential_arn: identity.arn, region },
-      ...gradeRecorderState(await fetchConfig(region), identity.account),
+      scope: { accounts: accounts.map((a) => a.id), collector_role: profile?.aws?.collector_role ?? null },
+      ...mergeGraded(parts, {
+        sourceOfTruth: 'the AWS Config recorder, delivery channel and rule state in each declared account',
+        enumeratedFrom: 'the accounts declared in the profile, counted before any of them was reached',
+        metric: { metric_id: 'aws.config.active_rules', unit: 'count' },
+        unexamined,
+      }),
     }),
   ];
 }

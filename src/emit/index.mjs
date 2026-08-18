@@ -1,5 +1,6 @@
 import * as oscalAssessmentResults from './oscal/assessment-results.mjs';
 import * as ocr from './fedramp-20x/ocr.mjs';
+import * as overview from './fedramp-20x/overview.mjs';
 import * as scn from './fedramp-20x/scn.mjs';
 import * as sdr from './fedramp-20x/sdr.mjs';
 
@@ -21,6 +22,10 @@ export const EMITTERS = Object.freeze({
   ocr: { ...ocr, label: 'FedRAMP 20x Ongoing Certification Report', validated: true },
   // The only emitter that takes an input besides the state, because a significant change is a
   // decision rather than an observation. See the header of fedramp-20x/scn.mjs.
+  // The document every other artifact's certificationPackageOverviewUri points at. Takes the
+  // profile rather than the evidence, because an overview states who the provider is and what
+  // the service does — none of which is observable in a cloud account.
+  overview: { ...overview, label: 'FedRAMP 20x Certification Package Overview', validated: true, needsProfile: true },
   scn: { ...scn, label: 'FedRAMP 20x Significant Change Notification', validated: true, needsChange: true },
   'oscal-ar': {
     ...oscalAssessmentResults,

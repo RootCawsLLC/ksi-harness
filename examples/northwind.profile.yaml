@@ -104,3 +104,69 @@ pipeline:
 contacts:
   security: security@northwind.example
   incident_reporting: soc@northwind.example
+
+# The Certification Package Overview (FRC-CSO-PKG) — the document every other artifact's
+# `certificationPackageOverviewUri` points at. It is declaration rather than observation, so
+# it lives here rather than being derived from evidence: no cloud account knows what a company
+# is called or how it sells.
+#
+#   ksi emit overview --profile examples/northwind.profile.yaml --out out/overview.json
+certification:
+  package_id: FR0000000000
+  uei: NWDVOICE1234
+  service_acronym: NVA
+  type: 20x
+  website: https://northwind.example/voice-api
+  logo: https://northwind.example/assets/logo.png
+  description: >
+    Northwind Voice API provides speech synthesis and transcription over a REST interface.
+    The authorization boundary covers the synthesis and transcription paths only; the
+    analytics and voice-cloning surfaces are outside it and are disabled by default for
+    government tenants.
+  service_model: [SaaS]
+  deployment_model: Government Community Cloud
+  business_category:
+    - Artificial Intelligence (AI)
+    - Communication
+
+  trust_center:
+    url: https://northwind.example/trust
+    description: Policies, assessment reports and the current KSI coverage report.
+    authentication_required: false
+    types: [Trust Center, Assessment Reports]
+
+  # FRC-CSO-PKG requires a Security contact *and* a Sales contact. The schema expresses that
+  # as two `contains` clauses, which ajv reports abstractly — the emitter checks it directly
+  # so a missing role is named rather than discovered at submission.
+  contacts:
+    - type: Security
+      name: Security Operations
+      email: security@northwind.example
+    - type: Sales
+      name: Federal Sales
+      email: gov-sales@northwind.example
+    - type: Primary
+      name: Compliance Lead
+      email: compliance@northwind.example
+      phone: 202-555-0123
+
+  certified_services:
+    - name: Northwind Speech Synthesis
+      description: Text-to-speech over REST, in zero-retention mode only.
+      date_available: 2026-08-03
+
+  # MAS-CSO-TPR. A non-certified dependency inside a package targeting certification is a
+  # boundary question somebody has to answer; declaring it here puts it in front of a
+  # reviewer at the start rather than at assessment.
+  third_party:
+    certified:
+      - id: FR1805751477
+        use_case: Primary compute, storage and networking for the synthesis path.
+    non_certified:
+      - name: Atlas
+        provider: MongoDB
+        website: https://www.mongodb.com/atlas
+        use_case: >
+          Tenant metadata and job queue state. Commercial tier, not FedRAMP certified.
+          Resolution is open: move to a certified tier, bring the data in-boundary, or
+          scope it out.

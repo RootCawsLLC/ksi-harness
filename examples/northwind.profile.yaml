@@ -148,6 +148,37 @@ pipeline:
 
 # Evidence handling.
 evidence:
+  # Where the locker actually lives, and whether it can be deleted.
+  #
+  # Everything else here protects evidence against being *altered* — the hash chain, the
+  # manifest, the cosign signature, the RFC 3161 token — and all of it is stored inside
+  # `.evidence/`. So it protects the locker against everything except removal: delete
+  # two-thirds of a check's history, regenerate the manifest, and every integrity check still
+  # passes, because a chain proves the consistency of what remains and says nothing about
+  # what is gone.
+  #
+  # `ksi store --profile F` reports what this store guarantees and then verifies it actually
+  # does. A bucket with Object Lock and one without look identical from the client, which is
+  # how an ordinary bucket comes to be called an evidence vault.
+  store:
+    kind: s3
+    bucket: northwind-fedramp-evidence
+    prefix: ksi
+    region: us-east-1
+    # Object Lock in COMPLIANCE mode. GOVERNANCE is refused: it can be overridden by anyone
+    # holding s3:BypassGovernanceRetention, and a retention an administrator can lift does
+    # not survive an administrator being the problem.
+    retain_until: "2034-01-01T00:00:00Z"
+
+  # The other half. Write-once storage prevents deletion; the anchor log makes it detectable
+  # where it was not prevented — in a restored working copy, a mirror, or a locker handed to
+  # an assessor. One append-only line per collection recording the manifest root and the
+  # per-check run counts, chained so the log cannot be trimmed either.
+  #
+  # It belongs somewhere the locker's owner does not control: a different account, a different
+  # bucket, or a file the assessor keeps. Co-locating it with the evidence defeats the point.
+  anchor_log: .anchors/northwind.jsonl
+
   # The RFC 3161 Time Stamping Authority that attests the manifest root after each collection.
   #
   # Deliberately has no default. Which third party attests a programme's evidence is a

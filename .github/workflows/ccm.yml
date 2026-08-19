@@ -75,10 +75,39 @@ jobs:
       # because this repository monitors itself and every fact in its locker is already public.
       KSI_EVIDENCE_BRANCH: ${{ vars.KSI_EVIDENCE_BRANCH || 'evidence' }}
       LOCKER: .locker/evidence
-      # How much evidence there was supposed to be. Deliberately outside the locker: the chain,
-      # the manifest, the signature and the timestamp all live inside `.evidence/`, so they
-      # protect it against alteration and not against removal. This file is what notices a
-      # locker that came back smaller than it went in.
+      #
+      # How much evidence there was supposed to be. The chain, the manifest, the signature and the
+      # timestamp all live inside the locker, so they protect it against alteration and not against
+      # removal; this file is what notices a locker that came back smaller than it went in.
+      #
+      # Read what this default actually buys, because it is weaker than the mechanism is designed
+      # to be. `anchor.jsonl` sits beside `evidence/` rather than inside it, but `locker-sync
+      # publish` commits all of `.locker` and pushes it, so the anchor and the evidence travel to
+      # the same branch in the same commit and come back together on restore. Anyone who can
+      # rewrite that branch rewrites both, which is the co-location ADR 0007 names as defeating
+      # the point.
+      #
+      # So on this repository the anchor detects evidence lost by accident — a bad restore, a
+      # shallow clone, a fetch that dropped history, a deletion nobody meant — and does not detect
+      # deliberate truncation by someone holding push access. That is a real and common failure
+      # mode, and it is not the threat the design is written against.
+      #
+      # It is left this way because a repository whose only subject is itself has no second trust
+      # domain to reach for inside its own workflow, and an anchor that states its limit is worth
+      # more than one that pretends otherwise.
+      #
+      # The path is deliberately not a repository variable, because moving it alone would make
+      # things quietly worse rather than better. Anything outside `.locker` is written after
+      # collection and never restored — every run would start from a fresh checkout, find no
+      # anchor, take the "not checked" branch, and report a clean reconciliation forever. That is
+      # the same structurally-unfalsifiable shape as the cadence bug this workflow was rewritten
+      # to fix, and it would look like it was working.
+      #
+      # A real boundary therefore needs the anchor *plumbed*, not just repointed: fetch it from
+      # wherever it lives before the verify step, and append it back there after publishing —
+      # somewhere whoever can write the evidence cannot also write the record of how much of it
+      # there was supposed to be. A separate repository, a different account, or the write-once
+      # store from ADR 0006 with a distinct credential.
       ANCHOR_LOG: .locker/anchor.jsonl
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

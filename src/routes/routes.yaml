@@ -235,13 +235,30 @@ KSI-CNA-ULN:
       check cannot claim traffic-flow control is enforced overall.
 
 KSI-IAM-AAM:
-  coverage: unaddressed
-  reason: >
-    Account lifecycle automation is evidenced at the identity provider and the HR system,
-    neither of which is in scope for this harness yet. The AWS-side view shows the result of
-    provisioning, not whether it was automated — and the indicator is specifically about the
-    automation.
-  next: Add an IdP collector (joiner/mover/leaver events reconciled against the HR source of truth) before claiming anything here.
+  coverage: partial
+  cadence: daily
+  checks:
+    - idp.account.provisioning
+    - idp.privilege.assignment
+  unautomated:
+    - >
+      Whether an account still corresponds to a person is unevidenced, and it is the half that
+      matters most. An account can be provisioned flawlessly by automation and belong to somebody
+      who left in March: the provisioning source says how it was created, never whether it should
+      still exist. Closing this needs an HR feed as the authoritative roster, reconciled against
+      the provider's account list so an identity with no active worker record is a finding. The
+      profile can name one at `idp.hr_source` and nothing reads it yet.
+    - >
+      Only Okta is normalised. An estate on Entra ID, Google Workspace or a directory of its own
+      has no evidence here at all, and the collector refuses an unknown provider rather than
+      guessing at a payload shape it has never received.
+    - >
+      "Roles and groups" is graded through the identity provider's own model. Roles defined inside
+      a cloud provider and granted to an IdP-federated principal are checked by
+      aws.iam.privileged-access and gcp.iam.privileged-access, but nothing joins the two views, so
+      a privilege granted directly in the cloud to a federated identity is visible as a cloud
+      finding and not as a lifecycle one.
+  next: Reconcile the provider's account list against a declared HR roster, so an orphaned identity becomes a finding rather than an assumption.
 
 KSI-IAM-APM:
   coverage: partial
@@ -262,6 +279,9 @@ KSI-IAM-ELP:
   checks:
     - aws.iam.privileged-access
     - gcp.iam.privileged-access
+    # Least privilege is a property of the grant *path* as well as the grant: access reaching a
+    # person directly rather than through a rule-driven group is privilege nothing will remove.
+    - idp.privilege.assignment
   unautomated:
     - >
       Wildcard and administrative grants are detected — the coarse failure. Least privilege

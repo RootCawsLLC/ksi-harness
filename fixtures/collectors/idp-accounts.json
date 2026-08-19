@@ -1,0 +1,40 @@
+{
+  "_comment": [
+    "An identity provider estate that is mostly automated and not entirely, which is what a real",
+    "one looks like and what makes the check worth running.",
+    "",
+    "The two failures are the ones the indicator exists to find, and neither is visible from the",
+    "cloud side. break-glass@ was created at a console: its permissions may be perfect, but it",
+    "exists because a person made it, so nothing removes it when that person forgets. And",
+    "Platform Admins is a privileged group with hand-curated membership — access added by hand is",
+    "removed by hand, which is the leaver problem in one line.",
+    "",
+    "svc-deploy@ is DEPROVISIONED and therefore not-applicable rather than passing: counting dead",
+    "accounts as evidence of automation would let an estate improve its score by accumulating them.",
+    "",
+    "No hr_source is declared, so the bundle carries a reconciliation note saying that an account",
+    "provisioned correctly by automation and belonging to somebody who left in March is invisible",
+    "here. That is the half an IdP cannot answer on its own."
+  ],
+  "provider": "okta",
+  "domain": "skylark.okta.com",
+  "hr_source": null,
+  "automated_sources": ["ACTIVE_DIRECTORY", "SCIM", "HR_IMPORT"],
+  "accounts": [
+    { "id": "00u1", "login": "amara.osei@skylark.example", "status": "ACTIVE", "live": true, "source": "ACTIVE_DIRECTORY" },
+    { "id": "00u2", "login": "j.lindqvist@skylark.example", "status": "ACTIVE", "live": true, "source": "ACTIVE_DIRECTORY" },
+    { "id": "00u3", "login": "r.okafor@skylark.example", "status": "ACTIVE", "live": true, "source": "SCIM" },
+    { "id": "00u4", "login": "t.varga@skylark.example", "status": "LOCKED_OUT", "live": true, "source": "SCIM" },
+    { "id": "00u5", "login": "break-glass@skylark.example", "status": "ACTIVE", "live": true, "source": "OKTA" },
+    { "id": "00u6", "login": "svc-deploy@skylark.example", "status": "DEPROVISIONED", "live": false, "source": "OKTA" }
+  ],
+  "groups": [
+    { "id": "00g1", "name": "Platform Admins", "membership": "manual", "privileged": true },
+    { "id": "00g2", "name": "Transcription Engineers", "membership": "rule", "privileged": true },
+    { "id": "00g3", "name": "Everyone", "membership": "directory", "privileged": false }
+  ],
+  "grants": [
+    { "id": "gr1", "subject": "Transcription Engineers", "target": "roles/run.developer", "via": "group" },
+    { "id": "gr2", "subject": "amara.osei@skylark.example", "target": "roles/owner", "via": "direct" }
+  ]
+}

@@ -90,7 +90,7 @@ FedRAMP/rules + FedRAMP/schemas        pinned by sha256, drift-checked
   evidence store ──┬── write-once (S3 Object Lock · GCS locked retention)
                    ├── manifest, signed with keyless cosign
                    ├── RFC 3161 timestamp over the manifest root
-                   └── anchor log, held outside the locker
+                   └── anchor log, in a repository of its own
         │
         ▼
   control state ──┬──► FedRAMP 20x Overview (ajv-validated)
@@ -550,7 +550,7 @@ population, and both are worse than a report that says what happened.
 
 | Workflow | What it does |
 |---|---|
-| `ci.yml` | Verify the pin, validate routes, lint the workflows, audit the dependency tree, 298 tests, then collect twice → verify the chain → report → diff → emit all five artifacts → schema-validate end to end |
+| `ci.yml` | Verify the pin, validate routes, lint the workflows, audit the dependency tree, 318 tests, then collect twice → verify the chain → report → diff → emit all five artifacts → schema-validate end to end |
 | `policy.yml` | OPA unit tests, the gate with its negative control, then the gate result as an evidence bundle. Checkov findings are advisory, but its execution is verified |
 | `ccm.yml` | Restore the locker and verify it against the anchor, collect via OIDC, report, diff, anchor the manifest root, timestamp it, sign it, publish the locker, and notify on controls that changed state |
 
@@ -629,16 +629,31 @@ different account, a different project, or a file the assessor keeps, it detects
 disclosed. Held inside the locker it protects, it is removed by whatever removes the evidence, and
 the mechanism reduces to a longer way of storing a hash beside its own data.
 
-**This repository is the weaker case, and it is better to say so than to imply otherwise.** `ccm.yml`
-writes the anchor to `.locker/anchor.jsonl` beside `.locker/evidence`, and the publish step pushes
-the whole directory — so the anchor and the evidence reach the same branch in the same commit and
-come back together. Here it catches evidence lost by accident, which is the common failure, and not
-deliberate truncation by someone holding push access, which is the one the design is written
-against. A self-monitoring repository has no second trust domain to reach for, and repointing the
-path alone would be worse than leaving it: anything outside `.locker` is written after collection and
-never restored, so every run would find no anchor and report a clean reconciliation forever. The real
-fix is to plumb it — fetch before verifying, append after publishing, under a credential that cannot
-also write the evidence. [ADR 0007](docs/adr/0007-anchor-log.md) carries the detail.
+So the anchor is **plumbed, not merely repointed**. Moving the path alone would have been worse than
+leaving it: anything outside `.locker` is written after collection and never restored, so every run
+would find no anchor and report a clean reconciliation forever.
+
+```yaml
+# repository variables + one secret
+KSI_ANCHOR_REPO: acme/ksi-anchors     # a repository the evidence writer cannot push to
+KSI_ANCHOR_TOKEN: <secret>            # scoped to that repository only
+```
+
+`scripts/anchor-sync.mjs` fetches the anchor before the locker is verified and appends it back after
+the locker is published, so the record of how much evidence there was never travels with the
+evidence. Two refusals in it matter more than the transport: a half-configured anchor **stops the
+run** rather than falling back, because falling back would silently restore the weakness the second
+repository was added to remove; and an anchor that *shrank* is never published, because `publish`
+writes the local file over the remote one and a truncated local anchor would otherwise destroy the
+record of truncation with the command meant to preserve it.
+
+**Leave those unset and the anchor stays beside the evidence**, which is the mode this repository
+runs in — a self-monitoring public repo has no second trust domain to reach for. In that mode it
+catches evidence lost by accident and not deliberate truncation by anyone who can write the evidence
+branch, and `anchor-sync` prints exactly that on every run rather than leaving it to this paragraph.
+Note what the configured mode does and does not buy: it separates storage and credential, not
+control, since one workflow still references both. [ADR 0007](docs/adr/0007-anchor-log.md) works
+through the difference.
 
 ### What changed since the last collection
 
@@ -663,7 +678,7 @@ validation text.
 ## Tests
 
 ```bash
-npm test          # 298 tests
+npm test          # 318 tests
 npm run policy    # policy unit tests + gate + negative control (39 Rego tests)
 ```
 

@@ -88,14 +88,38 @@ names the gap is the same answer this harness gives everywhere else it cannot de
 A refusal from the authority — `PKIStatus` rejection, an unavailable service — is reported as a
 refusal with its status and reason, not thrown away and not silently retried into a gap.
 
-**A second gap is open and worth naming rather than discovering later.** `buildRequest` sends a
-random nonce, which exists so that a response can be tied to the request that asked for it, and
-nothing compares the nonce in the response against the one sent. Since the imprint is checked, a
-substituted token still has to be over the same digest — so this is not a hole through which
-arbitrary evidence passes. What it leaves open is *replay*: a previously obtained genuine token over
-the same root would verify, which matters precisely because collections repeat over an unchanged
-locker. Checking it is a small change; asserting it was checked when it was not would be the larger
-error, so it is recorded here as a known limitation until it is closed.
+## The nonce, and why the digest check does not subsume it
+
+`buildRequest` sends a random nonce, and the nonce in the response is compared against it.
+
+**That comparison did not exist when this ADR was first drafted.** The nonce was sent and never read
+back. It was found by checking the draft's claims against the code rather than by a failing test —
+there was no test, which is how it survived being written twice.
+
+It is worth being precise about what it defends, because the imprint check looks like it already
+covers this. It does not. A substituted token must still be over the same digest, so no *arbitrary*
+evidence passes. What remains open without a nonce check is **replay**: a previously issued,
+entirely genuine token over the same root verifies perfectly.
+
+That is not a remote scenario here. Collection repeats over a locker that has frequently not
+changed, so the same root is stamped again and again and a replayed token is over the right data *by
+construction*. Without the nonce, the freshness of every attestation rests on trusting the transport
+— which is the assumption a timestamping authority exists to remove.
+
+Two decisions inside the check:
+
+- **A missing nonce is a failure, not a pass.** The nonce is OPTIONAL in TSTInfo, so an authority may
+  legitimately omit it. Having asked, a response that does not answer cannot be treated as fresh; it
+  is reported rather than shrugged at, on the same principle that an unexplained population gap
+  throws ([ADR 0003](0003-evidence-bundle-contract.md)).
+- **Comparison is by value, not by encoding.** A positive DER INTEGER gains a leading `0x00` when its
+  high bit is set, so a byte-identical nonce can come back one byte longer than it went out.
+  Comparing encodings would have failed on roughly half of all random nonces, intermittently — the
+  kind of defect that gets a check disabled rather than fixed.
+
+The nonce is recorded in `MANIFEST.json` beside the token, so a stored token can later be re-checked
+against the request it answered. `verifyToken` reports `nonceVerified` explicitly, so a caller with
+no retained nonce cannot read its result as a freshness check that did not happen.
 
 ## Consequences
 

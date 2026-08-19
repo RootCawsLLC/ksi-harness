@@ -552,7 +552,7 @@ population, and both are worse than a report that says what happened.
 |---|---|
 | `ci.yml` | Verify the pin, validate routes, lint the workflows, audit the dependency tree, 318 tests, then collect twice → verify the chain → report → diff → emit all five artifacts → schema-validate end to end |
 | `policy.yml` | OPA unit tests, the gate with its negative control, then the gate result as an evidence bundle. Checkov findings are advisory, but its execution is verified |
-| `ccm.yml` | Restore the locker and verify it against the anchor, collect via OIDC, report, diff, anchor the manifest root, timestamp it, sign it, publish the locker, and notify on controls that changed state |
+| `ccm.yml` | Restore the locker **and the anchor from its own repository**, verify one against the other, collect via OIDC, report, diff, anchor the manifest root, timestamp it, sign it, publish the locker, append the anchor back, and notify on controls that changed state |
 
 The schedule is itself the control. Several indicators use the word "persistently" — which FedRAMP
 *defines* rather than leaving to the reader — and a check that runs when someone remembers to run it
@@ -647,12 +647,52 @@ repository was added to remove; and an anchor that *shrank* is never published, 
 writes the local file over the remote one and a truncated local anchor would otherwise destroy the
 record of truncation with the command meant to preserve it.
 
-**Leave those unset and the anchor stays beside the evidence**, which is the mode this repository
-runs in — a self-monitoring public repo has no second trust domain to reach for. In that mode it
-catches evidence lost by accident and not deliberate truncation by anyone who can write the evidence
-branch, and `anchor-sync` prints exactly that on every run rather than leaving it to this paragraph.
-Note what the configured mode does and does not buy: it separates storage and credential, not
-control, since one workflow still references both. [ADR 0007](docs/adr/0007-anchor-log.md) works
+**Leave those unset and the anchor stays beside the evidence.** In that mode it catches evidence lost
+by accident and not deliberate truncation by anyone who can write the evidence branch, and
+`anchor-sync` prints exactly that on every run rather than leaving it to this paragraph — the mode
+is reported, never inferred.
+
+#### Standing one up
+
+This repository runs in the configured mode against
+[`xnasusx/ksi-anchors`](https://github.com/xnasusx/ksi-anchors), which is also the worked example.
+Four steps:
+
+```bash
+# 1. A repository that exists only for this. Nothing else goes in it — a repository that
+#    acquires other purposes acquires other people with write access. On visibility, read
+#    the trap below before choosing: on a free plan it decides whether you get protection.
+gh repo create <owner>/ksi-anchors --private   # or --public; see below
+
+# 2. Mark the logs binary so no client rewrites line endings. These bytes are hashed, and a
+#    record that differs by platform is a poor thing to reason about deletion with.
+printf '*.jsonl -text\n' > .gitattributes
+
+# 3. The token: a fine-grained PAT scoped to ONLY that repository, Contents: read and write,
+#    nothing else. Create it as the account that owns the anchor repo, then:
+gh secret set KSI_ANCHOR_TOKEN --repo <owner>/<harness-repo>
+
+# 4. The secret must exist before the variable. A repository set without a token stops the
+#    run rather than falling back, so the reverse order breaks the next scheduled collection.
+gh variable set KSI_ANCHOR_REPO --repo <owner>/<harness-repo> --body "<owner>/ksi-anchors"
+```
+
+Then protect the branch. Force-pushing and deletion must be blocked and history must stay linear —
+an anchor whose history can be replaced is not an anchor. **Do not require pull-request reviews**:
+the appender pushes directly, and a review requirement locks the automation out of the log it is
+supposed to be writing. Setting protection and then discovering that is a bad way to spend a
+morning, so test both directions — a fast-forward push must succeed and a force-push must be
+rejected.
+
+One practical trap: **branch protection is unavailable on private repositories without a paid
+plan.** The choice is a private log with the no-rewrite rule as convention, or a public one where it
+is enforced. Anchor entries carry check ids, run counts and hashes — no findings, no resource names,
+no accounts — so publishing them is usually defensible, but it is a real decision and the shape of a
+monitoring programme is still information. One anchor repository per sensitivity level; do not point
+a private boundary at a public log because it was convenient.
+
+Note what the configured mode does and does not buy: it separates storage and credential, **not
+control**, since one workflow still references both. [ADR 0007](docs/adr/0007-anchor-log.md) works
 through the difference.
 
 ### What changed since the last collection
@@ -755,10 +795,12 @@ Hence the `--latest` option, and a test that fails if the direction is ever chan
   failing resources — an accurate inventory of where a boundary is weakest. `.evidence/` is
   gitignored. The scheduled run publishes its locker to a separate `evidence` branch, which is
   acceptable *here* because this repository's only subject is itself and every fact it collects is
-  already public. For any real boundary, unset `KSI_EVIDENCE_BRANCH`, declare `evidence.store` and
-  `evidence.anchor_log` in the profile, and let `ksi publish` write to a private write-once store —
-  then run `ksi store` against it, because a bucket that only claims to be one is the failure this
-  is guarding against.
+  already public. For any real boundary, unset `KSI_EVIDENCE_BRANCH`, declare `evidence.store` in the
+  profile, and let `ksi publish` write to a private write-once store — then run `ksi store` against
+  it, because a bucket that only claims to be one is the failure this is guarding against. The
+  anchor is already separate: it lives in
+  [`xnasusx/ksi-anchors`](https://github.com/xnasusx/ksi-anchors) rather than in this repository, so
+  the record of how much evidence there was does not share a fate with the evidence.
 
 ## Scope notes
 

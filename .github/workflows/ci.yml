@@ -41,10 +41,27 @@ jobs:
       # every scheduled run died in under a second. Nothing caught it: the required checks all live
       # in this file and in policy.yml, so the one workflow nobody's pull request exercises was also
       # the one with no coverage. Linting every workflow inside a required check closes that hole.
+      #
+      # The download is checksummed before it is executed. It used to be piped straight from curl
+      # into tar, which runs whatever the release URL happened to serve — and this repository ships
+      # `github.supply-chain.workflow-pinning`, which exists to fail that pattern in other people's
+      # workflows. A gap in a check's own repository is worse than the same gap elsewhere, because
+      # the repository is quoted as evidence that the check is worth adopting.
+      #
+      # Piping into tar also made the fetch unverifiable in principle rather than merely
+      # unverified: a stream consumed as it arrives cannot be checked before it is used.
       - name: Lint the workflows
         run: |
-          curl -fsSL "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
-            | tar -xz -C /tmp actionlint
+          BASE="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}"
+          curl -fsSL -o /tmp/actionlint.tar.gz "${BASE}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o /tmp/actionlint_checksums.txt "${BASE}/actionlint_${ACTIONLINT_VERSION}_checksums.txt"
+          # Only the filename is rewritten. The two-space separator sha256sum requires comes from
+          # the checksums file and is left alone — substituting it is how the cosign step produced
+          # three spaces and a filename with a leading space.
+          grep " actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz$" /tmp/actionlint_checksums.txt \
+            | sed "s|actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz$|/tmp/actionlint.tar.gz|" \
+            | sha256sum -c -
+          tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
           /tmp/actionlint -color
 
       # Third-party actions are pinned to revisions and the npm tree is locked, which is the right

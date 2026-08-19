@@ -82,6 +82,33 @@ exact failure that made content hashes insufficient in the first place
 The profile comment says so, and this ADR says so, because nothing in the code can enforce it. A
 path is a path.
 
+### This repository does not achieve it, and that is worth stating plainly
+
+`ccm.yml` sets `ANCHOR_LOG` to `.locker/anchor.jsonl` and `LOCKER` to `.locker/evidence`. The anchor
+sits beside the evidence rather than inside it, which reads like separation and is not: `locker-sync
+publish` commits the whole of `.locker` and pushes it, so **the anchor and the evidence reach the
+same branch in the same commit and come back together on restore.** Anyone able to rewrite that
+branch rewrites both.
+
+So on this repository the anchor detects evidence lost *by accident* — a bad restore, a shallow
+clone, a fetch that dropped history, a deletion nobody intended — and does not detect deliberate
+truncation by someone holding push access. The first set is common and worth catching. The second is
+the threat the design is written against, and it is not covered here.
+
+It is left this way because a repository whose only subject is itself has no second trust domain to
+reach for inside its own workflow. Repointing the path alone would make things quietly worse rather
+than better: anything outside `.locker` is written after collection and never restored, so every run
+would start from a fresh checkout, find no anchor, and report a clean reconciliation forever — the
+same structurally-unfalsifiable shape as the cadence bug, in different clothes.
+
+A real boundary therefore needs the anchor **plumbed rather than repointed**: fetched from wherever
+it lives before verification, appended back there after publishing, under a credential that cannot
+also write the evidence.
+
+Recorded rather than quietly tolerated, because a mechanism that is present, named in a workflow,
+and weaker than its own documentation is the precise failure this repository exists to catch.
+Writing this ADR is what surfaced it.
+
 ## What it deliberately does not prove
 
 **The anchor cannot establish its own completeness.** Nothing self-contained can: a log and its own

@@ -629,6 +629,17 @@ different account, a different project, or a file the assessor keeps, it detects
 disclosed. Held inside the locker it protects, it is removed by whatever removes the evidence, and
 the mechanism reduces to a longer way of storing a hash beside its own data.
 
+**This repository is the weaker case, and it is better to say so than to imply otherwise.** `ccm.yml`
+writes the anchor to `.locker/anchor.jsonl` beside `.locker/evidence`, and the publish step pushes
+the whole directory — so the anchor and the evidence reach the same branch in the same commit and
+come back together. Here it catches evidence lost by accident, which is the common failure, and not
+deliberate truncation by someone holding push access, which is the one the design is written
+against. A self-monitoring repository has no second trust domain to reach for, and repointing the
+path alone would be worse than leaving it: anything outside `.locker` is written after collection and
+never restored, so every run would find no anchor and report a clean reconciliation forever. The real
+fix is to plumb it — fetch before verifying, append after publishing, under a credential that cannot
+also write the evidence. [ADR 0007](docs/adr/0007-anchor-log.md) carries the detail.
+
 ### What changed since the last collection
 
 ```bash

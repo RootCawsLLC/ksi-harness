@@ -9,6 +9,7 @@ import * as gcpIam from './gcp/iam.mjs';
 import * as gcpLogging from './gcp/logging.mjs';
 import * as gcpNetwork from './gcp/network.mjs';
 import * as gcpPolicy from './gcp/policy.mjs';
+import * as gcpServices from './gcp/services.mjs';
 import * as githubChange from './github/change.mjs';
 import * as githubDependencies from './github/dependencies.mjs';
 import * as githubSupplyChain from './github/supply-chain.mjs';
@@ -35,6 +36,7 @@ export const COLLECTORS = Object.freeze([
   gcpNetwork,
   gcpData,
   gcpPolicy,
+  gcpServices,
   boundaryAttribution,
   githubChange,
   githubSupplyChain,

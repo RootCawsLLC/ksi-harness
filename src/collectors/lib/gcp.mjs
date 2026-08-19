@@ -32,6 +32,7 @@ const BASE = {
   logging: 'https://logging.googleapis.com/v2',
   compute: 'https://compute.googleapis.com/compute/v1',
   storage: 'https://storage.googleapis.com/storage/v1',
+  serviceusage: 'https://serviceusage.googleapis.com/v1',
 };
 
 export class RunBroken extends Error {}

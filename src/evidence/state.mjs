@@ -1,6 +1,7 @@
 import { catalog } from '../catalog/ksi.mjs';
 import { rulesProvenance } from '../catalog/rules.mjs';
 import { CADENCES, loadRoutes, validateRoutes } from '../routes/routes.mjs';
+import { resolveSufficiency } from '../routes/sufficiency.mjs';
 import { ageInDays, chainBreaks, observedIntervalDays, readLocker } from './locker.mjs';
 
 /**
@@ -135,6 +136,12 @@ export function buildState({ evidenceDir, klass = 'c', routes = loadRoutes(), no
       };
     });
 
+    // Sufficiency is boundary-dependent, so the level a report shows is the level the route
+    // *resolves to* for this profile, not the level it declares. An automated route whose
+    // condition does not hold here resolves to partial and shows its gap.
+    const sufficiency = resolveSufficiency(route, profile);
+    const coverage = sufficiency.coverage;
+
     let evidenceState;
     if (route.coverage === 'manual') evidenceState = 'manual-attested';
     else if (route.coverage === 'unaddressed') evidenceState = 'not-evidenced';
@@ -142,8 +149,11 @@ export function buildState({ evidenceDir, klass = 'c', routes = loadRoutes(), no
 
     return {
       ...indicator,
-      coverage: route.coverage,
-      sufficiency: route.sufficiency ?? null,
+      coverage,
+      declared_coverage: route.coverage,
+      sufficiency: route.sufficiency?.argument ?? route.sufficiency ?? null,
+      sufficiency_holds: sufficiency.status,
+      sufficiency_detail: sufficiency.detail,
       unautomated: route.unautomated ?? [],
       manual_evidence: route.manual_evidence ?? null,
       reason: route.reason ?? null,

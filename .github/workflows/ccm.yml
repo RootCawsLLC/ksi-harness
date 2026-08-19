@@ -75,31 +75,29 @@ jobs:
       # because this repository monitors itself and every fact in its locker is already public.
       KSI_EVIDENCE_BRANCH: ${{ vars.KSI_EVIDENCE_BRANCH || 'evidence' }}
       LOCKER: .locker/evidence
+
+      # The record of how much evidence there was supposed to be.
       #
-      # How much evidence there was supposed to be. The chain, the manifest, the signature and the
-      # timestamp all live inside the locker, so they protect it against alteration and not against
-      # removal; this file is what notices a locker that came back smaller than it went in.
+      # The chain, the manifest, the signature and the timestamp all live inside the locker, so
+      # they protect it against alteration and not against removal. This is what notices a locker
+      # that came back smaller than it went in.
       #
-      # Where the anchor is staged locally. Where it actually *lives* is decided by
-      # KSI_ANCHOR_REPO below, and that distinction is the whole mechanism.
+      # ANCHOR_LOG is only where it is *staged* during a run. Where it lives is KSI_ANCHOR_REPO,
+      # and that distinction is the mechanism: with a repository and token set, `anchor-sync`
+      # fetches it before the locker is verified and appends it back after the locker is
+      # published, under a credential that cannot write this repository — so a principal who can
+      # rewrite the evidence branch cannot rewrite the account of how much evidence there was.
       #
-      # Set KSI_ANCHOR_REPO and KSI_ANCHOR_TOKEN and the anchor is fetched from a separate
-      # repository before the locker is verified, and appended back there after it is published,
-      # under a credential that cannot write this repository. A principal who can rewrite the
-      # evidence branch then cannot rewrite the record of how much evidence there was.
+      # Unset, the anchor stays beside the evidence and is pushed by the same `locker-sync
+      # publish`, which detects evidence lost by accident and NOT deliberate truncation by anyone
+      # able to write the evidence branch. `anchor-sync` prints which mode is in force on every
+      # run rather than leaving it to this comment.
       #
-      # Leave them unset and the anchor stays here, published alongside the evidence it protects
-      # by the same `locker-sync publish` that pushes `.locker` — so it detects evidence lost by
-      # accident and NOT deliberate truncation by anyone able to write the evidence branch. That
-      # is the mode this repository runs in, because a repository whose only subject is itself
-      # has no second trust domain to reach for. `anchor-sync` prints which mode is in force on
-      # every run rather than leaving it to this comment.
-      #
-      # Note that the path alone was never the fix. Anything outside `.locker` is written after
-      # collection and never restored, so repointing it without the fetch-and-append below would
-      # make every run start from a fresh checkout, find no anchor, and report a clean
-      # reconciliation forever — structurally unfalsifiable, and the same shape as the cadence
-      # bug this workflow was rewritten to fix.
+      # Repointing the path alone was never the fix, which is why there is a fetch at all:
+      # anything outside `.locker` is written after collection and never restored, so every run
+      # would start from a fresh checkout, find no anchor, and report a clean reconciliation
+      # forever — structurally unfalsifiable, and the same shape as the cadence bug this workflow
+      # was rewritten to fix.
       ANCHOR_LOG: .locker/anchor.jsonl
       KSI_ANCHOR_REPO: ${{ vars.KSI_ANCHOR_REPO }}
       KSI_ANCHOR_BRANCH: ${{ vars.KSI_ANCHOR_BRANCH }}

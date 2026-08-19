@@ -81,6 +81,49 @@ export function buildRequest(digestHex, { nonce = randomBytes(8), certReq = true
 }
 
 /**
+ * DER INTEGER content as hex, with the leading zero a positive integer may carry removed.
+ *
+ * `integer()` prepends 0x00 when the high bit is set, so the same nonce can come back one
+ * byte longer than it went out and compare unequal while being identical. Normalising both
+ * sides is what makes the comparison about the value rather than about its encoding.
+ */
+function normaliseNonce(buf) {
+  let i = 0;
+  while (i < buf.length - 1 && buf[i] === 0x00) i += 1;
+  return buf.subarray(i).toString('hex');
+}
+
+/**
+ * Locates the TSTInfo and the three fields read from it.
+ *
+ * By shape rather than by position, for the same reason the caller searches every nested
+ * OCTET STRING: authorities differ in how much optional material they include. TSTInfo is the
+ * constructed node carrying a GeneralizedTime as a *direct* child and a 32-byte OCTET STRING
+ * somewhere beneath it — the message imprint sits one level down inside MessageImprint.
+ *
+ * The nonce is found by its position relative to genTime rather than by index, which is what
+ * makes it robust: TSTInfo holds three INTEGERs (version, serialNumber, nonce), and the first
+ * two both precede genTime. `accuracy` is a SEQUENCE, so its inner integers are not siblings,
+ * and `ordering` is a BOOLEAN. So the first INTEGER *after* the GeneralizedTime is the nonce,
+ * whether or not the optional fields between them are present.
+ */
+function findTstInfo(root) {
+  for (const node of walk(root)) {
+    if (!node.children.length) continue;
+
+    const timeIndex = node.children.findIndex((c) => c.tag === TAG.GENERALIZED_TIME);
+    if (timeIndex === -1) continue;
+
+    const imprint = find(node, (n) => n.tag === TAG.OCTET_STRING && n.value.length === 32);
+    if (!imprint) continue;
+
+    const nonce = node.children.slice(timeIndex + 1).find((c) => c.tag === TAG.INTEGER) ?? null;
+    return { node, time: node.children[timeIndex], imprint, nonce };
+  }
+  return null;
+}
+
+/**
  * Reads a TimeStampResp far enough to know whether it is usable and what it attests.
  *
  * Navigation is by shape rather than by strict position. The token is a CMS SignedData whose
@@ -89,7 +132,7 @@ export function buildRequest(digestHex, { nonce = randomBytes(8), certReq = true
  * a GeneralizedTime and a 32-byte OCTET STRING is more robust than counting fields — and it
  * fails loudly rather than reading the wrong element.
  */
-export function parseResponse(der, { expectDigestHex = null } = {}) {
+export function parseResponse(der, { expectDigestHex = null, expectNonce = null } = {}) {
   const root = parse(der);
   const statusInfo = root.children[0];
   if (!statusInfo) throw new Error('RFC 3161: response has no PKIStatusInfo.');
@@ -128,17 +171,14 @@ export function parseResponse(der, { expectDigestHex = null } = {}) {
 
   let tstInfo = null;
   for (const candidate of candidates) {
-    const time = find(candidate, (n) => n.tag === TAG.GENERALIZED_TIME);
-    const imprint = find(candidate, (n) => n.tag === TAG.OCTET_STRING && n.value.length === 32);
-    if (time && imprint) {
-      tstInfo = { time, imprint };
-      break;
-    }
+    tstInfo = findTstInfo(candidate);
+    if (tstInfo) break;
   }
   if (!tstInfo) throw new Error('RFC 3161: no TSTInfo carrying a generalized time and a SHA-256 imprint was found.');
 
   const genTime = readGeneralizedTime(tstInfo.time);
   const digestHex = tstInfo.imprint.value.toString('hex');
+  const nonceHex = tstInfo.nonce ? normaliseNonce(tstInfo.nonce.value) : null;
 
   // The check that makes storing the token worth anything: a token is only evidence about the
   // data whose digest it carries. An authority returning a well-formed token over something
@@ -153,7 +193,31 @@ export function parseResponse(der, { expectDigestHex = null } = {}) {
     );
   }
 
-  return { granted: true, status: Number(status), statusText, genTime, digestHex, token: der };
+  // What the digest check cannot catch: a *previously issued genuine* token over this same
+  // root. Collections repeat over a locker that has not changed, so the same root is stamped
+  // again and again — which is precisely the condition a replay needs. The nonce is what ties
+  // a response to the request that asked for it, so an unchecked nonce means the freshness of
+  // every attestation rests on trusting the transport.
+  if (expectNonce) {
+    const sent = normaliseNonce(expectNonce);
+    if (!nonceHex) {
+      // Silence is not agreement. The nonce is OPTIONAL in TSTInfo, so an authority may omit
+      // it — but having asked, a response that does not answer is not one this can treat as
+      // fresh. Reported rather than shrugged at, because a token accepted here is filed as
+      // evidence.
+      throw new Error(
+        'RFC 3161: a nonce was sent and the token carries none, so this response cannot be tied to ' +
+          'this request. A token over the right digest may still be an earlier one replayed.'
+      );
+    }
+    if (nonceHex !== sent) {
+      throw new Error(
+        `RFC 3161: the token answers a different request.\n  token nonce: ${nonceHex}\n  sent:        ${sent}`
+      );
+    }
+  }
+
+  return { granted: true, status: Number(status), statusText, genTime, digestHex, nonceHex, token: der };
 }
 
 /**
@@ -172,7 +236,11 @@ export async function requestTimestamp(digestHex, { url, timeoutMs = 15000, fetc
     );
   }
 
-  const request = buildRequest(digestHex);
+  // Generated here rather than left to buildRequest`s default, because the caller has to keep
+  // the value to compare against what comes back. A nonce nobody retains is a nonce nobody can
+  // check, which is what it was before.
+  const nonce = randomBytes(8);
+  const request = buildRequest(digestHex, { nonce });
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -185,7 +253,7 @@ export async function requestTimestamp(digestHex, { url, timeoutMs = 15000, fetc
     });
     if (!res.ok) throw new Error(`Time Stamping Authority ${url} returned HTTP ${res.status}.`);
     const der = Buffer.from(await res.arrayBuffer());
-    const parsed = parseResponse(der, { expectDigestHex: digestHex });
+    const parsed = parseResponse(der, { expectDigestHex: digestHex, expectNonce: nonce });
     if (!parsed.granted) {
       throw new Error(`Time Stamping Authority refused the request: ${parsed.statusText}${parsed.detail ? ` — ${parsed.detail}` : ''}`);
     }
@@ -204,17 +272,30 @@ export async function requestTimestamp(digestHex, { url, timeoutMs = 15000, fetc
  * -data MANIFEST.json -CAfile <tsa-ca.pem>` for that. Reporting a signature as verified when
  * nothing checked it would be the same overstatement the content hash made before the chain.
  */
-export function verifyToken(der, expectDigestHex) {
+export function verifyToken(der, expectDigestHex, { expectNonce = null } = {}) {
   try {
-    const parsed = parseResponse(der, { expectDigestHex });
+    const parsed = parseResponse(der, { expectDigestHex, expectNonce });
     return {
       ok: parsed.granted,
       genTime: parsed.genTime,
       digestHex: parsed.digestHex,
+      nonceHex: parsed.nonceHex,
+      // Checking a stored token's nonce needs the value that was sent, which lives in the
+      // manifest rather than in the token. Reported so a caller that did not supply it cannot
+      // read this result as a freshness check it did not perform.
+      nonceVerified: Boolean(expectNonce),
       signatureVerified: false,
       note: 'Token is well-formed and covers this digest. The authority signature is not verified here; use openssl ts -verify.',
     };
   } catch (err) {
-    return { ok: false, genTime: null, digestHex: null, signatureVerified: false, note: err.message };
+    return {
+      ok: false,
+      genTime: null,
+      digestHex: null,
+      nonceHex: null,
+      nonceVerified: false,
+      signatureVerified: false,
+      note: err.message,
+    };
   }
 }

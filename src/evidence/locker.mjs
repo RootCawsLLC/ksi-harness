@@ -165,6 +165,10 @@ export function writeTimestamp(dir, token, attestation) {
     attested_at: attestation.genTime,
     covers_root_sha256: attestation.digestHex,
     token: 'MANIFEST.tsr',
+    // Recorded so the stored token can later be re-checked against the request it answered.
+    // Without it, a verification can confirm the token covers this root and cannot tell
+    // whether it is this run's attestation or an earlier one over the same unchanged locker.
+    nonce: attestation.nonceHex ?? null,
     signature_verified_here: false,
   };
   writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');

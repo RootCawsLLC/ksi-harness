@@ -244,8 +244,18 @@ jobs:
             "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-amd64"
           curl -fsSL -o /tmp/cosign_checksums.txt \
             "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign_checksums.txt"
+          # Rewrite only the filename, never the separator. `sha256sum -c` requires exactly two
+          # characters between the digest and the path, and the checksums file already supplies
+          # them — so a substitution that matches the leading space and replaces it with two
+          # produces three, and the name is then read as " /tmp/cosign" with a leading space:
+          #
+          #   sha256sum: ' /tmp/cosign': No such file or directory
+          #
+          # Which reads like a missing download and is a malformed line. Worth spelling out
+          # because the failure names the wrong cause, and because this step had never once run
+          # until it did.
           grep " cosign-linux-amd64$" /tmp/cosign_checksums.txt \
-            | sed 's| cosign-linux-amd64$|  /tmp/cosign|' \
+            | sed 's|cosign-linux-amd64$|/tmp/cosign|' \
             | sha256sum -c -
           chmod +x /tmp/cosign
           /tmp/cosign sign-blob --yes \

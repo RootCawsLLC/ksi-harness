@@ -21,12 +21,12 @@ FedRAMP Consolidated Rules 2026.07.14.01  ·  Class C
 46 applicable indicators of 46 in the ruleset
 
 automated      0
-partial       23
+partial       24
 manual        14
-unaddressed    9
+unaddressed    8
 ```
 
-There are 22 implemented checks and 23 indicators with real, passing, chain-verified automated
+There are 24 implemented checks and 24 indicators with real, passing, chain-verified automated
 evidence behind them. A conventional tool would render that as somewhere north of 50% coverage.
 
 This one reports **zero automated**, because an indicator only reaches `automated` when someone
@@ -106,7 +106,7 @@ FedRAMP/rules + FedRAMP/schemas        pinned by sha256, drift-checked
         ├── profile ───────────────── the boundary, declared: accounts, projects,
         │                             repositories, capabilities, third parties
         ▼
-  collectors ── AWS · GCP · GitHub · boundary · third-party · pipeline
+  collectors ── AWS · GCP · GitHub · IdP · boundary · third-party · pipeline
         │              │
         │              ▼
         │        evidence bundles ── population reconciliation
@@ -282,7 +282,7 @@ The anchor cannot prove its own completeness — nothing self-contained can, sin
 integrity check share a fate. It earns its place by shrinking what must survive from megabytes of
 bundles to one line per run, small enough to keep somewhere genuinely out of reach.
 
-### 22 checks across six families
+### 24 checks across seven families
 
 | Check | Indicators |
 |---|---|
@@ -301,6 +301,8 @@ bundles to one line per run, small enough to keep somewhere genuinely out of rea
 | `gcp.data.encryption-at-rest` | KSI-SVC-SIN |
 | `gcp.policy.org-constraints` | KSI-CNA-EIS · KSI-SVC-ACM |
 | `gcp.service.surface` | KSI-CNA-DFP · KSI-CNA-MAT |
+| `idp.account.provisioning` | KSI-IAM-AAM |
+| `idp.privilege.assignment` | KSI-IAM-AAM · KSI-IAM-ELP |
 | `boundary.scope.attribution` | KSI-PIY-GIV |
 | `github.change.pr-review` | KSI-CMT-LMC · KSI-CMT-VTD |
 | `github.change.branch-protection` | KSI-CMT-RMV · KSI-CMT-RVP |
@@ -312,6 +314,18 @@ bundles to one line per run, small enough to keep somewhere genuinely out of rea
 The mapping is many-to-many on purpose. A KSI is a capability claim broad enough that no single
 check settles it, and one check often bears on several. A route claiming a check no collector
 implements is a **validation error** — coverage cannot be manufactured out of intent.
+
+**The IdP family answers a question no other collector can.** `KSI-IAM-AAM` asks whether account
+lifecycle and privilege are managed *using automation* — a mechanism, not an outcome. A boundary
+with a flawless permission set, every entry typed in by an administrator, fails that indicator and
+passes every cloud-side check here. Once an account exists, hand-built and provisioned are
+indistinguishable downstream, so only the identity provider retains which one happened.
+
+The privilege check grades the *path* rather than the permission: access arriving through a
+rule-driven group falls away when the rule stops matching, and access granted directly to a person
+falls away when somebody remembers. That is the leaver problem written as a configuration property
+instead of a process one. What it still cannot see is whether an account belongs to somebody who
+still works here — that needs an HR roster, and it is a stated gap rather than a silent one.
 
 **The GCP family is not the AWS one with different nouns.** Each check grades a failure mode that
 has no clean AWS analogue, because the ones that transfer are not the ones that bite:
@@ -576,7 +590,7 @@ population, and both are worse than a report that says what happened.
 
 | Workflow | What it does |
 |---|---|
-| `ci.yml` | Verify the pin, validate routes, lint the workflows, audit the dependency tree, 340 tests, then collect twice → verify the chain → report → diff → emit all five artifacts → schema-validate end to end |
+| `ci.yml` | Verify the pin, validate routes, lint the workflows, audit the dependency tree, 355 tests, then collect twice → verify the chain → report → diff → emit all five artifacts → schema-validate end to end |
 | `policy.yml` | OPA unit tests, the gate with its negative control, then the gate result as an evidence bundle. Checkov findings are advisory, but its execution is verified |
 | `ccm.yml` | Restore the locker **and the anchor from its own repository**, verify one against the other, collect via OIDC, report, diff, anchor the manifest root, timestamp it, sign it, publish the locker, append the anchor back, and notify on controls that changed state |
 
@@ -744,7 +758,7 @@ validation text.
 ## Tests
 
 ```bash
-npm test          # 340 tests
+npm test          # 355 tests
 npm run policy    # policy unit tests + gate + negative control (39 Rego tests)
 ```
 
@@ -812,7 +826,7 @@ Hence the `--latest` option, and a test that fails if the direction is ever chan
 - **Not a certification.** It produces schema-valid artifacts; it does not produce an authorization.
   `ksiAssessment` is left for the assessor and deliberately not generated — writing it would be the
   exact conflict of interest a 3PAO exists to remove.
-- **Not complete.** 9 indicators are `unaddressed` at Class C, each with a stated reason and a named
+- **Not complete.** 8 indicators are `unaddressed` at Class C, each with a stated reason and a named
   next step. Two are blocked on distribution rather than effort: CIS Benchmarks sit behind member
   distribution and cannot be vendored into a public repository.
 - **Not a substitute for judgement.** Lula 2's README, worth quoting against one's own enthusiasm:

@@ -77,6 +77,33 @@ gcp:
     - id: run.allowedIngress
       why: keeps the transcription service off the public internet
 
+# The identity provider, which is the only place that knows whether an account was created by
+# automation or by a person at a console. KSI-IAM-AAM asks about the mechanism rather than the
+# outcome, and the mechanism is unrecoverable from the resulting permissions — a hand-built account
+# with flawless privileges is indistinguishable downstream from a provisioned one.
+idp:
+  provider: okta
+  domain: skylark.okta.com
+  token_env: KSI_OKTA_TOKEN
+
+  # Provisioning sources that count as automation. Anything outside this list means somebody
+  # created the account, so nothing removes it when that somebody forgets.
+  automated_sources:
+    - ACTIVE_DIRECTORY
+    - SCIM
+    - HR_IMPORT
+
+  # Groups whose membership must come from a rule rather than hand curation. Access added by hand
+  # is removed by hand, which is the leaver problem stated as a configuration property.
+  privileged_groups:
+    - Platform Admins
+    - Transcription Engineers
+
+  # The authoritative roster of people who still work here. Nothing reads this yet, and until
+  # something does, an account provisioned correctly by automation and belonging to somebody who
+  # left in March passes every check in this harness. Named as a stated gap on KSI-IAM-AAM.
+  hr_source: null
+
 evidence:
   # No store declared, so the locker is the filesystem and `ksi store` says so rather than
   # implying durability nobody configured. A real deployment of this boundary would declare one.

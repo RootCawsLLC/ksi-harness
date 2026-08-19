@@ -35,6 +35,90 @@ export const DURABILITY = Object.freeze({
   WORM: 'write-once',
 });
 
+/* -------------------------------------------------------------- the refusals */
+
+/**
+ * Errors that mean the question was never answered, rather than answered "no".
+ *
+ * The same distinction the GCP collectors draw out of a 403. A bucket that genuinely has no
+ * Object Lock and a bucket nobody had credentials to ask about are different facts, and only
+ * the first is a statement about the store. Conflating them sends someone to recreate a
+ * bucket that was fine — and lets a correctly configured store be written up as broken.
+ */
+const UNANSWERED = new Set([
+  'CredentialsProviderError',
+  'ExpiredToken',
+  'ExpiredTokenException',
+  'InvalidAccessKeyId',
+  'SignatureDoesNotMatch',
+  'AccessDenied',
+  'AccessDeniedException',
+  'UnrecognizedClientException',
+  'NetworkingError',
+  'TimeoutError',
+  'ENOTFOUND',
+  'ECONNREFUSED',
+]);
+
+/** Whether an SDK error means "could not ask" rather than "asked, and the answer was no". */
+export function isUnanswered(errorName) {
+  return UNANSWERED.has(errorName);
+}
+
+/**
+ * Why an S3 bucket is not write-once, given what the API said about it.
+ *
+ * Separated from the call that fetches it so the decision can be falsified. The refusal *is*
+ * the feature here — a tool that published to an ordinary bucket and called the result an
+ * evidence vault would be making the unverified claim this repository exists to refuse — and
+ * a refusal only reachable through a live AWS call is a refusal nothing can prove still works.
+ *
+ * @returns an array of problems. Empty means the bucket is genuinely write-once.
+ */
+export function s3RetentionProblems(lockConfiguration, versioning) {
+  const problems = [];
+  const rule = lockConfiguration?.ObjectLockConfiguration?.Rule?.DefaultRetention;
+
+  if (lockConfiguration?.ObjectLockConfiguration?.ObjectLockEnabled !== 'Enabled') {
+    problems.push('Object Lock is not enabled on the bucket');
+  }
+  if (!rule) {
+    problems.push('no default retention rule, so an object written without an explicit retention is deletable');
+  } else if (rule.Mode !== 'COMPLIANCE') {
+    // The one that matters. GOVERNANCE looks identical in a package and in every console
+    // screenshot, and is lifted by a single permission.
+    problems.push(
+      `default retention is ${rule.Mode} mode, which a principal holding s3:BypassGovernanceRetention can ` +
+        `override — a retention an administrator can lift does not survive an administrator being the problem`
+    );
+  }
+  if (versioning?.Status !== 'Enabled') {
+    problems.push('versioning is not enabled, and Object Lock requires it');
+  }
+  return problems;
+}
+
+/** The same decision for a GCS bucket, from its metadata. */
+export function gcsRetentionProblems(metadata, retentionDaysRequired) {
+  const policy = metadata?.retentionPolicy;
+  if (!policy) return ['no retention policy is configured'];
+
+  const problems = [];
+  if (!policy.isLocked) {
+    // GCS has no separate "mode": an unlocked policy is simply removable by whoever set it,
+    // which is the same failure as GOVERNANCE wearing different words.
+    problems.push(
+      'the retention policy is not locked, so anyone with storage.buckets.update can shorten or remove it — ' +
+        'an unlocked policy is a default rather than a guarantee'
+    );
+  }
+  const days = Number(policy.retentionPeriod ?? 0) / 86400;
+  if (days < retentionDaysRequired) {
+    problems.push(`retention is ${days} day(s), below the ${retentionDaysRequired} required by the profile`);
+  }
+  return problems;
+}
+
 /* ------------------------------------------------------------------ filesystem */
 
 /**
@@ -121,12 +205,22 @@ export function s3Store({ bucket, prefix = '', region = 'us-east-1', retainUntil
      */
     async assertImmutable() {
       const { sdk, s3 } = await client();
-      const problems = [];
 
       let lock;
       try {
         lock = await s3.send(new sdk.GetObjectLockConfigurationCommand({ Bucket: bucket }));
       } catch (err) {
+        // "The bucket has no Object Lock" and "this run could not ask" are different facts,
+        // and only the first is a statement about the bucket. Reporting a missing credential
+        // as a durability finding sends someone to recreate a bucket that may be correct —
+        // and, worse, would let a working store look broken in a report.
+        if (UNANSWERED.has(err.name)) {
+          throw new Error(
+            `s3://${bucket} could not be reached to check its Object Lock configuration (${err.name}). ` +
+              `This says nothing about the bucket: it is a credentials or connectivity failure, not a ` +
+              `durability finding. Fix the credential and run again.`
+          );
+        }
         throw new Error(
           `s3://${bucket} has no Object Lock configuration (${err.name}). Object Lock can only be enabled at ` +
             `bucket creation, so this bucket cannot be made write-once — create a new one with ` +
@@ -134,23 +228,9 @@ export function s3Store({ bucket, prefix = '', region = 'us-east-1', retainUntil
         );
       }
 
-      const rule = lock?.ObjectLockConfiguration?.Rule?.DefaultRetention;
-      if (lock?.ObjectLockConfiguration?.ObjectLockEnabled !== 'Enabled') {
-        problems.push('Object Lock is not enabled on the bucket');
-      }
-      if (!rule) {
-        problems.push('no default retention rule, so an object written without an explicit retention is deletable');
-      } else if (rule.Mode !== 'COMPLIANCE') {
-        problems.push(
-          `default retention is ${rule.Mode} mode, which a principal holding s3:BypassGovernanceRetention can ` +
-            `override — a retention an administrator can lift does not survive an administrator being the problem`
-        );
-      }
-
       const versioning = await s3.send(new sdk.GetBucketVersioningCommand({ Bucket: bucket }));
-      if (versioning?.Status !== 'Enabled') {
-        problems.push('versioning is not enabled, and Object Lock requires it');
-      }
+      const rule = lock?.ObjectLockConfiguration?.Rule?.DefaultRetention;
+      const problems = s3RetentionProblems(lock, versioning);
 
       if (problems.length) {
         throw new Error(`s3://${bucket} is not write-once:\n  - ${problems.join('\n  - ')}`);
@@ -259,20 +339,7 @@ export function gcsStore({ bucket, prefix = '', retentionDaysRequired = 1 }) {
       const meta = await res.json();
 
       const policy = meta.retentionPolicy;
-      const problems = [];
-      if (!policy) problems.push('no retention policy is configured');
-      else {
-        if (!policy.isLocked) {
-          problems.push(
-            'the retention policy is not locked, so anyone with storage.buckets.update can shorten or remove it — ' +
-              'an unlocked policy is a default rather than a guarantee'
-          );
-        }
-        const days = Number(policy.retentionPeriod ?? 0) / 86400;
-        if (days < retentionDaysRequired) {
-          problems.push(`retention is ${days} day(s), below the ${retentionDaysRequired} required by the profile`);
-        }
-      }
+      const problems = gcsRetentionProblems(meta, retentionDaysRequired);
       if (problems.length) throw new Error(`gs://${bucket} is not write-once:\n  - ${problems.join('\n  - ')}`);
       return { ok: true, locked: true, days: Number(policy.retentionPeriod) / 86400 };
     },

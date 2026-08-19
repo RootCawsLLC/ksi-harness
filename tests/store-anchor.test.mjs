@@ -7,7 +7,14 @@ import { test } from 'node:test';
 import { appendAnchor, readAnchorLog, reconcileAgainstAnchor, verifyAnchorChain } from '../src/evidence/anchor.mjs';
 import { computeManifest } from '../src/evidence/locker.mjs';
 import { buildBundle, writeBundle } from '../src/evidence/bundle.mjs';
-import { DURABILITY, filesystemStore, resolveStore } from '../src/evidence/store.mjs';
+import {
+  DURABILITY,
+  filesystemStore,
+  gcsRetentionProblems,
+  isUnanswered,
+  resolveStore,
+  s3RetentionProblems,
+} from '../src/evidence/store.mjs';
 
 /**
  * The gap these close: everything else in this repository protects the locker against being
@@ -74,6 +81,64 @@ test('the s3 and gcs backends declare write-once and say what enforces it', () =
   const gcs = resolveStore({ evidence: { store: { kind: 'gcs', bucket: 'b' } } }).describe();
   assert.equal(gcs.durability, DURABILITY.WORM);
   assert.match(gcs.why, /locked bucket retention policy/);
+});
+
+/* ------------------------------------------------------------------ the refusals */
+
+// The test above asserts the store *states* a guarantee. These assert it is *checked* —
+// which is the whole difference between an evidence vault and a bucket described as one.
+// A bucket with Object Lock and a bucket without are indistinguishable from the client.
+
+const OBJECT_LOCK = (mode) => ({
+  ObjectLockConfiguration: { ObjectLockEnabled: 'Enabled', Rule: { DefaultRetention: { Mode: mode, Years: 7 } } },
+});
+const VERSIONED = { Status: 'Enabled' };
+
+test('a COMPLIANCE-mode bucket with versioning is the one configuration accepted', () => {
+  assert.deepEqual(s3RetentionProblems(OBJECT_LOCK('COMPLIANCE'), VERSIONED), []);
+});
+
+// The finding this module exists for. GOVERNANCE reads as "Object Lock: enabled" in the
+// console, in a screenshot, and in a package — and a single permission lifts it.
+test('GOVERNANCE mode is refused, because a retention an administrator can lift is not one', () => {
+  const [problem] = s3RetentionProblems(OBJECT_LOCK('GOVERNANCE'), VERSIONED);
+  assert.match(problem, /GOVERNANCE mode/);
+  assert.match(problem, /s3:BypassGovernanceRetention/);
+});
+
+test('Object Lock without a default retention rule leaves objects deletable', () => {
+  const noRule = { ObjectLockConfiguration: { ObjectLockEnabled: 'Enabled' } };
+  assert.match(s3RetentionProblems(noRule, VERSIONED)[0], /no default retention rule/);
+});
+
+test('a bucket with no Object Lock at all fails on every count rather than the first', () => {
+  const problems = s3RetentionProblems({}, { Status: 'Suspended' });
+  assert.equal(problems.length, 3, 'lock disabled, no rule, and versioning off are three separate repairs');
+});
+
+// GCS has no separate mode. An unlocked policy is the same failure wearing different words.
+test('an unlocked GCS retention policy is a default, not a guarantee', () => {
+  const period = String(86400 * 3650);
+  assert.match(gcsRetentionProblems({ retentionPolicy: { isLocked: false, retentionPeriod: period } }, 1)[0], /not locked/);
+  assert.deepEqual(gcsRetentionProblems({ retentionPolicy: { isLocked: true, retentionPeriod: period } }, 1), []);
+});
+
+test('a locked GCS policy shorter than the profile requires is still refused', () => {
+  const short = { retentionPolicy: { isLocked: true, retentionPeriod: String(86400 * 30) } };
+  assert.match(gcsRetentionProblems(short, 365)[0], /retention is 30 day\(s\), below the 365/);
+  assert.match(gcsRetentionProblems({}, 365)[0], /no retention policy/);
+});
+
+// The same distinction the GCP collectors draw out of a 403, and it was wrong here first:
+// an expired credential was reported as "this bucket has no Object Lock", which is a claim
+// about the bucket made by a run that never reached it.
+test('a store that could not be reached is not a store that failed its check', () => {
+  assert.equal(isUnanswered('CredentialsProviderError'), true);
+  assert.equal(isUnanswered('ExpiredToken'), true);
+  assert.equal(isUnanswered('AccessDenied'), true, 'a denied call answered nothing about retention');
+  assert.equal(isUnanswered('NetworkingError'), true);
+  assert.equal(isUnanswered('ObjectLockConfigurationNotFoundError'), false, 'this one is a real answer');
+  assert.equal(isUnanswered('NoSuchBucket'), false, 'so is this: the bucket is not there');
 });
 
 /* -------------------------------------------------------------------- the anchor */

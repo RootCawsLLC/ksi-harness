@@ -86,8 +86,9 @@ const USAGE = `ksi-harness — continuous control monitoring for FedRAMP 20x
   ksi diff [--evidence DIR] [--from TS] [--to TS] [--latest] [--md FILE] [--json FILE]
       What changed in the evidence between two points in the locker.
 
-  ksi verify [--evidence DIR] [--manifest FILE]
+  ksi verify [--evidence DIR] [--manifest FILE] [--anchor FILE]
       Verify every bundle's content hash and every check's hash chain.
+      --anchor also reports evidence that was deleted rather than altered.
 
   ksi timestamp [--evidence DIR] [--tsa URL]
       Obtain an RFC 3161 trusted timestamp over the manifest root.
@@ -441,7 +442,11 @@ async function main() {
         console.log(`\n  verified write-once: ${JSON.stringify(proof)}`);
         return 0;
       } catch (err) {
-        console.error(`\n  NOT write-once:\n  ${err.message}`);
+        // Three outcomes, not two. A store that could not be reached has not been shown to be
+        // anything, and heading that "NOT write-once" would be this tool asserting a finding
+        // about a bucket it never opened — the exact move it exists to refuse elsewhere.
+        const unreachable = /could not be reached|could not be read/.test(err.message);
+        console.error(`\n  ${unreachable ? 'UNVERIFIED' : 'NOT write-once'}:\n  ${err.message}`);
         return 1;
       }
     }

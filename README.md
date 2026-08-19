@@ -21,13 +21,13 @@ FedRAMP Consolidated Rules 2026.07.14.01  ·  Class C
 46 applicable indicators of 46 in the ruleset
 
 automated      0
-partial       20
+partial       23
 manual        14
-unaddressed   12
+unaddressed    9
 ```
 
-There are 11 implemented checks and 20 indicators with real, passing, chain-verified automated
-evidence behind them. A conventional tool would render that as somewhere north of 40% coverage.
+There are 21 implemented checks and 23 indicators with real, passing, chain-verified automated
+evidence behind them. A conventional tool would render that as somewhere north of 50% coverage.
 
 This one reports **zero automated**, because an indicator only reaches `automated` when someone
 writes an argument that its checks leave nothing material out — and nobody has been able to write
@@ -78,17 +78,32 @@ FedRAMP/rules + FedRAMP/schemas        pinned by sha256, drift-checked
         ├── routes.yaml ──────────── coverage declaration + written gaps
         │
         ▼
-  collectors ── AWS · GitHub · pipeline ──► evidence bundles (hash-chained, signed)
-        │                                    population reconciliation
+        ├── profile ───────────────── the boundary, declared: accounts, projects,
+        │                             repositories, capabilities, third parties
         ▼
-  control state ──┬──► FedRAMP 20x SDR    (ajv-validated)
-                  ├──► FedRAMP 20x OCR    (ajv-validated)
-                  ├──► FedRAMP 20x SCN    (ajv-validated, from a declared change)
+  collectors ── AWS · GCP · GitHub · boundary · third-party · pipeline
+        │              │
+        │              ▼
+        │        evidence bundles ── population reconciliation
+        │                          ── hash-chained per check
+        ▼
+  evidence store ──┬── write-once (S3 Object Lock · GCS locked retention)
+                   ├── manifest, signed with keyless cosign
+                   ├── RFC 3161 timestamp over the manifest root
+                   └── anchor log, held outside the locker
+        │
+        ▼
+  control state ──┬──► FedRAMP 20x Overview (ajv-validated)
+                  ├──► FedRAMP 20x SDR      (ajv-validated)
+                  ├──► FedRAMP 20x OCR      (ajv-validated)
+                  ├──► FedRAMP 20x SCN      (ajv-validated, from a declared change)
                   ├──► OSCAL assessment-results
                   ├──► coverage report (Markdown + JSON)
-                  └──► change report, locker-over-time (Markdown + JSON)
+                  ├──► change report, locker-over-time (Markdown + JSON)
+                  └──► notifications, on transition (webhook · Slack · issue)
 
   policy/rego ──► conftest gate, pre-merge ──► folded back in as evidence
+  Org Policy  ──► enforced at the GCP API   ──► collected as preventive evidence
 ```
 
 ### The ruleset is pinned, not fetched
@@ -187,7 +202,62 @@ used to produce one file, so a failing morning run disappeared behind a passing 
 nothing left to show it had happened, in a locker whose entire premise is that the history *is* the
 evidence.
 
-### 11 checks across three families
+### Five properties, and the one everybody forgets
+
+Defensible evidence has four commonly-cited properties. Building them exposed a fifth that the
+first four quietly assume.
+
+| Property | What provides it |
+|---|---|
+| **Integrity** — it has not been altered | Per-check hash chain |
+| **Authenticity** — it is what it claims to be | Manifest signed with keyless cosign |
+| **Timeliness** — it was captured when it says | RFC 3161 token over the manifest root |
+| **Completeness** — nothing is missing from it | Population reconciliation |
+| **Existence** — it is still there at all | Write-once storage, plus an anchor log |
+
+**Timeliness.** `buildBundle` has always required `collectedAt` with a comment saying it must come
+from a trusted source rather than the runner's clock — and nothing verified that, because nothing
+could. In practice CI passed `new Date()`, so a bundle asserted its own age. The chain establishes
+*order*; it cannot establish *when*, because every timestamp in it comes from the same untrusted
+clock. A Time Stamping Authority signs the manifest root together with its own time, which turns
+"this evidence claims to be from Tuesday" into a third party attesting it existed by Tuesday.
+
+The root is stamped rather than each bundle: one call per collection, and it loses nothing, because
+the manifest names every bundle hash and every chain head. Consecutive runs then **bracket** each
+bundle between two attested times — a tighter claim than a self-asserted instant. The harness does
+not verify the authority's signature; that needs its certificate chain, and `ksi verify` says so
+rather than implying otherwise.
+
+**Existence.** This is the one the other four assume. Every mechanism above lives *inside*
+`.evidence/`, so together they protect the locker against everything except being removed:
+
+```bash
+# delete two-thirds of a check's history, regenerate the manifest, then:
+ksi verify --evidence .evidence
+#   Every bundle verifies and every chain is intact.
+```
+
+Clean, because a chain proves the consistency of what remains and can say nothing about what is
+gone — and the signed manifest that would have caught it is in the same directory as the bundles.
+
+Two fixes, one per side. `evidence.store` puts the locker in write-once storage so deletion is
+impossible, and a backend claiming that has to **prove it**: `ksi store` reads the bucket's
+retention configuration and refuses S3 GOVERNANCE mode, which any principal holding
+`s3:BypassGovernanceRetention` can override — a retention an administrator can lift does not survive
+an administrator being the problem. And `evidence.anchor_log` records the manifest root and the
+per-check run counts somewhere the locker's owner does not control, so deletion is *detectable*
+where it was not prevented:
+
+```
+anchor  [shrunk] aws.iam.mfa-coverage has 1 run(s); the anchor at
+        2026-08-18T20:23:11Z recorded 3. Evidence has been removed.
+```
+
+The anchor cannot prove its own completeness — nothing self-contained can, since a log and its own
+integrity check share a fate. It earns its place by shrinking what must survive from megabytes of
+bundles to one line per run, small enough to keep somewhere genuinely out of reach.
+
+### 21 checks across six families
 
 | Check | Indicators |
 |---|---|
@@ -198,14 +268,75 @@ evidence.
 | `aws.network.ingress-exposure` | KSI-CNA-MAT · KSI-CNA-RNT · KSI-CNA-ULN |
 | `aws.data.encryption-at-rest` | KSI-SVC-SIN |
 | `aws.config.recorder-state` | KSI-CNA-EIS · KSI-MLA-EVC · KSI-SVC-ACM |
+| `gcp.iam.service-account-keys` | KSI-IAM-SNU |
+| `gcp.iam.privileged-access` | KSI-CNA-DFP · KSI-IAM-ELP · KSI-IAM-JIT |
+| `gcp.logging.audit-config` | KSI-CMT-LMC · KSI-MLA-LET |
+| `gcp.logging.sink-integrity` | KSI-MLA-ALA · KSI-MLA-OSM |
+| `gcp.network.ingress-exposure` | KSI-CNA-MAT · KSI-CNA-RNT · KSI-CNA-ULN |
+| `gcp.data.encryption-at-rest` | KSI-SVC-SIN |
+| `gcp.policy.org-constraints` | KSI-CNA-EIS · KSI-SVC-ACM |
+| `boundary.scope.attribution` | KSI-PIY-GIV |
 | `github.change.pr-review` | KSI-CMT-LMC · KSI-CMT-VTD |
 | `github.change.branch-protection` | KSI-CMT-RMV · KSI-CMT-RVP |
 | `github.supply-chain.workflow-pinning` | KSI-SCR-MIT · KSI-SVC-VRI |
+| `github.supply-chain.dependency-alerts` | KSI-SCR-MON |
+| `thirdparty.register.review` | KSI-SCR-MIT |
 | `pipeline.iac.policy-gate` | KSI-CMT-VTD · KSI-CNA-EIS · KSI-MLA-EVC |
 
 The mapping is many-to-many on purpose. A KSI is a capability claim broad enough that no single
 check settles it, and one check often bears on several. A route claiming a check no collector
 implements is a **validation error** — coverage cannot be manufactured out of intent.
+
+**The GCP family is not the AWS one with different nouns.** Each check grades a failure mode that
+has no clean AWS analogue, because the ones that transfer are not the ones that bite:
+
+- Everything in Cloud Storage and Persistent Disk is encrypted at rest unconditionally, so "is it
+  encrypted" is *vacuous* on GCP in a way it is not on AWS. The question with an answer is who holds
+  the key, so the check grades against the buckets the profile declares as requiring customer-managed
+  keys — a declaration is what gives it something it can falsify.
+- Data Access audit logs are **off by default**, which is the usual reason an investigation finds no
+  record of a read. The denominator is the service list the profile declares, which is what makes
+  that check evidence for KSI-MLA-LET — the indicator asks for a *maintained list* of what will be
+  logged, so the list is intent and the check tests reality against it.
+- An exempted member removes a principal from the audit trail while the configuration still reads as
+  enabled. That fails the service outright.
+- Organization Policy is evaluated **at the API**, so an enforced constraint decides what tomorrow's
+  state can be. Two projects with identically clean key lists are not in the same state if only one
+  of them rejects key creation.
+
+Two deliberate non-claims, both the sort a coverage number would happily take:
+`gcp.policy.org-constraints` is *not* routed to `KSI-MLA-EVC`, because that indicator is about
+evaluating infrastructure-as-code and Org Policy evaluates deployed API calls; and
+`gcp.iam.service-account-keys` does *not* claim `KSI-SVC-ASM`, because a downloaded key is a secret
+but that indicator is about rotation, vaulting and secret age, and the check reads none of them.
+
+### The boundary can be a product mode, not a perimeter
+
+Every scope construct above is infrastructural — accounts, projects, regions, repositories — and
+that works when the boundary is drawn around resources. It does not when the boundary is drawn
+around a *capability*: "text to speech and speech to text, zero-retention mode only, with voice
+cloning and telephony outside it". That boundary moves when a feature flag moves, and a harness
+enumerating infrastructure will not notice.
+
+So membership is a selector on the resource itself — a label on GCP, a tag on AWS — and every
+enumerated resource lands in exactly one of three states:
+
+```
+pass            resource/gcs/customer-audio        in scope
+not-applicable  resource/gcs/marketing-site        out of scope
+fail            resource/gcs/tts-cache-legacy      unattributed
+fail            capability/agents                  declared in scope, nothing attributed to it
+```
+
+**The third state is the point.** A resource nobody has attributed is in the boundary or outside it
+depending on who is asked, which is the condition an authorization exists to remove. It fails rather
+than being filtered out, for the same reason an unexplained population gap throws rather than
+shrinking the denominator — and it is the state that grows silently, because nobody labels a
+resource they forgot they created.
+
+What the model deliberately cannot do is confirm that an out-of-scope capability is switched off.
+That is a claim about product configuration and no cloud API answers it, so those entries require a
+named attester and are reported as stated exclusions rather than tested ones.
 
 ### Preventive and detective, paired
 
@@ -257,13 +388,44 @@ ksi catalog --class c                    # the indicator catalog for a certifica
 ksi explain KSI-IAM-APM                  # statement, FedRAMP-defined terms, controls, routing
 ksi checks                               # every check and the indicators claiming it
 ksi routes validate                      # the routing map against catalog + registry
+ksi routes baseline --out FILE           # a routing map for a new boundary: all 46, unaddressed
 ksi collect --profile P [--fixture DIR]  # run collectors, write bundles
 ksi coverage --md out/coverage.md        # the coverage report
-ksi diff [--from TS] [--to TS]           # what moved in the evidence between two points
-ksi verify [--manifest FILE]             # content hashes, chains, and the signed manifest root
-ksi emit sdr --overview-uri URI          # sdr | ocr | scn | oscal-ar
+ksi diff [--from TS] [--to TS] [--latest]  # what moved in the evidence between two points
+ksi verify [--manifest F] [--anchor F]   # hashes, chains, the manifest root, and what is missing
+ksi timestamp --tsa URL                  # an RFC 3161 token over the manifest root
+ksi store --profile P                    # what the evidence store guarantees, and whether it does
+ksi publish --profile P [--anchor FILE]  # write to the durable store, and record the root
+ksi notify --profile P [--sink stdout]   # deliver what changed to the declared sink
+ksi emit sdr --overview-uri URI          # overview | sdr | ocr | scn | oscal-ar
 ksi drift                                # upstream ruleset drift, and the routes affected
 ```
+
+**`ksi routes baseline` is the one to run first on a new boundary.** This repository's own
+`routes.yaml` declares twenty-odd indicators `partial` with gaps describing precisely what *these*
+collectors establish about the environment they were written for. Cloning the harness and editing
+the profile would inherit every one of those claims, and they are not true elsewhere — which is a
+correctness problem rather than an ergonomic one, because the whole argument for the coverage report
+is that the declarations behind it are true. The baseline declares all 46 `unaddressed`, so a new
+boundary's first report reads `unaddressed 46`: not a failure, a description of a programme on its
+first day. Every implemented check goes unclaimed, so `routes validate` warns about each one — that
+warning list *is* the backlog, and it shrinks visibly as they are routed.
+
+`ksi notify` alerts on **transition, not on state**. A control that has been failing for forty days
+is one piece of news and thirty-nine reasons to stop reading, and a channel people have muted is
+alerting that looks present and does nothing. It names what moved rather than restating the table:
+
+```
+Newly failing:
+  KSI-CNA-EIS — aws.config.recorder-state started failing
+Still failing (reported when they started): KSI-CMT-LMC, KSI-IAM-APM, …
+```
+
+No sink is defaulted. A finding names a failing control and the resources behind it, so where it
+lands is a decision about who sees an inventory of where a boundary is weakest — `--sink stdout`
+prints what would be sent. A webhook or chat sink can only append, so it fires on transitions; the
+GitHub-issue sink owns a living issue it can revise, so it also hears about quiet runs, because
+closing a standing issue requires being told nothing is wrong any more.
 
 `ksi emit scn` additionally takes `--change FILE`. A Significant Change Notification is a statement
 about an *intended* change — its type, its rationale, its timeline — and none of that is observable
@@ -310,6 +472,33 @@ was written for, and it was unreachable while cross-account collection did not e
 
 `ksi collect` exits non-zero when a collector could not run at all, so a credentials failure cannot
 pass as a quiet, evidence-free success.
+
+**GCP works the same way and fails differently.** Credentials come from Application Default
+Credentials — Workload Identity Federation in CI, `gcloud auth application-default login` locally —
+and every project in `gcp.projects` is visited in its own right, so a project the credential cannot
+reach becomes a named gap rather than a smaller denominator:
+
+```bash
+gcloud auth application-default login          # or Workload Identity Federation in CI
+ksi collect --profile examples/northwind.profile.yaml --only gcp --out .evidence
+```
+
+The failure that needed its own handling is 403, because on GCP it means three unrelated things. A
+disabled service API, a missing IAM permission, and an exhausted quota all arrive as the same status
+code, and they are a configuration task, a finding, and a broken run respectively. Collapsing them
+would let a project nobody has permission to read look exactly like a project with nothing wrong in
+it:
+
+```
+warn  gcp.iam.service-account-keys  (11 item(s))  [2/3 projects examined]
+      project/northwind-voice-eu — iam.googleapis.com is not enabled on this project
+```
+
+`gcp.organization_id` is optional, and supplying it changes what can be *asserted* rather than
+whether the run works. Without it, `gcp.policy.org-constraints` grades each declared constraint
+against a project's effective policy. With it, the same check can also say whether the constraint is
+inherited from the organization or set project by project — and a constraint set project by project
+is one new project away from not being set at all.
 
 ### This repository is one of its own subjects
 
@@ -361,9 +550,9 @@ population, and both are worse than a report that says what happened.
 
 | Workflow | What it does |
 |---|---|
-| `ci.yml` | Verify the pin, validate routes, lint the workflows, audit the dependency tree, 185 tests, then collect twice → verify the chain → report → diff → emit → schema-validate end to end |
+| `ci.yml` | Verify the pin, validate routes, lint the workflows, audit the dependency tree, 298 tests, then collect twice → verify the chain → report → diff → emit all five artifacts → schema-validate end to end |
 | `policy.yml` | OPA unit tests, the gate with its negative control, then the gate result as an evidence bundle. Checkov findings are advisory, but its execution is verified |
-| `ccm.yml` | Restore the locker, collect via OIDC, report, diff against the last collection, sign the manifest, publish the locker, and raise an issue when evidence stops supporting a claim |
+| `ccm.yml` | Restore the locker and verify it against the anchor, collect via OIDC, report, diff, anchor the manifest root, timestamp it, sign it, publish the locker, and notify on controls that changed state |
 
 The schedule is itself the control. Several indicators use the word "persistently" — which FedRAMP
 *defines* rather than leaving to the reader — and a check that runs when someone remembers to run it
@@ -396,8 +585,49 @@ extends a chain that already lies.
 A branch is the default because this repository monitors *itself*, where every fact in the locker is
 already public. **It is the wrong default for a real boundary.** A bundle names accounts, roles,
 buckets and failing resources — an accurate inventory of where a boundary is weakest — so point
-`KSI_EVIDENCE_BRANCH` at nothing and send the locker to a private append-only store instead. S3 with
-Object Lock is the obvious one.
+`KSI_EVIDENCE_BRANCH` at nothing and declare `evidence.store` instead.
+
+### Publishing the locker, and checking it against the anchor
+
+The two halves of *Existence*, in three commands:
+
+```bash
+ksi store --profile examples/northwind.profile.yaml     # what it guarantees, and whether it does
+ksi publish --profile examples/northwind.profile.yaml --anchor .anchors/northwind.jsonl
+ksi verify --anchor .anchors/northwind.jsonl            # and what the locker is now missing
+```
+
+`ksi store` is a separate command rather than a step inside `publish` because **a bucket with Object
+Lock and a bucket without look identical from the client**, which is how an ordinary bucket comes to
+be described as an evidence vault in a package. It reads what the backend actually enforces and
+refuses two configurations that would otherwise pass for immutable: S3 Object Lock in GOVERNANCE
+mode, and a GCS retention policy that has not been locked — one can be bypassed by a permission, the
+other simply shortened by whoever set it. Both document an intention while enforcing nothing. It is
+worth running against a store somebody else configured before trusting what the package says about
+it.
+
+It reports **three** outcomes rather than two, which is the same distinction the GCP collectors draw
+out of a 403 — and which this command got wrong first. A store that could not be *reached*, because
+a credential expired or the network failed, has not been shown to be anything, and heading that
+`NOT write-once` would be the tool asserting a finding about a bucket it never opened. It reads
+`UNVERIFIED` and still exits non-zero, because an unchecked guarantee is not a passed check either.
+
+`ksi verify --anchor` reconciles the locker against the log and separates three states that a single
+"mismatch" would blur:
+
+| State | What it means |
+|---|---|
+| `root_unknown` | A manifest root the anchor never recorded — evidence from somewhere else |
+| `shrunk` | Fewer runs than were anchored — history removed from a check that remains |
+| `missing_check` | A check the anchor knows and the locker no longer contains at all |
+
+Growth is never a finding. A locker is supposed to grow, and a rule that treated any divergence as
+tampering would fire on every successful collection and be switched off within a week.
+
+`evidence.anchor_log` points at a path, and where that path resolves is the whole design. Held in a
+different account, a different project, or a file the assessor keeps, it detects a deletion nobody
+disclosed. Held inside the locker it protects, it is removed by whatever removes the evidence, and
+the mechanism reduces to a longer way of storing a hash beside its own data.
 
 ### What changed since the last collection
 
@@ -422,7 +652,7 @@ validation text.
 ## Tests
 
 ```bash
-npm test          # 185 tests
+npm test          # 298 tests
 npm run policy    # policy unit tests + gate + negative control (39 Rego tests)
 ```
 
@@ -448,6 +678,25 @@ token scope into a security finding.
 Catalog assertions run against the **pinned** ruleset rather than remembered numbers, so a ruleset
 bump is expected to move them. That is one of the places the harness notices the ground moved.
 
+The newer files each pin a specific way the corresponding mechanism could look like it works while
+doing nothing:
+
+| File | The failure it exists to prevent |
+|---|---|
+| `tests/store-anchor.test.mjs` | A locker with two-thirds of a check's history deleted must be *detected*, not merely re-verified. It also asserts the GOVERNANCE and unlocked-retention refusals, and that growth is never reported as tampering |
+| `tests/timestamp.test.mjs` | DER encoded by hand against the RFC 3161 structures, round-tripped through a stub authority. A token whose signature was never checked must say so rather than implying verification |
+| `tests/boundary.test.mjs` | An `unattributed` resource fails. A boundary declaration that excludes something without naming who attested the exclusion is refused at load |
+| `tests/alerting.test.mjs` | Silence when nothing transitioned; delivery when something did. A stateful sink hears about quiet runs, because closing a standing issue requires being told nothing is wrong |
+| `tests/supply-chain.test.mjs` | A third-party register reconciled against observed webhook deliveries, so an integration nobody declared is a finding. A register checked only against itself confirms that a document says what it says |
+| `tests/gcp.test.mjs` | 403 disambiguation. Api-disabled, permission-denied and quota-exhausted are three different outcomes wearing the same status code |
+
+The alerting one is worth singling out, because writing it caught a bug in the fix itself.
+`diffLocker` defaults to first-run-versus-last, which is right for a report a person reads and wrong
+for alerting: a control that broke and then recovered is invisible across the full span, since both
+endpoints are green and everything interesting happened in between. Alerting on that default would
+have silently swallowed **every recovery** — an alerting system that can raise but never stand down.
+Hence the `--latest` option, and a test that fails if the direction is ever changed back.
+
 ---
 
 ## Decisions
@@ -465,8 +714,8 @@ bump is expected to move them. That is one of the places the harness notices the
 - **Not a certification.** It produces schema-valid artifacts; it does not produce an authorization.
   `ksiAssessment` is left for the assessor and deliberately not generated — writing it would be the
   exact conflict of interest a 3PAO exists to remove.
-- **Not complete.** 12 indicators are `unaddressed`, each with a stated reason and a named next
-  step. Two are blocked on distribution rather than effort: CIS Benchmarks sit behind member
+- **Not complete.** 9 indicators are `unaddressed` at Class C, each with a stated reason and a named
+  next step. Two are blocked on distribution rather than effort: CIS Benchmarks sit behind member
   distribution and cannot be vendored into a public repository.
 - **Not a substitute for judgement.** Lula 2's README, worth quoting against one's own enthusiasm:
   "automated tests alone were insufficient for real compliance verification." That cuts against
@@ -475,9 +724,10 @@ bump is expected to move them. That is one of the places the harness notices the
   failing resources — an accurate inventory of where a boundary is weakest. `.evidence/` is
   gitignored. The scheduled run publishes its locker to a separate `evidence` branch, which is
   acceptable *here* because this repository's only subject is itself and every fact it collects is
-  already public. For any real boundary, unset `KSI_EVIDENCE_BRANCH` and point the locker at a
-  private append-only store; retention is a compliance property rather than housekeeping, so it
-  needs somewhere durable and write-once rather than somewhere convenient.
+  already public. For any real boundary, unset `KSI_EVIDENCE_BRANCH`, declare `evidence.store` and
+  `evidence.anchor_log` in the profile, and let `ksi publish` write to a private write-once store —
+  then run `ksi store` against it, because a bucket that only claims to be one is the failure this
+  is guarding against.
 
 ## Scope notes
 

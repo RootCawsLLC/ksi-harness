@@ -129,3 +129,71 @@ test('a fixed resource is distinguished from one that left the population', () =
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+/* -------------------------------------------------------------- the two directions */
+
+/**
+ * The default span and the alerting span answer different questions, and using one for the
+ * other is silent rather than noisy.
+ *
+ * A report a person reads wants first-to-last: "what has changed since this locker began".
+ * Alerting wants the run that just happened. A control that broke and then recovered is
+ * *invisible* across the full span — both endpoints are green and everything interesting
+ * happened in between — so alerting on the default would have suppressed every recovery,
+ * producing a notifier that can raise and never stand down.
+ *
+ * Three runs, pass → fail → pass. Both views are correct; only one is useful for alerting.
+ */
+function threeRuns() {
+  const broken = [
+    { id: 'scope/123456789012', status: 'pass', detail: '1 enumerated' },
+    { id: 'sg/sg-aaa', status: 'fail', detail: '0.0.0.0/0 on 22' },
+  ];
+  const first = bundle();
+  const second = bundle({
+    collectedAt: '2026-08-18T04:00:00.000Z',
+    previousHash: first.integrity.content_sha256,
+    chainIndex: 1,
+    items: broken,
+  });
+  const third = bundle({
+    collectedAt: '2026-08-19T04:00:00.000Z',
+    previousHash: second.integrity.content_sha256,
+    chainIndex: 2,
+  });
+  return locker([first, second, third]);
+}
+
+test('the default span reports the whole history, where a break and its repair cancel out', () => {
+  const dir = threeRuns();
+  try {
+    const check = diffLocker(dir).checks[0];
+    assert.equal(check.from.result, 'pass');
+    assert.equal(check.to.result, 'pass');
+    assert.equal(check.result_changed, false, 'true, and exactly why it is the wrong span for alerting');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('--latest compares the two most recent runs, so the recovery is visible', () => {
+  const dir = threeRuns();
+  try {
+    const check = diffLocker(dir, { latest: true }).checks[0];
+    assert.equal(check.from.result, 'fail');
+    assert.equal(check.to.result, 'pass');
+    assert.equal(check.result_changed, true, 'without this, ksi notify can never stand down');
+    assert.deepEqual(check.fixed.map((f) => f.id), ['sg/sg-aaa']);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('--latest on a single collection still reports nothing to compare rather than inventing a run', () => {
+  const dir = locker([bundle()]);
+  try {
+    assert.equal(diffLocker(dir, { latest: true }).counts.comparable, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

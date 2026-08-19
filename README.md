@@ -708,6 +708,11 @@ Hence the `--latest` option, and a test that fails if the direction is ever chan
 | [0003](docs/adr/0003-evidence-bundle-contract.md) | The evidence bundle, and why population reconciliation is the whole thing |
 | [0004](docs/adr/0004-crosswalk-direction.md) | Crosswalk from indicators to controls, not the reverse |
 | [0005](docs/adr/0005-preventive-and-detective.md) | Pair every gate with a collector, and keep the gate's output as evidence |
+| [0006](docs/adr/0006-evidence-durability.md) | Write-once storage, and a backend that has to prove it |
+| [0007](docs/adr/0007-anchor-log.md) | The anchor log, and why it must live outside the locker |
+| [0008](docs/adr/0008-rfc3161-timestamping.md) | A third party attests when the evidence existed |
+| [0009](docs/adr/0009-boundary-as-product-mode.md) | The boundary as a product mode, and the three attribution states |
+| [0010](docs/adr/0010-alert-on-transition.md) | Alert on transition, not on state |
 
 ## What this is not
 

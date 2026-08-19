@@ -1,0 +1,87 @@
+# A single-provider boundary, and the reason this file exists alongside northwind.
+#
+# Coverage is not a property of the routing map alone. `KSI-CNA-DFP` declares its sufficiency
+# argument conditionally — it holds for a boundary whose providers can enumerate their own service
+# surface — so the *same* routes.yaml resolves that indicator to `automated` here and to `partial`
+# for northwind, which also declares AWS accounts. Neither answer is a compromise; they are
+# different true statements about different estates.
+#
+# That is the point ADR 0011 makes, and this profile is how to see it:
+#
+#   ksi coverage --profile examples/skylark.profile.yaml    # KSI-CNA-DFP automated
+#   ksi coverage --profile examples/northwind.profile.yaml  # KSI-CNA-DFP partial, with the gap
+#   ksi coverage                                            # partial: unresolved, no profile given
+#
+# Everything else here is deliberately small. This is a boundary for demonstrating one mechanism,
+# not a second worked example of a whole programme — northwind is that.
+
+service_name: Skylark Transcription
+provider: Skylark Systems Ltd
+class: c
+
+boundary:
+  description: >
+    Batch speech-to-text over customer-supplied audio, in zero-retention mode only. Audio is
+    processed in memory and never written to durable storage. Real-time streaming and speaker
+    diarisation are out of scope and disabled at the service level.
+  selector:
+    gcp_label: skylark-boundary
+  in_scope_values: [in]
+  out_of_scope_values: [out]
+  capabilities:
+    - id: batch-transcription
+      description: Batch speech-to-text over customer-supplied audio.
+    - id: zero-retention
+      description: Audio is held in memory for the duration of the request and never persisted.
+  out_of_scope:
+    - id: realtime-streaming
+      description: Streaming transcription over a persistent connection.
+      excluded_by: Not offered to federal customers; disabled at the service level.
+      attested_by: Head of Platform
+    - id: diarisation
+      description: Speaker separation and labelling.
+      excluded_by: Requires retaining voice characteristics, which the boundary forbids.
+      attested_by: Head of Platform
+
+# One provider. That is what makes KSI-CNA-DFP's sufficiency condition hold here: every provider
+# in this boundary can enumerate its own service surface, so "functionality is strictly defined"
+# has an authoritative enumeration to be checked against rather than an inventory somebody keeps
+# by hand.
+gcp:
+  organization_id: "778341290655"
+  projects:
+    - id: skylark-transcribe-prod
+      intended_services:
+        - run.googleapis.com
+        - speech.googleapis.com
+        - secretmanager.googleapis.com
+        - cloudkms.googleapis.com
+
+  audited_services:
+    - storage.googleapis.com
+    - iam.googleapis.com
+    - cloudkms.googleapis.com
+    - secretmanager.googleapis.com
+
+  log_readers:
+    - group:security@skylark.example
+
+  cmek_required_buckets:
+    - skylark-transcribe-artifacts
+
+  required_constraints:
+    - id: iam.disableServiceAccountKeyCreation
+      why: prevents downloadable service account keys being created at all
+    - id: storage.publicAccessPrevention
+      why: prevents a bucket being made public regardless of its own IAM
+    - id: run.allowedIngress
+      why: keeps the transcription service off the public internet
+
+evidence:
+  # No store declared, so the locker is the filesystem and `ksi store` says so rather than
+  # implying durability nobody configured. A real deployment of this boundary would declare one.
+  anchor_log: .anchors/skylark.jsonl
+
+alerting:
+  sink:
+    kind: stdout

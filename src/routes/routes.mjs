@@ -5,6 +5,7 @@ import { parse } from 'yaml';
 
 import { catalog, resolveIndicator } from '../catalog/ksi.mjs';
 import { CHECK_IDS } from '../collectors/registry.mjs';
+import { CONDITIONS } from './sufficiency.mjs';
 
 /**
  * Loading and validation of the KSI routing map.
@@ -111,14 +112,56 @@ export function validateRoutes({ routes = loadRoutes(), klass = 'c' } = {}) {
     switch (route.coverage) {
       case 'automated':
         if (!hasChecks) errors.push(`${id}: coverage "automated" with no checks.`);
+        if (!route.cadence) errors.push(`${id}: coverage "automated" requires a cadence.`);
+
         if (!route.sufficiency) {
           errors.push(
             `${id}: coverage "automated" requires a "sufficiency" argument stating why the declared checks ` +
               `settle the indicator with nothing material left over. If that argument cannot be written, the ` +
               `honest level is "partial".`
           );
+          break;
         }
-        if (!route.cadence) errors.push(`${id}: coverage "automated" requires a cadence.`);
+        if (typeof route.sufficiency === 'string') {
+          errors.push(
+            `${id}: "sufficiency" must be a mapping with "holds_when" and "argument", not prose alone. ` +
+              `Sufficiency is a property of a boundary rather than of an indicator — the same checks that ` +
+              `settle a claim for one estate can leave a real gap in another — so the argument has to say ` +
+              `which boundary it is an argument about.`
+          );
+          break;
+        }
+        if (!route.sufficiency.argument) {
+          errors.push(`${id}: "sufficiency" requires an "argument". The prose is the bar; the condition only scopes it.`);
+        }
+        {
+          const holds = route.sufficiency.holds_when;
+          const kinds = holds ? Object.keys(holds) : [];
+          if (!kinds.length) {
+            errors.push(
+              `${id}: "sufficiency.holds_when" must name the boundary the argument holds for. ` +
+                `Known condition(s): ${CONDITIONS.join(', ')}.`
+            );
+          }
+          for (const kind of kinds) {
+            if (!CONDITIONS.includes(kind)) {
+              errors.push(`${id}: unknown sufficiency condition "${kind}". Known: ${CONDITIONS.join(', ')}.`);
+            }
+          }
+          if (holds?.providers_within && !holds.providers_within.length) {
+            errors.push(`${id}: "providers_within" is empty, which no boundary satisfies except an empty one.`);
+          }
+        }
+        // The same route has to be honest in both worlds. Where the condition does not hold it
+        // resolves to `partial`, and a partial level with no stated gap reads as full coverage to
+        // anyone scanning a table — so the gap is required here for exactly the reason it is there.
+        if (!route.unautomated?.length) {
+          errors.push(
+            `${id}: coverage "automated" requires "unautomated" as well, naming what the checks fail to ` +
+              `establish on a boundary the sufficiency condition does not cover. The route resolves to ` +
+              `"partial" there, and would otherwise report a partial with no gap.`
+          );
+        }
         break;
 
       case 'partial':

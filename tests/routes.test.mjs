@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { catalog } from '../src/catalog/ksi.mjs';
 import { ALL_CHECKS, CHECK_IDS, duplicateCheckIds } from '../src/collectors/registry.mjs';
 import { CADENCES, COVERAGE_LEVELS, checkToIndicators, loadRoutes, validateRoutes } from '../src/routes/routes.mjs';
+import { resolveSufficiency } from '../src/routes/sufficiency.mjs';
 
 /**
  * The routing map is where this project is most able to lie to itself, so it gets the strictest
@@ -22,7 +23,15 @@ const KNOWN_CHECK = [...CHECK_IDS][0];
 
 /** A minimal valid route of each coverage level, to mutate in the negative cases below. */
 const valid = {
-  automated: { coverage: 'automated', cadence: 'daily', checks: [KNOWN_CHECK], sufficiency: 'It settles the claim.' },
+  // Sufficiency is a mapping rather than prose alone: the argument has to say which boundary it
+  // is an argument about, and the route stays honest on boundaries the condition does not cover.
+  automated: {
+    coverage: 'automated',
+    cadence: 'daily',
+    checks: [KNOWN_CHECK],
+    sufficiency: { holds_when: { providers_within: ['gcp'] }, argument: 'It settles the claim.' },
+    unautomated: ['On a boundary the condition does not cover, this is what is missing.'],
+  },
   partial: { coverage: 'partial', cadence: 'daily', checks: [KNOWN_CHECK], unautomated: ['The rest is not automated.'] },
   manual: {
     coverage: 'manual',
@@ -86,13 +95,43 @@ test('every declared cadence is in the vocabulary', () => {
   }
 });
 
-test('the coverage claim is honest about the current state: nothing is fully automated', () => {
-  const levels = Object.values(loadRoutes()).map((r) => r.coverage);
-  for (const level of levels) assert.ok(COVERAGE_LEVELS.includes(level));
-  // Not a permanent property, but it is the current truth and it should not change by accident.
-  // Promoting an indicator to `automated` requires a written sufficiency argument, and that
-  // should be a deliberate edit that trips this test and makes someone justify it.
-  assert.equal(levels.filter((l) => l === 'automated').length, 0);
+/**
+ * This used to assert that nothing was automated, which was true and became the wrong assertion.
+ *
+ * The zero was never the property worth protecting; it was a symptom of the real one — that
+ * `automated` costs a written argument nobody could produce. When it turned out the argument was
+ * unwritable because sufficiency is boundary-dependent and the map declared it globally, the fix
+ * made one indicator promotable. Keeping the old assertion would have meant either reverting a
+ * correct change or deleting the test that guards the honesty.
+ *
+ * So it now asserts the thing the zero stood for: **no route claims sufficiency unconditionally,
+ * and every route that claims it stays honest where the condition does not hold.**
+ */
+test('every automated route names the boundary its argument holds for, and its gap elsewhere', () => {
+  const routes = Object.entries(loadRoutes());
+  for (const [, route] of routes) assert.ok(COVERAGE_LEVELS.includes(route.coverage));
+
+  const automated = routes.filter(([, r]) => r.coverage === 'automated');
+  for (const [id, route] of automated) {
+    assert.ok(route.sufficiency?.argument, `${id}: automated without a written argument`);
+    assert.ok(
+      Object.keys(route.sufficiency?.holds_when ?? {}).length,
+      `${id}: claims sufficiency for every boundary, which is the assumption that made the argument unwritable`
+    );
+    assert.ok(
+      route.unautomated?.length,
+      `${id}: no gap stated for boundaries the condition does not cover, where this resolves to partial`
+    );
+  }
+});
+
+// The headline stays honest by default. Resolution is conservative when it cannot be performed,
+// so a report run without a profile credits nothing it could not confirm applies.
+test('with no profile, nothing resolves to automated however it is declared', () => {
+  const routes = loadRoutes();
+  for (const [id, route] of Object.entries(routes)) {
+    assert.notEqual(resolveSufficiency(route, null).coverage, 'automated', `${id} resolved automated with no profile`);
+  }
 });
 
 /* --------------------------------------------------------- the validator's teeth */

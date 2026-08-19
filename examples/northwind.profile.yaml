@@ -89,9 +89,26 @@ aws:
 # report what is there.
 gcp:
   organization_id: "419827365104"
+
+  # `intended_services` is the declared functional surface: the service APIs a project is supposed
+  # to have enabled. `gcp.service.surface` reads the actual set from serviceusage.googleapis.com
+  # and fails anything absent from this list, because a project can only be acted upon through an
+  # API enabled on it — one that is off cannot be called, by an operator or by an attacker.
+  #
+  # Declared per project rather than once for the boundary, because the projects differ: a logging
+  # project that had quietly acquired inference APIs is a finding, not a footnote.
   projects:
     - id: northwind-voice-prod
+      intended_services:
+        - run.googleapis.com
+        - secretmanager.googleapis.com
+        - cloudkms.googleapis.com
+        - artifactregistry.googleapis.com
     - id: northwind-voice-logs
+      intended_services:
+        - bigquery.googleapis.com
+        - pubsub.googleapis.com
+        - cloudkms.googleapis.com
 
   # Services whose Data Access logs must be on. These default to OFF on GCP, which is the
   # most common reason an investigation finds no record of a read.

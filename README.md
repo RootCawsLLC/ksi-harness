@@ -26,13 +26,38 @@ manual        14
 unaddressed    9
 ```
 
-There are 21 implemented checks and 23 indicators with real, passing, chain-verified automated
+There are 22 implemented checks and 23 indicators with real, passing, chain-verified automated
 evidence behind them. A conventional tool would render that as somewhere north of 50% coverage.
 
 This one reports **zero automated**, because an indicator only reaches `automated` when someone
-writes an argument that its checks leave nothing material out — and nobody has been able to write
-one yet. A test asserts the count stays zero, so promoting an indicator has to be a deliberate edit
-that breaks the build and makes someone justify it.
+writes an argument that its checks leave nothing material out. For a long time nobody could write
+one, for any of the 46.
+
+Attempting the first promotion showed why, and it was not what the zero appeared to measure.
+**Sufficiency is a property of a boundary, not of an indicator.** `KSI-CNA-DFP` — "functionality
+and privileges are strictly defined" — is genuinely settled for an estate whose providers can
+enumerate their own service surface, and genuinely open for one that cannot: GCP reports exactly
+which service APIs are enabled on a project, AWS has no equivalent. Declared globally, which is all
+the routing map could express, the honest answer was `partial` — including for every boundary where
+that is demonstrably false.
+
+So an `automated` route now states the boundary its argument holds for, and the report shows the
+level it *resolves to* against the profile being assessed:
+
+```bash
+ksi coverage --profile examples/skylark.profile.yaml    # automated 1  — single provider
+ksi coverage --profile examples/northwind.profile.yaml  # automated 0  — AWS in scope, gap shown
+ksi coverage                                            # automated 0  — no profile, so unresolved
+```
+
+The same routing map, three boundaries, three different true answers. The headline above is the
+third: with no profile the condition cannot be evaluated, and crediting automation that cannot be
+confirmed to apply is the move this repository exists to refuse. Reasoning in
+[ADR 0011](docs/adr/0011-sufficiency-is-boundary-dependent.md).
+
+Promotion is still deliberate and still costs prose. The route must carry the argument *and* the
+gap it falls back to elsewhere, the validator refuses either one alone, and a test asserts no route
+claims sufficiency unconditionally.
 
 Consider `KSI-CED-RAT`, which asks whether security training was **effective** across four named
 cohorts. Every LMS exposes completion percentages through an API. Wiring that up and marking the
@@ -257,7 +282,7 @@ The anchor cannot prove its own completeness — nothing self-contained can, sin
 integrity check share a fate. It earns its place by shrinking what must survive from megabytes of
 bundles to one line per run, small enough to keep somewhere genuinely out of reach.
 
-### 21 checks across six families
+### 22 checks across six families
 
 | Check | Indicators |
 |---|---|
@@ -275,6 +300,7 @@ bundles to one line per run, small enough to keep somewhere genuinely out of rea
 | `gcp.network.ingress-exposure` | KSI-CNA-MAT · KSI-CNA-RNT · KSI-CNA-ULN |
 | `gcp.data.encryption-at-rest` | KSI-SVC-SIN |
 | `gcp.policy.org-constraints` | KSI-CNA-EIS · KSI-SVC-ACM |
+| `gcp.service.surface` | KSI-CNA-DFP · KSI-CNA-MAT |
 | `boundary.scope.attribution` | KSI-PIY-GIV |
 | `github.change.pr-review` | KSI-CMT-LMC · KSI-CMT-VTD |
 | `github.change.branch-protection` | KSI-CMT-RMV · KSI-CMT-RVP |
@@ -550,7 +576,7 @@ population, and both are worse than a report that says what happened.
 
 | Workflow | What it does |
 |---|---|
-| `ci.yml` | Verify the pin, validate routes, lint the workflows, audit the dependency tree, 318 tests, then collect twice → verify the chain → report → diff → emit all five artifacts → schema-validate end to end |
+| `ci.yml` | Verify the pin, validate routes, lint the workflows, audit the dependency tree, 340 tests, then collect twice → verify the chain → report → diff → emit all five artifacts → schema-validate end to end |
 | `policy.yml` | OPA unit tests, the gate with its negative control, then the gate result as an evidence bundle. Checkov findings are advisory, but its execution is verified |
 | `ccm.yml` | Restore the locker **and the anchor from its own repository**, verify one against the other, collect via OIDC, report, diff, anchor the manifest root, timestamp it, sign it, publish the locker, append the anchor back, and notify on controls that changed state |
 
@@ -718,7 +744,7 @@ validation text.
 ## Tests
 
 ```bash
-npm test          # 318 tests
+npm test          # 340 tests
 npm run policy    # policy unit tests + gate + negative control (39 Rego tests)
 ```
 
@@ -779,6 +805,7 @@ Hence the `--latest` option, and a test that fails if the direction is ever chan
 | [0008](docs/adr/0008-rfc3161-timestamping.md) | A third party attests when the evidence existed |
 | [0009](docs/adr/0009-boundary-as-product-mode.md) | The boundary as a product mode, and the three attribution states |
 | [0010](docs/adr/0010-alert-on-transition.md) | Alert on transition, not on state |
+| [0011](docs/adr/0011-sufficiency-is-boundary-dependent.md) | Sufficiency is a property of a boundary, not of an indicator |
 
 ## What this is not
 

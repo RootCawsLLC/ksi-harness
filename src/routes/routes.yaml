@@ -97,16 +97,55 @@ KSI-CMT-VTD:
   next: Collect per-deployment gate outcomes and the bypass count, so the claim becomes a rate rather than a snapshot of configuration.
 
 KSI-CNA-DFP:
-  coverage: partial
+  # The first indicator to reach `automated`, and getting here took a change to what the word can
+  # mean. Sufficiency turned out to be a property of a boundary rather than of an indicator, so
+  # the argument below states which boundary it is an argument about. On anything wider the route
+  # resolves back to `partial` and reports the gap underneath it. See ADR 0011.
+  coverage: automated
   cadence: daily
   checks:
     - aws.iam.privileged-access
     - gcp.iam.privileged-access
+    - gcp.service.surface
+  sufficiency:
+    holds_when:
+      providers_within: [gcp]
+    argument: >
+      The statement has exactly two clauses — functionality and privileges, both "strictly
+      defined" — and no others. It invokes no FedRAMP-defined term, so there is no FRD-PER
+      obligation beyond the declared cadence and no FRD-IRS or FRD-MBI breadth widening the
+      population past the projects the profile declares. Neither clause asks about effectiveness,
+      review, or approval: both are properties of current configuration, which is what automation
+      is the right instrument for.
+      Privileges are settled by gcp.iam.privileged-access, which asserts that no principal holds a
+      primitive role and that every binding conferring broad privilege is enumerated together with
+      the members it grants it to. Enumeration is what "strictly defined" means, and a privilege
+      that exists outside the enumeration fails the check rather than escaping it.
+      Functionality is settled by gcp.service.surface. A GCP project can only be acted upon through
+      service APIs enabled on it — an API that is not enabled cannot be called, by an operator or
+      by an attacker — so the enabled set is the functional surface rather than a proxy for it. The
+      check reads that set from serviceusage.googleapis.com and fails any service absent from the
+      declared surface, which is the undeclared-functionality case, and warns on the reverse, which
+      is a definition that has drifted from the estate it defines.
+      Both populations are enumerated from the provider rather than from the declaration they are
+      graded against, so neither clause can be satisfied by omitting something from the profile:
+      the failure each check exists to find is precisely the one a declaration-derived denominator
+      would hide.
+      What this does not reach is behaviour inside an enabled service — what a given Cloud Run
+      revision does once it is running. That is excluded deliberately rather than overlooked. The
+      indicator constrains the functionality and privileges of infrastructure and services, and the
+      workload running on them is the subject of KSI-SVC-CSC and KSI-CNA-MAT, which carry their own
+      gaps. Reading this clause as covering application behaviour would make it unfalsifiable by
+      any means, automated or otherwise.
   unautomated:
     - >
-      Privilege definition is checked; functionality definition is not. "Strictly defined"
-      for infrastructure means an enumerated intended service surface, which needs an
-      authoritative architecture inventory to compare against and there is not one yet.
+      On a boundary that includes AWS, functionality definition is unevidenced. Services are not
+      "enabled" on an AWS account — they are callable in any region unless an SCP forbids it — so
+      there is no authoritative enumeration of an account's service surface to compare a
+      declaration against. Deriving one from CloudTrail would measure what has been used rather
+      than what is reachable, and an unused-but-reachable service is exactly the surface this
+      indicator is about. aws.iam.privileged-access still settles the privilege clause there; only
+      the functionality clause is open.
 
 KSI-CNA-EIS:
   coverage: partial
@@ -143,6 +182,10 @@ KSI-CNA-MAT:
   checks:
     - aws.network.ingress-exposure
     - gcp.network.ingress-exposure
+    # An enabled service API is reachable surface in the same sense an open port is: the smaller
+    # the declared set, the less there is to attack. Routed here as well as to KSI-CNA-DFP, where
+    # the same evidence answers a different question — definition rather than minimisation.
+    - gcp.service.surface
   unautomated:
     - >
       Attack surface is evidenced at the network edge only. The indicator's second clause —

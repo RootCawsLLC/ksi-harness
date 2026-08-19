@@ -95,19 +95,48 @@ clone, a fetch that dropped history, a deletion nobody intended — and does not
 truncation by someone holding push access. The first set is common and worth catching. The second is
 the threat the design is written against, and it is not covered here.
 
-It is left this way because a repository whose only subject is itself has no second trust domain to
-reach for inside its own workflow. Repointing the path alone would make things quietly worse rather
-than better: anything outside `.locker` is written after collection and never restored, so every run
-would start from a fresh checkout, find no anchor, and report a clean reconciliation forever — the
-same structurally-unfalsifiable shape as the cadence bug, in different clothes.
+Repointing the path alone would have made things quietly worse rather than better: anything outside
+`.locker` is written after collection and never restored, so every run would start from a fresh
+checkout, find no anchor, and report a clean reconciliation forever — the same
+structurally-unfalsifiable shape as the cadence bug, in different clothes.
 
-A real boundary therefore needs the anchor **plumbed rather than repointed**: fetched from wherever
-it lives before verification, appended back there after publishing, under a credential that cannot
-also write the evidence.
+So the anchor is **plumbed rather than repointed**. `scripts/anchor-sync.mjs` fetches it from its own
+repository before verification and appends it back after publication, under `KSI_ANCHOR_TOKEN` — a
+credential that cannot write the evidence. Set `KSI_ANCHOR_REPO` and the separation is real; leave it
+unset and the co-located default applies, and the script **prints which mode is in force on every
+run** rather than leaving it to this document.
 
-Recorded rather than quietly tolerated, because a mechanism that is present, named in a workflow,
-and weaker than its own documentation is the precise failure this repository exists to catch.
-Writing this ADR is what surfaced it.
+Two refusals in that script matter more than the transport:
+
+- **A half-configured anchor stops the run.** `KSI_ANCHOR_REPO` without a token falls back to nothing
+  — falling back to the co-located default would silently restore the weakness the second repository
+  was added to remove.
+- **An anchor that shrank is never published.** `publish` writes the local file over the remote one,
+  so a truncated local anchor would overwrite the longer remote record — destroying the evidence of
+  truncation with the very command meant to preserve it. Since the log is chained, a lost entry is
+  not a missing line but a break that makes every later entry unverifiable.
+
+### What the separation is, and what it is not
+
+**This is separation of storage and credential, not separation of control.** Both credentials are
+referenced by one workflow in one repository, so whoever can modify that workflow — or add a secret
+to it — can write both sides. Someone with push access to the default branch is not stopped by this;
+they are stopped by branch protection, which is a different control with different failure modes.
+
+What it does stop is narrower and still worth having: a principal who can write the *evidence branch*
+cannot rewrite the anchor, a restored or exported copy of the locker is reconciled against a record
+that did not travel with it, and deleting the evidence does not delete the account of how much of it
+there was.
+
+Genuine independence would need the anchor appended by something the evidence writer cannot influence
+at all — an append-only endpoint that rejects rewrites regardless of caller, or an assessor's own
+copy. The RFC 3161 token ([ADR 0008](0008-rfc3161-timestamping.md)) is the closest thing here to that
+property already, because the authority independently observed the same root.
+
+**This repository still runs in the co-located mode**, because a repository whose only subject is
+itself has no second trust domain to reach for. The difference is that the mode is now a
+configuration choice that announces itself, rather than a property the documentation claimed and the
+deployment did not have.
 
 ## What it deliberately does not prove
 

@@ -80,35 +80,30 @@ jobs:
       # timestamp all live inside the locker, so they protect it against alteration and not against
       # removal; this file is what notices a locker that came back smaller than it went in.
       #
-      # Read what this default actually buys, because it is weaker than the mechanism is designed
-      # to be. `anchor.jsonl` sits beside `evidence/` rather than inside it, but `locker-sync
-      # publish` commits all of `.locker` and pushes it, so the anchor and the evidence travel to
-      # the same branch in the same commit and come back together on restore. Anyone who can
-      # rewrite that branch rewrites both, which is the co-location ADR 0007 names as defeating
-      # the point.
+      # Where the anchor is staged locally. Where it actually *lives* is decided by
+      # KSI_ANCHOR_REPO below, and that distinction is the whole mechanism.
       #
-      # So on this repository the anchor detects evidence lost by accident — a bad restore, a
-      # shallow clone, a fetch that dropped history, a deletion nobody meant — and does not detect
-      # deliberate truncation by someone holding push access. That is a real and common failure
-      # mode, and it is not the threat the design is written against.
+      # Set KSI_ANCHOR_REPO and KSI_ANCHOR_TOKEN and the anchor is fetched from a separate
+      # repository before the locker is verified, and appended back there after it is published,
+      # under a credential that cannot write this repository. A principal who can rewrite the
+      # evidence branch then cannot rewrite the record of how much evidence there was.
       #
-      # It is left this way because a repository whose only subject is itself has no second trust
-      # domain to reach for inside its own workflow, and an anchor that states its limit is worth
-      # more than one that pretends otherwise.
+      # Leave them unset and the anchor stays here, published alongside the evidence it protects
+      # by the same `locker-sync publish` that pushes `.locker` — so it detects evidence lost by
+      # accident and NOT deliberate truncation by anyone able to write the evidence branch. That
+      # is the mode this repository runs in, because a repository whose only subject is itself
+      # has no second trust domain to reach for. `anchor-sync` prints which mode is in force on
+      # every run rather than leaving it to this comment.
       #
-      # The path is deliberately not a repository variable, because moving it alone would make
-      # things quietly worse rather than better. Anything outside `.locker` is written after
-      # collection and never restored — every run would start from a fresh checkout, find no
-      # anchor, take the "not checked" branch, and report a clean reconciliation forever. That is
-      # the same structurally-unfalsifiable shape as the cadence bug this workflow was rewritten
-      # to fix, and it would look like it was working.
-      #
-      # A real boundary therefore needs the anchor *plumbed*, not just repointed: fetch it from
-      # wherever it lives before the verify step, and append it back there after publishing —
-      # somewhere whoever can write the evidence cannot also write the record of how much of it
-      # there was supposed to be. A separate repository, a different account, or the write-once
-      # store from ADR 0006 with a distinct credential.
+      # Note that the path alone was never the fix. Anything outside `.locker` is written after
+      # collection and never restored, so repointing it without the fetch-and-append below would
+      # make every run start from a fresh checkout, find no anchor, and report a clean
+      # reconciliation forever — structurally unfalsifiable, and the same shape as the cadence
+      # bug this workflow was rewritten to fix.
       ANCHOR_LOG: .locker/anchor.jsonl
+      KSI_ANCHOR_REPO: ${{ vars.KSI_ANCHOR_REPO }}
+      KSI_ANCHOR_BRANCH: ${{ vars.KSI_ANCHOR_BRANCH }}
+      KSI_ANCHOR_FILE: ${{ vars.KSI_ANCHOR_FILE }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -135,6 +130,14 @@ jobs:
       # consistency of what is present and says nothing about what is gone, so a locker with
       # two-thirds of a check's history removed and its manifest regenerated passes every other
       # check in this file.
+      # Before verification, because verification is what consumes it. Fetched from its own
+      # repository when one is configured, and reported as co-located when not — the mode is
+      # printed on every run rather than inferred from a comment.
+      - name: Restore the anchor log
+        env:
+          KSI_ANCHOR_TOKEN: ${{ secrets.KSI_ANCHOR_TOKEN }}
+        run: node scripts/anchor-sync.mjs restore "$ANCHOR_LOG"
+
       - name: Verify the restored locker
         run: |
           if [ -f "$ANCHOR_LOG" ]; then
@@ -269,6 +272,19 @@ jobs:
           KSI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           KSI_COMMIT_MESSAGE: Evidence collected in ${{ steps.mode.outputs.mode }} mode
         run: node scripts/locker-sync.mjs publish .locker
+
+      # After the locker, so the anchor never claims evidence that failed to publish. The reverse
+      # order would record a root that does not exist anywhere, and the next run would open with
+      # a `root_unknown` finding against its own predecessor.
+      #
+      # `always()` is deliberately not used. An anchor written after a failed collection would
+      # assert a state the evidence never reached.
+      - name: Publish the anchor log
+        if: steps.mode.outputs.mode != 'fixtures'
+        env:
+          KSI_ANCHOR_TOKEN: ${{ secrets.KSI_ANCHOR_TOKEN }}
+          KSI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/anchor-sync.mjs publish "$ANCHOR_LOG"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()

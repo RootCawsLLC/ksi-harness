@@ -1,0 +1,56 @@
+{
+  "check_id": "github.supply-chain.dependency-alerts",
+  "ksis": [
+    "KSI-SCR-MON"
+  ],
+  "collector": {
+    "path": "src/collectors/github/dependencies.mjs",
+    "version": "1.0.0",
+    "source_commit": "3a85745ec9543d1ecfb3eee07a6e55461f444900"
+  },
+  "collected_at": "2026-08-19T11:03:54.665Z",
+  "scope": {
+    "repositories": [
+      "RootCawsLLC/ksi-harness"
+    ],
+    "remediation_windows_days": {
+      "critical": 7,
+      "high": 30,
+      "medium": 90,
+      "low": 180
+    }
+  },
+  "population": {
+    "expected": 1,
+    "examined": 1,
+    "complete": true,
+    "decidable": 1,
+    "source_of_truth": "the vulnerability-alerting state of each declared repository, plus every open dependency alert it reports",
+    "enumerated_from": "the repositories declared in the profile, counted before any alert listing was made; each repository contributes one monitoring-state member whether or not it reports any alert"
+  },
+  "result": "warn",
+  "assertion": "Every declared repository has automated upstream vulnerability monitoring enabled, and no open alert has been outstanding longer than the remediation window its severity declares.",
+  "items": [
+    {
+      "id": "monitoring/RootCawsLLC/ksi-harness",
+      "status": "warn",
+      "detail": "Token lacks permission to verify this: Resource not accessible by integration",
+      "observed": {
+        "reason": "permission"
+      }
+    }
+  ],
+  "metric": {
+    "metric_id": "github.supply_chain.alerts_within_window",
+    "value": 0,
+    "unit": "ratio"
+  },
+  "chain": {
+    "previous_sha256": null,
+    "index": 0
+  },
+  "integrity": {
+    "content_sha256": "fb97e91ae597c587bb7ad3615083e04915a448e8dc641ab0f88950491c97dfb1",
+    "signed": false
+  }
+}

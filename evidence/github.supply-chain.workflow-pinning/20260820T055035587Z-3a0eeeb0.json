@@ -1,0 +1,187 @@
+{
+  "check_id": "github.supply-chain.workflow-pinning",
+  "ksis": [
+    "KSI-SCR-MIT",
+    "KSI-SVC-VRI"
+  ],
+  "collector": {
+    "path": "src/collectors/github/supply-chain.mjs",
+    "version": "1.0.0",
+    "source_commit": "1a6db829eaab7fb5d91e6bb64e34db15c79814bb"
+  },
+  "collected_at": "2026-08-20T05:50:35.587Z",
+  "scope": {
+    "repositories": [
+      "RootCawsLLC/ksi-harness"
+    ]
+  },
+  "population": {
+    "expected": 16,
+    "examined": 16,
+    "complete": true,
+    "decidable": 16,
+    "source_of_truth": "Every `uses:` reference in every file under .github/workflows in each declared repository",
+    "enumerated_from": "the repositories declared in the profile; each one that answered contributes its own workflow references, and each one that did not is itemised rather than dropped"
+  },
+  "result": "pass",
+  "assertion": "Every third-party action referenced by a CI workflow is pinned to an immutable commit revision rather than a mutable tag or branch.",
+  "items": [
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/ccm.yml:106",
+      "status": "pass",
+      "detail": "actions/checkout pinned to 3d3c42e5aac5",
+      "observed": {
+        "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/ccm.yml:107",
+      "status": "pass",
+      "detail": "actions/setup-node pinned to 820762786026",
+      "observed": {
+        "uses": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/ccm.yml:168",
+      "status": "pass",
+      "detail": "aws-actions/configure-aws-credentials pinned to e6de054238d6",
+      "observed": {
+        "uses": "aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/ccm.yml:297",
+      "status": "pass",
+      "detail": "actions/upload-artifact pinned to 043fb46d1a93",
+      "observed": {
+        "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/ci.yml:24",
+      "status": "pass",
+      "detail": "actions/checkout pinned to 3d3c42e5aac5",
+      "observed": {
+        "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/ci.yml:25",
+      "status": "pass",
+      "detail": "actions/setup-node pinned to 820762786026",
+      "observed": {
+        "uses": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/ci.yml:79",
+      "status": "pass",
+      "detail": "actions/checkout pinned to 3d3c42e5aac5",
+      "observed": {
+        "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/ci.yml:80",
+      "status": "pass",
+      "detail": "actions/setup-node pinned to 820762786026",
+      "observed": {
+        "uses": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/ci.yml:134",
+      "status": "pass",
+      "detail": "actions/upload-artifact pinned to 043fb46d1a93",
+      "observed": {
+        "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/policy.yml:29",
+      "status": "pass",
+      "detail": "actions/checkout pinned to 3d3c42e5aac5",
+      "observed": {
+        "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/policy.yml:30",
+      "status": "pass",
+      "detail": "actions/setup-node pinned to 820762786026",
+      "observed": {
+        "uses": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/policy.yml:66",
+      "status": "pass",
+      "detail": "actions/upload-artifact pinned to 043fb46d1a93",
+      "observed": {
+        "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/policy.yml:86",
+      "status": "pass",
+      "detail": "actions/checkout pinned to 3d3c42e5aac5",
+      "observed": {
+        "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/policy.yml:87",
+      "status": "pass",
+      "detail": "actions/setup-node pinned to 820762786026",
+      "observed": {
+        "uses": "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/policy.yml:90",
+      "status": "pass",
+      "detail": "actions/setup-python pinned to 5fda3b95a4ea",
+      "observed": {
+        "uses": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+        "kind": "pinned"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness/.github/workflows/policy.yml:112",
+      "status": "pass",
+      "detail": "actions/upload-artifact pinned to 043fb46d1a93",
+      "observed": {
+        "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+        "kind": "pinned"
+      }
+    }
+  ],
+  "metric": {
+    "metric_id": "github.supply_chain.pinned_actions",
+    "value": 1,
+    "unit": "ratio"
+  },
+  "chain": {
+    "previous_sha256": "9229b5465f35c2b9aa65d2c6bd0a0b4fb4f88add4963537e4abb1d20acc37dd6",
+    "index": 1
+  },
+  "integrity": {
+    "content_sha256": "3a0eeeb0ababc706621f8bfde2ca949006e50ffba615edcf55a856c481486016",
+    "signed": false
+  }
+}

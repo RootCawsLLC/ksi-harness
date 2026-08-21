@@ -24,6 +24,7 @@ const CLIENT_MODULES = {
   cloudtrail: ['@aws-sdk/client-cloudtrail', 'CloudTrailClient'],
   config: ['@aws-sdk/client-config-service', 'ConfigServiceClient'],
   ec2: ['@aws-sdk/client-ec2', 'EC2Client'],
+  elbv2: ['@aws-sdk/client-elastic-load-balancing-v2', 'ElasticLoadBalancingV2Client'],
   iam: ['@aws-sdk/client-iam', 'IAMClient'],
   kms: ['@aws-sdk/client-kms', 'KMSClient'],
   logs: ['@aws-sdk/client-cloudwatch-logs', 'CloudWatchLogsClient'],

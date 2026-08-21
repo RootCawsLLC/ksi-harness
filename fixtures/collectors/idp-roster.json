@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "The HR roster that idp-accounts.json is reconciled against, and the half of KSI-IAM-AAM that",
+    "no identity provider can answer about itself.",
+    "",
+    "j.lindqvist@ is the finding this check exists for. The account is ACTIVE and was provisioned",
+    "by ACTIVE_DIRECTORY, so idp.account.provisioning passes it and every cloud-side check sees a",
+    "correctly configured identity. Workday says the person left on 2026-03-14. Provisioning was",
+    "automated; deprovisioning was not, and nothing else in this harness can see that.",
+    "",
+    "break-glass@ is the second failure mode: no worker record and not declared as a non-human",
+    "identity, so nothing attributes it to a person or to a service. It already fails the",
+    "provisioning check for a different reason, which is the point — the two checks are",
+    "independent and an estate can fail either without the other.",
+    "",
+    "t.varga@ is on parental leave and passes. Suspending that account may well be correct policy,",
+    "but it is not this indicator's question and grading it here would produce a false positive of",
+    "the exact kind that gets a compliance tool switched off.",
+    "",
+    "r.okafor@ carries a status this harness does not map, and warns rather than resolving into a",
+    "guess. svc-deploy@ is DEPROVISIONED and leaves the denominator; svc-transcode@ is declared in",
+    "non_human_accounts and leaves it by declaration."
+  ],
+  "max_age_days": 7,
+  "non_human_accounts": ["svc-transcode@skylark.example"],
+  "roster": {
+    "as_of": "2026-08-18T06:00:00Z",
+    "system": "workday",
+    "workers": [
+      { "email": "amara.osei@skylark.example", "status": "active" },
+      { "email": "j.lindqvist@skylark.example", "status": "terminated", "termination_date": "2026-03-14" },
+      { "email": "r.okafor@skylark.example", "status": "contingent-worker" },
+      { "email": "t.varga@skylark.example", "status": "leave" }
+    ]
+  }
+}

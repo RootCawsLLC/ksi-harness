@@ -99,10 +99,30 @@ idp:
     - Platform Admins
     - Transcription Engineers
 
-  # The authoritative roster of people who still work here. Nothing reads this yet, and until
-  # something does, an account provisioned correctly by automation and belonging to somebody who
-  # left in March passes every check in this harness. Named as a stated gap on KSI-IAM-AAM.
-  hr_source: null
+  # The authoritative roster of people who still work here, and the only thing that can say
+  # whether an account should still exist. Read by idp.account.roster: a live account whose worker
+  # record has ended is a finding, and provisioning being automated does not make it one less.
+  #
+  # An export rather than an API. Every HRIS worth reconciling against produces one, it is what an
+  # assessor will be shown anyway, and a normaliser written against a vendor API nobody here has
+  # ever received a response from is the mistake this harness already declines to make for Entra.
+  #
+  # max_age_days is load-bearing. A roster is a snapshot, and a stale snapshot still lists a leaver
+  # as employed — so without it the check reads clean for exactly as long as nobody refreshes the
+  # export. Seven days is deliberately shorter than any plausible notice period; the window being
+  # closed is the one between a termination and the account being disabled.
+  hr_source:
+    kind: file
+    path: ./hr/roster.json
+    max_age_days: 7
+
+  # Identities the roster is not expected to contain, named one at a time. A prefix convention
+  # would be less typing and is exactly why this is not one: `svc-` is a name, and a name is
+  # something an orphaned account can be given. The exclusion has to be granted by the profile
+  # rather than by the estate being assessed.
+  non_human_accounts:
+    - svc-transcode@skylark.example
+
 
 evidence:
   # No store declared, so the locker is the filesystem and `ksi store` says so rather than

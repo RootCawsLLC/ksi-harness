@@ -26,7 +26,7 @@ manual        14
 unaddressed    8
 ```
 
-There are 24 implemented checks and 24 indicators with real, passing, chain-verified automated
+There are 25 implemented checks and 24 indicators with real, passing, chain-verified automated
 evidence behind them. A conventional tool would render that as somewhere north of 50% coverage.
 
 This one reports **zero automated**, because an indicator only reaches `automated` when someone
@@ -282,7 +282,7 @@ The anchor cannot prove its own completeness — nothing self-contained can, sin
 integrity check share a fate. It earns its place by shrinking what must survive from megabytes of
 bundles to one line per run, small enough to keep somewhere genuinely out of reach.
 
-### 24 checks across seven families
+### 25 checks across seven families
 
 | Check | Indicators |
 |---|---|
@@ -303,6 +303,7 @@ bundles to one line per run, small enough to keep somewhere genuinely out of rea
 | `gcp.service.surface` | KSI-CNA-DFP · KSI-CNA-MAT |
 | `idp.account.provisioning` | KSI-IAM-AAM |
 | `idp.privilege.assignment` | KSI-IAM-AAM · KSI-IAM-ELP |
+| `idp.account.roster` | KSI-IAM-AAM |
 | `boundary.scope.attribution` | KSI-PIY-GIV |
 | `github.change.pr-review` | KSI-CMT-LMC · KSI-CMT-VTD |
 | `github.change.branch-protection` | KSI-CMT-RMV · KSI-CMT-RVP |
@@ -324,8 +325,18 @@ indistinguishable downstream, so only the identity provider retains which one ha
 The privilege check grades the *path* rather than the permission: access arriving through a
 rule-driven group falls away when the rule stops matching, and access granted directly to a person
 falls away when somebody remembers. That is the leaver problem written as a configuration property
-instead of a process one. What it still cannot see is whether an account belongs to somebody who
-still works here — that needs an HR roster, and it is a stated gap rather than a silent one.
+instead of a process one.
+
+The roster check answers the half neither of those can. An account created by SCIM, holding exactly
+the right permissions, belonging to somebody who left in March, passes every other check in this
+harness — because a provisioning source records how an identity was made and never whether it
+should be kept. Only an authoritative roster of people can settle that, and it lives outside the
+identity provider by definition, which is why the reconciliation rather than either list is the
+instrument. A boundary that declares no `idp.hr_source` has its accounts reported as *unexamined*
+rather than as passes: the bundle names every account it did not test and why, so the gap is in the
+evidence instead of in a footnote. Roster freshness is graded as a member of that population too,
+because a snapshot taken before the terminations it is meant to reveal would otherwise read clean
+for exactly as long as nobody refreshed the export.
 
 **The GCP family is not the AWS one with different nouns.** Each check grades a failure mode that
 has no clean AWS analogue, because the ones that transfer are not the ones that bite:

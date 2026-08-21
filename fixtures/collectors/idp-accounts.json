@@ -12,13 +12,12 @@
     "svc-deploy@ is DEPROVISIONED and therefore not-applicable rather than passing: counting dead",
     "accounts as evidence of automation would let an estate improve its score by accumulating them.",
     "",
-    "No hr_source is declared, so the bundle carries a reconciliation note saying that an account",
-    "provisioned correctly by automation and belonging to somebody who left in March is invisible",
-    "here. That is the half an IdP cannot answer on its own."
+    "svc-transcode@ is a live service account. It passes provisioning on its own merits, and it is",
+    "excluded from the roster reconciliation by declaration rather than by its name — see",
+    "idp-roster.json, which carries the half of KSI-IAM-AAM this file cannot answer."
   ],
   "provider": "okta",
   "domain": "skylark.okta.com",
-  "hr_source": null,
   "automated_sources": ["ACTIVE_DIRECTORY", "SCIM", "HR_IMPORT"],
   "accounts": [
     { "id": "00u1", "login": "amara.osei@skylark.example", "status": "ACTIVE", "live": true, "source": "ACTIVE_DIRECTORY" },
@@ -26,7 +25,8 @@
     { "id": "00u3", "login": "r.okafor@skylark.example", "status": "ACTIVE", "live": true, "source": "SCIM" },
     { "id": "00u4", "login": "t.varga@skylark.example", "status": "LOCKED_OUT", "live": true, "source": "SCIM" },
     { "id": "00u5", "login": "break-glass@skylark.example", "status": "ACTIVE", "live": true, "source": "OKTA" },
-    { "id": "00u6", "login": "svc-deploy@skylark.example", "status": "DEPROVISIONED", "live": false, "source": "OKTA" }
+    { "id": "00u6", "login": "svc-deploy@skylark.example", "status": "DEPROVISIONED", "live": false, "source": "OKTA" },
+    { "id": "00u7", "login": "svc-transcode@skylark.example", "status": "ACTIVE", "live": true, "source": "SCIM" }
   ],
   "groups": [
     { "id": "00g1", "name": "Platform Admins", "membership": "manual", "privileged": true },

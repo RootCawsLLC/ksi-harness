@@ -240,14 +240,23 @@ KSI-IAM-AAM:
   checks:
     - idp.account.provisioning
     - idp.privilege.assignment
+    # Whether an account should still exist, which the provisioning source cannot say. An account
+    # created flawlessly by SCIM and belonging to somebody who left in March passes every other
+    # check in this harness.
+    - idp.account.roster
   unautomated:
     - >
-      Whether an account still corresponds to a person is unevidenced, and it is the half that
-      matters most. An account can be provisioned flawlessly by automation and belong to somebody
-      who left in March: the provisioning source says how it was created, never whether it should
-      still exist. Closing this needs an HR feed as the authoritative roster, reconciled against
-      the provider's account list so an identity with no active worker record is a finding. The
-      profile can name one at `idp.hr_source` and nothing reads it yet.
+      The reconciliation runs in one direction only. A live account with no current worker record
+      is a finding; a worker with no account is not looked for. That is a provisioning gap rather
+      than an access one, and nobody's access is excessive because of it, but it means this check
+      evidences that leavers are removed and not that joiners are onboarded.
+    - >
+      The roster is a declaration, and the check is worth what the declaration is worth. A boundary
+      naming no `idp.hr_source` has its accounts reported as unexamined rather than as findings,
+      which is honest but is not coverage; and the identities excluded as non-human are excluded
+      because the profile lists them, which is auditable but not independently verified. Roster
+      staleness is graded rather than assumed, so the one failure mode that would read clean while
+      being wrong is visible in the same population as the findings.
     - >
       Only Okta is normalised. An estate on Entra ID, Google Workspace or a directory of its own
       has no evidence here at all, and the collector refuses an unknown provider rather than
@@ -258,7 +267,7 @@ KSI-IAM-AAM:
       aws.iam.privileged-access and gcp.iam.privileged-access, but nothing joins the two views, so
       a privilege granted directly in the cloud to a federated identity is visible as a cloud
       finding and not as a lifecycle one.
-  next: Reconcile the provider's account list against a declared HR roster, so an orphaned identity becomes a finding rather than an assumption.
+  next: Join the identity provider and cloud views, so a privilege granted directly in the cloud to a federated identity is visible as a lifecycle finding rather than only as a cloud one.
 
 KSI-IAM-APM:
   coverage: partial

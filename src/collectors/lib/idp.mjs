@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 export { fixtureScope, loadFixture } from './fixtures.mjs';
 export { mergeGraded, passRate } from './grade.mjs';
 
@@ -74,8 +76,125 @@ export function resolveIdp(profile) {
     automatedSources: new Set(idp.automated_sources ?? AUTOMATED_SOURCES),
     privilegedGroups: new Set(idp.privileged_groups ?? []),
     // An HR feed is the only thing that can answer "does this account correspond to a person who
-    // still works here". Optional, and its absence is a stated gap rather than a silent one.
-    hrSource: idp.hr_source ?? null,
+    // still works here". Optional, and its absence is reported per account as an unexamined
+    // population rather than as a silent pass — see resolveHrSource.
+    hrSource: resolveHrSource(idp.hr_source),
+    // Identities the roster is not expected to contain, declared one login at a time. The
+    // roster collector explains why this is a list rather than a naming convention.
+    nonHumanAccounts: new Set((idp.non_human_accounts ?? []).map((l) => String(l).trim().toLowerCase())),
+  };
+}
+
+/**
+ * Reading the roster the profile declares.
+ *
+ * `KSI-IAM-AAM` has two halves and the collector above evidences one of them. "Lifecycle and
+ * privileges ... securely managed using automation" is not settled by showing that provisioning
+ * was automated: an account created flawlessly by SCIM, holding exactly the right permissions,
+ * and belonging to somebody who left in March passes every check the identity provider can
+ * answer on its own. The provisioning source records how an account was created and never
+ * whether it should still exist.
+ *
+ * Only an authoritative roster of people can answer that, and it lives outside the identity
+ * provider by definition — which is the whole reason the reconciliation is the finding rather
+ * than either list alone. The same shape as `thirdparty.register.review`: a declaration, an
+ * independent observation, and the gap between them treated as the result.
+ *
+ * A file rather than an API, for now. Every HRIS worth reconciling against exports one, the
+ * export is what an assessor will be shown anyway, and a normaliser written against Workday's
+ * API without ever having received a Workday response would be the mistake this library already
+ * refuses to make for Entra ID.
+ *
+ * `max_age_days` is not decoration. A roster is a snapshot, and a stale snapshot still lists a
+ * leaver as employed — so the check would read clean for exactly as long as nobody refreshed the
+ * export. Freshness is graded as an explicit member of the population rather than assumed,
+ * because a check whose premise has quietly expired is indistinguishable from one that passed.
+ */
+export const HR_SOURCE_KINDS = Object.freeze(['file']);
+
+/** Worker states that mean the person still works here. */
+const EMPLOYED = new Set(['active', 'leave']);
+
+export function resolveHrSource(hrSource) {
+  if (!hrSource) return null;
+
+  const kind = hrSource.kind ?? 'file';
+  if (!HR_SOURCE_KINDS.includes(kind)) {
+    throw new Error(
+      `Unknown idp.hr_source.kind "${kind}". Known: ${HR_SOURCE_KINDS.join(', ')}. An HRIS integration written ` +
+        'against documentation rather than real exports would report confidently about a payload it has never ' +
+        'received.'
+    );
+  }
+  if (!hrSource.path) {
+    throw new Error('idp.hr_source.path is required: the roster is a file this harness reads, not one it discovers.');
+  }
+
+  return {
+    kind,
+    path: hrSource.path,
+    // Seven days is a working default for a nightly export that occasionally misses a night. It is
+    // deliberately shorter than any plausible notice period: the window this check exists to close
+    // is the one between a termination and the account being disabled.
+    maxAgeDays: hrSource.max_age_days ?? 7,
+  };
+}
+
+/**
+ * Reads and normalises the roster.
+ *
+ * Kept separate from grading so the grader takes plain data, like every other collector here.
+ * A roster that cannot be read is thrown rather than treated as an empty roster — an empty
+ * roster would mark every account in the estate unattributable, which is a spectacular finding
+ * to report because a path was wrong.
+ */
+export function loadRoster(source, { readFileImpl = readFileSync } = {}) {
+  let raw;
+  try {
+    raw = readFileImpl(source.path, 'utf8');
+  } catch (err) {
+    throw new IdpUnavailable(
+      `The HR roster declared at idp.hr_source.path (${source.path}) could not be read: ${err.message}. ` +
+        'This is a configuration failure and not a finding about the estate.'
+    );
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    throw new IdpUnavailable(`The HR roster at ${source.path} is not valid JSON: ${err.message}`);
+  }
+  return normaliseRoster(parsed);
+}
+
+/**
+ * The exported roster → the normalised worker shape.
+ *
+ * `status` is narrowed to employed / not employed / unrecognised rather than passed through.
+ * Every HRIS spells its states differently and a grader branching on vendor vocabulary would
+ * quietly treat an unmapped state as whichever branch it fell into; unrecognised is carried as
+ * its own case so it can be warned about instead.
+ */
+export function normaliseRoster(raw) {
+  const workers = (raw.workers ?? []).map((w) => {
+    const status = String(w.status ?? '').trim().toLowerCase();
+    return {
+      email: String(w.email ?? w.login ?? '').trim().toLowerCase(),
+      status,
+      // On leave is still employed. Suspending a parental-leave account may well be correct
+      // policy, but it is not this indicator's question, and grading it here would produce
+      // findings that are wrong in the one direction this repository cannot afford.
+      employed: EMPLOYED.has(status) ? true : status === 'terminated' ? false : null,
+      terminationDate: w.termination_date ?? null,
+    };
+  });
+
+  return {
+    asOf: raw.as_of ?? null,
+    system: raw.system ?? 'unnamed HR system',
+    workers,
+    byEmail: new Map(workers.filter((w) => w.email).map((w) => [w.email, w])),
   };
 }
 

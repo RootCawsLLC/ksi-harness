@@ -11,6 +11,7 @@ import * as gcpNetwork from './gcp/network.mjs';
 import * as gcpPolicy from './gcp/policy.mjs';
 import * as gcpServices from './gcp/services.mjs';
 import * as idpLifecycle from './idp/lifecycle.mjs';
+import * as idpRoster from './idp/roster.mjs';
 import * as githubChange from './github/change.mjs';
 import * as githubDependencies from './github/dependencies.mjs';
 import * as githubSupplyChain from './github/supply-chain.mjs';
@@ -40,6 +41,7 @@ export const COLLECTORS = Object.freeze([
   gcpServices,
   boundaryAttribution,
   idpLifecycle,
+  idpRoster,
   githubChange,
   githubSupplyChain,
   githubDependencies,

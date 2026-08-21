@@ -101,14 +101,51 @@ export function anchorRemote(env = process.env) {
   };
 }
 
+/**
+ * Clone failures that mean the anchor repository is genuinely empty, and only those.
+ *
+ * The first run of a new programme legitimately has no anchor history, so an absent branch has to
+ * be recoverable. Everything else — a bad credential, a malformed url, DNS, a 404 for a repository
+ * this token cannot see — is a failure to *look*, and the difference is the whole value of the
+ * mechanism. This `catch` used to be unconditional, and the consequence was observed rather than
+ * theorised: a malformed token made `clone` fail, the fallback treated it as an empty repository,
+ * restore reported "this is the first run against it", and `verify` went on to reconcile against a
+ * stale copy of the anchor that had come back with the evidence branch. The run would have been
+ * green if a later step had not failed for its own reasons.
+ *
+ * It is the same line `optional()` draws for the AWS collectors, and it is drawn conservatively:
+ * anything not recognisably "there is nothing here" is raised.
+ */
+const NO_ANCHOR_YET =
+  /Remote branch .+ not found in upstream|Could not find remote branch|You appear to have cloned an empty repository/i;
+
+/**
+ * Removes the token from anything about to be printed.
+ *
+ * It is embedded in the remote url, git quotes the url back in its error text, and
+ * `execFileSync` puts the whole argument list in the message it throws. Redacting at the point of
+ * output is the only place that covers all three. GitHub masks registered secrets in Actions logs,
+ * but a developer running this locally has no such thing.
+ */
+export const redact = (text) => String(text ?? '').replace(/(x-access-token:)[^@\s]*/g, '$1***');
+
 /** Clones the anchor repository into a scratch directory. Shallow is fine: only the tip is read. */
 function checkout(remote) {
   const dir = mkdtempSync(join(tmpdir(), 'ksi-anchor-'));
   try {
     run(['clone', '--depth', '1', '--branch', remote.branch, '--single-branch', remote.url, dir]);
-  } catch {
-    // A repository that exists but has no commits yet, or no such branch. Start one rather than
-    // failing: the first run of a new programme legitimately has no anchor history.
+  } catch (err) {
+    const reported = redact(err.stderr || err.message);
+    if (!NO_ANCHOR_YET.test(reported)) {
+      rmSync(dir, { recursive: true, force: true });
+      throw new Error(
+        `Could not read the anchor at ${remote.repo} (branch ${remote.branch}): ` +
+          `${reported.split('\n').filter(Boolean).pop() ?? 'no detail from git'}\n` +
+          'This is a failure to look, not evidence that there is nothing to see. Reporting it as an absent ' +
+          'anchor would let a broken credential read as a clean reconciliation for as long as nobody read ' +
+          'the logs.'
+      );
+    }
     run(['init', '--initial-branch', remote.branch, dir]);
     run(['remote', 'add', 'origin', remote.url], { cwd: dir });
   }
@@ -127,8 +164,31 @@ export function restore(localPath, remote) {
   try {
     const source = join(dir, remote.file);
     if (!existsSync(source)) {
+      // Authoritative has to include saying that there is nothing. `ANCHOR_LOG` points inside the
+      // locker, so a file can be sitting at localPath already, restored from the evidence branch
+      // along with the evidence — which is the copy this separation exists to distrust. Leaving it
+      // would have `verify` reconcile the locker against a record its own writer controls, while
+      // this line said the anchor was not found.
+      if (existsSync(localPath)) {
+        rmSync(localPath);
+        console.log(
+          `Discarded the co-located anchor at ${localPath}: it arrived with the evidence branch, and with a ` +
+            'separate anchor repository configured it is not a record this run may rely on.'
+        );
+      }
       console.log(`No anchor at ${remote.repo}:${remote.file} yet; this is the first run against it.`);
       return { restored: false, entries: 0 };
+    }
+    // Reported rather than done quietly. `ANCHOR_LOG` points inside the locker, so this path can
+    // already hold a copy that came back with the evidence branch, and the remote overwrites it on
+    // every run. Saying so keeps the duplicate visible: it is not consulted, but while
+    // `locker-sync publish` keeps committing it, a reader of that branch will find a file that
+    // looks like the anchor and is not the one anything reconciles against.
+    if (existsSync(localPath)) {
+      console.log(
+        `Overwriting the co-located copy at ${localPath} with ${remote.repo}:${remote.file}. The remote is the ` +
+          'record; the copy on the evidence branch is not consulted.'
+      );
     }
     mkdirSync(dirname(localPath), { recursive: true });
     copyFileSync(source, localPath);
@@ -223,7 +283,7 @@ if (process.argv[1]?.endsWith('anchor-sync.mjs')) {
       process.exit(2);
     }
   } catch (err) {
-    console.error(err.message);
+    console.error(redact(err.message));
     process.exit(1);
   }
 }

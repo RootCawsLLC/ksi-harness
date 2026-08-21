@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-import { anchorRemote, publish, restore } from '../scripts/anchor-sync.mjs';
+import { anchorRemote, publish, redact, restore } from '../scripts/anchor-sync.mjs';
 
 /**
  * The anchor is only worth anything if it lives where the evidence writer cannot reach it, and
@@ -214,4 +214,87 @@ test('restore then publish carries history forward across runs', () => {
     repo.cleanup();
     local.cleanup();
   }
+});
+
+/* --------------------------------------------- failing to look is not finding nothing */
+
+/**
+ * These three pin behaviour that a live run got wrong on 2026-08-21.
+ *
+ * A malformed token made `clone` fail; the fallback in `checkout` was an unconditional `catch`, so
+ * it treated the failure as an empty repository and restore reported "this is the first run
+ * against it". `ANCHOR_LOG` points inside the locker, so a copy of the anchor was already sitting
+ * at that path — restored from the evidence branch with the evidence — and `verify` reconciled the
+ * locker against a record the evidence writer controls, reporting a clean result. The run only went
+ * red because a later step failed for its own reasons.
+ *
+ * Both halves are needed. Raising on a broken credential closes the case observed; discarding the
+ * co-located copy closes the same hole for a remote that is legitimately empty, where raising would
+ * be wrong.
+ */
+test('a remote that cannot be read raises, rather than reporting an absent anchor', () => {
+  const local = localAnchor(null);
+  const remote = {
+    configured: true,
+    repo: 'test/anchors',
+    branch: 'main',
+    file: 'anchors/boundary.jsonl',
+    url: join(local.dir, 'no-such-repository.git'),
+  };
+  try {
+    assert.throws(() => restore(local.path, remote), /Could not read the anchor at test\/anchors/);
+    assert.throws(() => restore(local.path, remote), /failure to look, not evidence that there is nothing/);
+  } finally {
+    local.cleanup();
+  }
+});
+
+// git quotes the remote url back in its error text, and execFileSync puts the argument list in the
+// message it throws. Neither is masked outside Actions.
+test('a credential failure does not print the token it failed with', () => {
+  const local = localAnchor(null);
+  const remote = {
+    configured: true,
+    repo: 'test/anchors',
+    branch: 'main',
+    file: 'anchors/boundary.jsonl',
+    url: `https://x-access-token:github_pat_NOT_A_REAL_SECRET@127.0.0.1:1/test/anchors.git`,
+  };
+  try {
+    restore(local.path, remote);
+    assert.fail('an unreachable remote must raise');
+  } catch (err) {
+    assert.doesNotMatch(err.message, /github_pat_NOT_A_REAL_SECRET/, 'the token reached the error text');
+  } finally {
+    local.cleanup();
+  }
+});
+
+/**
+ * The remote is authoritative in this mode, and that has to include saying there is nothing.
+ * Anything left at the local path came back with the evidence branch, which is exactly the copy a
+ * separate anchor repository exists to distrust.
+ */
+test('an empty remote discards a co-located anchor rather than reconciling against it', () => {
+  const repo = anchorRepo();
+  const local = localAnchor(ENTRY(1) + ENTRY(2));
+  try {
+    assert.equal(existsSync(local.path), true, 'precondition: the locker carried one back');
+    const result = restore(local.path, repo.remote);
+    assert.equal(result.restored, false);
+    assert.equal(existsSync(local.path), false, 'verify must not be handed the evidence writer’s own copy');
+  } finally {
+    repo.cleanup();
+    local.cleanup();
+  }
+});
+
+// The text git produced on 2026-08-21, which quoted the url back with its userinfo intact. Other
+// git errors strip it, which is exactly why this cannot be left to git.
+test('the redaction removes a token from the url git quotes back', () => {
+  const real = 'fatal: credential url cannot be parsed: https://x-access-token:github_pat_NOT_A_REAL_SECRET@github.com/x/y.git';
+  const cleaned = redact(real);
+  assert.doesNotMatch(cleaned, /github_pat_NOT_A_REAL_SECRET/);
+  assert.match(cleaned, /x-access-token:\*\*\*@github\.com/);
+  assert.equal(redact(undefined), '');
 });

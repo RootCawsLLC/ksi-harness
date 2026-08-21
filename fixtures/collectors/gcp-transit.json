@@ -1,0 +1,46 @@
+{
+  "_comment": [
+    "Transport security on the GCP side, where the finding that matters is quieter than a",
+    "listener somebody left on port 80.",
+    "",
+    "api-https is the one this check exists for. It is an HTTPS proxy with no SSL policy",
+    "attached, which is not a proxy without a policy — it is one running Google's default,",
+    "and that default negotiates down to TLS 1.0. No field on the resource says so. An estate",
+    "can be entirely HTTPS, hold no plaintext proxy at all, and still accept TLS 1.0 on every",
+    "path, which is the configuration a reviewer expects a compliance tool to catch.",
+    "",
+    "internal-https names the failure explicitly instead: legacy-compatible is a real SSL",
+    "policy with minTlsVersion TLS_1_0. ghost-https names a policy the project did not list,",
+    "so the floor could not be resolved and it warns rather than being assumed acceptable.",
+    "",
+    "web-redirect warns rather than failing — its URL map does nothing but redirect to HTTPS,",
+    "and failing the standard bare-hostname handler would put a permanent finding on a correct",
+    "configuration. legacy-http actually serves a map and fails.",
+    "",
+    "For KSI-SVC-VCM, mesh-ledger is the interesting near-miss: it carries security settings,",
+    "so it is configured for a mesh, and has no clientTlsPolicy, so it is not validating the",
+    "peers in it. retired-service is declared and absent."
+  ],
+  "project": "northwind-prod",
+  "min_tls_version": "1.2",
+  "mutual_auth_required": ["mesh-payments", "mesh-ledger", "retired-service"],
+  "http_proxies": [
+    { "name": "web-redirect", "url_map": "web-redirect-map", "redirects_to_https": true },
+    { "name": "legacy-http", "url_map": "legacy-map", "redirects_to_https": false }
+  ],
+  "https_proxies": [
+    { "name": "web-https", "ssl_policy": "tls12-modern" },
+    { "name": "api-https", "ssl_policy": null },
+    { "name": "internal-https", "ssl_policy": "legacy-compatible" },
+    { "name": "ghost-https", "ssl_policy": "policy-in-another-project" }
+  ],
+  "ssl_policies": [
+    { "name": "tls12-modern", "min_tls_version": "TLS_1_2", "profile": "MODERN" },
+    { "name": "legacy-compatible", "min_tls_version": "TLS_1_0", "profile": "COMPATIBLE" }
+  ],
+  "backend_services": [
+    { "name": "mesh-payments", "has_security_settings": true, "client_tls_policy": "mtls-strict", "subject_alt_names": ["spiffe://northwind/ledger"] },
+    { "name": "mesh-ledger", "has_security_settings": true, "client_tls_policy": null, "subject_alt_names": [] },
+    { "name": "public-web", "has_security_settings": false, "client_tls_policy": null, "subject_alt_names": [] }
+  ]
+}

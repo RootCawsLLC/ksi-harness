@@ -663,8 +663,30 @@ KSI-SVC-SIN:
   checks:
     - aws.data.encryption-at-rest
     - gcp.data.encryption-at-rest
+    # The other half. Encrypted disks settle nothing about the same information crossing a
+    # network, and a bucket under a customer-managed key that answers plaintext HTTP is the
+    # pairing that makes an at-rest-only report actively misleading.
+    - aws.transit.tls-enforcement
+    - gcp.transit.tls-enforcement
   unautomated:
-    - Encryption in transit is not checked. The indicator covers information generally, and at-rest state is one half.
+    - >
+      In transit is evidenced at the managed edges and nowhere else: load balancer listeners and
+      target proxies, plus bucket policies refusing insecure transport. Service-to-service traffic
+      that never traverses a managed load balancer is not observed at all, and neither are the
+      datastore connections — RDS transport enforcement, ElastiCache in-transit encryption, Cloud
+      SQL SSL mode — where a great deal of the information this indicator covers actually moves.
+    - >
+      Only global target proxies are read on GCP, so a regional external or internal load balancer
+      carries no evidence here. On AWS, CloudFront distributions and API Gateway custom domains are
+      likewise unread; both terminate TLS on their own settings.
+    - >
+      The TLS version floor is an organisational declaration at `transit.min_tls_version`, not a
+      value resolved from the pinned ruleset. The vendored CTL entry for sc-13 says to follow the
+      FedRAMP Cryptographic Module Use rules and carries no version number, so there is nothing to
+      pin to and the number in the bundle's scope is the boundary's own. It is also necessary
+      rather than sufficient: sc-13 is about validated cryptographic modules, and a listener
+      negotiating an acceptable version with a non-validated module passes this check and not the
+      control.
     - >
       Key custody is unevaluated. Whether encryption is provider-managed or customer-managed
       is the distinction a federal customer cares about, and the check reports that
@@ -672,13 +694,37 @@ KSI-SVC-SIN:
     - "\"Otherwise secured from unwanted modification\" is an integrity claim; only confidentiality is examined."
 
 KSI-SVC-VCM:
-  coverage: unaddressed
-  reason: >
-    Authenticity and integrity of machine-to-machine communication means mutual
-    authentication and certificate validation on internal paths. That is a property of the
-    service mesh or the application's own transport configuration, and neither is in scope
-    for the current collectors.
-  next: Read TLS policy and certificate validation state where the platform exposes it; treat application-level mTLS as a separate check.
+  coverage: partial
+  cadence: daily
+  checks:
+    # The population is the declaration, not the estate. An internet-facing load balancer serving
+    # browsers is not a machine-to-machine path, and requiring client certificates of one would be
+    # a finding against a correct configuration — so the profile names the paths at
+    # transit.mutual_auth_required and the checks grade those.
+    - aws.transit.mutual-authentication
+    - gcp.transit.mutual-authentication
+  unautomated:
+    - >
+      The declaration is the population, which is the strength of these checks and their ceiling.
+      A machine-to-machine path nobody declared is invisible here: it is not graded, it is not
+      counted, and no finding says it was missed. A boundary that has declared nothing produces a
+      population with nothing decidable in it, which the bundle contract caps at warn rather than
+      reporting as clean — but that is an admission, not coverage.
+    - >
+      Only paths terminating at a managed load balancer or a mesh backend service are observable.
+      Application-level mTLS, and any service-to-service call that does not traverse those, remain
+      exactly where the route previously said they were: in the application's own transport
+      configuration, which no describe call reaches.
+    - >
+      Mutual authentication is graded from configuration, not from what it will accept. An ALB
+      listener in verify mode is bound to a trust store this check does not open, so a trust store
+      containing an inappropriate or expired CA passes. Whether the certificates presented are
+      themselves valid is a runtime property and is not evidenced.
+    - >
+      The indicator carries si-7.1 as well as sc-23. These checks evidence the authenticity of the
+      channel — that the peer is identified rather than merely encrypted to. They say nothing about
+      integrity verification of the information carried over it, which is the other control and a
+      separate mechanism.
   note: Optional at Class B, required at Class C.
 
 KSI-SVC-VRI:

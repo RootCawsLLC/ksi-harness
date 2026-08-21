@@ -123,6 +123,32 @@ idp:
   non_human_accounts:
     - svc-transcode@skylark.example
 
+# Transport security, and the one parameter this harness cannot resolve from the pinned ruleset.
+#
+# Every other parameterised judgement here comes from the vendored FedRAMP rules, because a
+# hand-copied rule goes stale while reading as current. There is no TLS version to copy: the CTL
+# entry for sc-13 says to follow the FedRAMP Cryptographic Module Use rules and carries no number.
+# So the floor is declared, it is recorded in the scope of every bundle graded against it, and the
+# route says plainly that the number came from here rather than from the ruleset.
+#
+# Note what a version floor does not establish. sc-13 is about *validated* cryptographic modules,
+# and a listener negotiating TLS 1.2 with a non-validated module satisfies this and not the
+# control. Nothing a describe call returns tells those apart.
+transit:
+  min_tls_version: "1.2"
+
+  # The paths that are machine-to-machine, which is the scope KSI-SVC-VCM actually claims. An
+  # internet-facing load balancer serving browsers is not one, and requiring client certificates of
+  # it would be a finding against a correct configuration — so this is a declaration rather than a
+  # discovery, the same shape as cmek_required_buckets.
+  #
+  # The cost is stated on the route: a machine-to-machine path nobody lists here is invisible to
+  # the check. Declaring nothing produces a population with nothing decidable in it, which reports
+  # as a warning rather than as a pass — an admission, not coverage.
+  mutual_auth_required:
+    gcp:
+      - transcribe-dispatch
+      - transcribe-workers
 
 evidence:
   # No store declared, so the locker is the filesystem and `ksi store` says so rather than

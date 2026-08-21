@@ -1,0 +1,41 @@
+{
+  "_comment": [
+    "Transport security on the AWS side of the boundary, and the findings the at-rest checks",
+    "cannot see. A bucket encrypted with a customer-managed key that hands its contents to a",
+    "plaintext HTTP request is the pairing that makes reporting at-rest encryption alone",
+    "actively misleading — northwind-public-assets is exactly that.",
+    "",
+    "edge/80 redirects and warns rather than failing: no application data crosses in the clear,",
+    "though the request line does. reports/80 forwards to a target group and fails. stream/9000",
+    "is raw TCP, where TLS may terminate on the target and no describe call can tell, so it is",
+    "reported as not evaluated rather than resolved either way.",
+    "",
+    "legacy/443 is the version finding: ELBSecurityPolicy-2016-08 reads as a security policy and",
+    "permits TLS 1.0. canary/443 carries a policy name this harness does not recognise and warns,",
+    "because a policy AWS published after this collector was written is exactly where a silent",
+    "pass would hide.",
+    "",
+    "For KSI-SVC-VCM the population is the declaration, not the estate: internal-api is declared",
+    "machine-to-machine and has mutual authentication off, mesh verifies against a trust store,",
+    "and decommissioned-api is declared but no longer exists — the declaration and the estate",
+    "disagreeing, which nothing here can resolve into a removal or a rename."
+  ],
+  "account": "210987654321",
+  "min_tls_version": "1.2",
+  "mutual_auth_required": ["internal-api", "mesh", "decommissioned-api"],
+  "listeners": [
+    { "arn": "arn:aws:elasticloadbalancing:us-east-1:210987654321:listener/app/edge/1", "load_balancer": "edge", "port": 443, "protocol": "HTTPS", "ssl_policy": "ELBSecurityPolicy-TLS13-1-2-2021-06", "redirects_to_https": false, "mutual_authentication": "off", "trust_store": null },
+    { "arn": "arn:aws:elasticloadbalancing:us-east-1:210987654321:listener/app/edge/2", "load_balancer": "edge", "port": 80, "protocol": "HTTP", "ssl_policy": null, "redirects_to_https": true, "mutual_authentication": "off", "trust_store": null },
+    { "arn": "arn:aws:elasticloadbalancing:us-east-1:210987654321:listener/app/reports/1", "load_balancer": "reports", "port": 80, "protocol": "HTTP", "ssl_policy": null, "redirects_to_https": false, "mutual_authentication": "off", "trust_store": null },
+    { "arn": "arn:aws:elasticloadbalancing:us-east-1:210987654321:listener/app/legacy/1", "load_balancer": "legacy", "port": 443, "protocol": "HTTPS", "ssl_policy": "ELBSecurityPolicy-2016-08", "redirects_to_https": false, "mutual_authentication": "off", "trust_store": null },
+    { "arn": "arn:aws:elasticloadbalancing:us-east-1:210987654321:listener/net/stream/1", "load_balancer": "stream", "port": 9000, "protocol": "TCP", "ssl_policy": null, "redirects_to_https": false, "mutual_authentication": "off", "trust_store": null },
+    { "arn": "arn:aws:elasticloadbalancing:us-east-1:210987654321:listener/app/canary/1", "load_balancer": "canary", "port": 443, "protocol": "HTTPS", "ssl_policy": "ELBSecurityPolicy-Quantum-2099-01", "redirects_to_https": false, "mutual_authentication": "off", "trust_store": null },
+    { "arn": "arn:aws:elasticloadbalancing:us-east-1:210987654321:listener/app/internal-api/1", "load_balancer": "internal-api", "port": 443, "protocol": "HTTPS", "ssl_policy": "ELBSecurityPolicy-TLS13-1-2-2021-06", "redirects_to_https": false, "mutual_authentication": "off", "trust_store": null },
+    { "arn": "arn:aws:elasticloadbalancing:us-east-1:210987654321:listener/app/mesh/1", "load_balancer": "mesh", "port": 8443, "protocol": "HTTPS", "ssl_policy": "ELBSecurityPolicy-TLS13-1-2-2021-06", "redirects_to_https": false, "mutual_authentication": "verify", "trust_store": "arn:aws:elasticloadbalancing:us-east-1:210987654321:truststore/internal-ca/1" }
+  ],
+  "buckets": [
+    { "name": "northwind-artifacts", "policy_present": true, "denies_insecure_transport": true },
+    { "name": "northwind-public-assets", "policy_present": true, "denies_insecure_transport": false },
+    { "name": "northwind-logs", "policy_present": false, "denies_insecure_transport": false }
+  ]
+}

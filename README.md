@@ -21,12 +21,12 @@ FedRAMP Consolidated Rules 2026.07.14.01  ·  Class C
 46 applicable indicators of 46 in the ruleset
 
 automated      0
-partial       24
+partial       25
 manual        14
-unaddressed    8
+unaddressed    7
 ```
 
-There are 25 implemented checks and 24 indicators with real, passing, chain-verified automated
+There are 29 implemented checks and 25 indicators with real, passing, chain-verified automated
 evidence behind them. A conventional tool would render that as somewhere north of 50% coverage.
 
 This one reports **zero automated**, because an indicator only reaches `automated` when someone
@@ -282,7 +282,7 @@ The anchor cannot prove its own completeness — nothing self-contained can, sin
 integrity check share a fate. It earns its place by shrinking what must survive from megabytes of
 bundles to one line per run, small enough to keep somewhere genuinely out of reach.
 
-### 25 checks across seven families
+### 29 checks across seven families
 
 | Check | Indicators |
 |---|---|
@@ -292,6 +292,8 @@ bundles to one line per run, small enough to keep somewhere genuinely out of rea
 | `aws.logging.log-access` | KSI-MLA-ALA |
 | `aws.network.ingress-exposure` | KSI-CNA-MAT · KSI-CNA-RNT · KSI-CNA-ULN |
 | `aws.data.encryption-at-rest` | KSI-SVC-SIN |
+| `aws.transit.tls-enforcement` | KSI-SVC-SIN |
+| `aws.transit.mutual-authentication` | KSI-SVC-VCM |
 | `aws.config.recorder-state` | KSI-CNA-EIS · KSI-MLA-EVC · KSI-SVC-ACM |
 | `gcp.iam.service-account-keys` | KSI-IAM-SNU |
 | `gcp.iam.privileged-access` | KSI-CNA-DFP · KSI-IAM-ELP · KSI-IAM-JIT |
@@ -299,6 +301,8 @@ bundles to one line per run, small enough to keep somewhere genuinely out of rea
 | `gcp.logging.sink-integrity` | KSI-MLA-ALA · KSI-MLA-OSM |
 | `gcp.network.ingress-exposure` | KSI-CNA-MAT · KSI-CNA-RNT · KSI-CNA-ULN |
 | `gcp.data.encryption-at-rest` | KSI-SVC-SIN |
+| `gcp.transit.tls-enforcement` | KSI-SVC-SIN |
+| `gcp.transit.mutual-authentication` | KSI-SVC-VCM |
 | `gcp.policy.org-constraints` | KSI-CNA-EIS · KSI-SVC-ACM |
 | `gcp.service.surface` | KSI-CNA-DFP · KSI-CNA-MAT |
 | `idp.account.provisioning` | KSI-IAM-AAM |
@@ -354,6 +358,35 @@ has no clean AWS analogue, because the ones that transfer are not the ones that 
 - Organization Policy is evaluated **at the API**, so an enforced constraint decides what tomorrow's
   state can be. Two projects with identically clean key lists are not in the same state if only one
   of them rejects key creation.
+
+**Encryption in transit is where the two clouds fail differently.** On AWS the finding is usually
+loud — a listener somebody left on port 80, or a security policy named `ELBSecurityPolicy-2016-08`
+that reads as a security policy and permits TLS 1.0. On GCP it is quiet and is the reason the two
+checks are not one with different nouns: **an HTTPS proxy with no SSL policy attached is not a proxy
+without a policy, it is one running Google's default, and that default negotiates down to TLS 1.0.**
+No field on the resource says so. An estate can be entirely HTTPS, hold no plaintext proxy at all,
+and still accept TLS 1.0 on every path.
+
+The bucket half is what makes routing these to the same indicator as the at-rest checks the right
+call rather than a convenience. A bucket encrypted with a customer-managed key whose policy does not
+deny `aws:SecureTransport` will hand its contents to a plaintext HTTP request — and a report that
+showed the key custody and not the transport would be actively misleading about that bucket, not
+merely incomplete.
+
+One number here is declared rather than resolved, and the route says so. Every other parameterised
+judgement in this harness comes from the pinned ruleset, but the vendored `CTL` entry for sc-13
+points at the FedRAMP Cryptographic Module Use rules and carries no TLS version. So the floor lives
+at `transit.min_tls_version`, it is recorded in the scope of every bundle graded against it, and the
+gap is stated: a version floor is necessary and not sufficient, because sc-13 is about *validated*
+cryptographic modules and nothing a describe call returns distinguishes one.
+
+**`KSI-SVC-VCM` is graded against a declaration, and that is the whole design.** The indicator is
+scoped to communications between *machine-based* resources. An internet-facing load balancer serving
+browsers is not one, and requiring client certificates of it would be a finding against a correct
+configuration — so the profile names the machine-to-machine paths at `transit.mutual_auth_required`
+and the checks grade those. The price is stated on the route: a path nobody declared is invisible,
+and a boundary declaring nothing produces a population with nothing decidable in it, which the
+bundle contract caps at `warn` rather than reporting as clean. That is an admission, not coverage.
 
 Two deliberate non-claims, both the sort a coverage number would happily take:
 `gcp.policy.org-constraints` is *not* routed to `KSI-MLA-EVC`, because that indicator is about

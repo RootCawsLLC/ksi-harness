@@ -3,12 +3,14 @@ import * as awsData from './aws/data.mjs';
 import * as awsIam from './aws/iam.mjs';
 import * as awsLogging from './aws/logging.mjs';
 import * as awsNetwork from './aws/network.mjs';
+import * as awsTransit from './aws/transit.mjs';
 import * as boundaryAttribution from './boundary/attribution.mjs';
 import * as gcpData from './gcp/data.mjs';
 import * as gcpIam from './gcp/iam.mjs';
 import * as gcpLogging from './gcp/logging.mjs';
 import * as gcpNetwork from './gcp/network.mjs';
 import * as gcpPolicy from './gcp/policy.mjs';
+import * as gcpTransit from './gcp/transit.mjs';
 import * as gcpServices from './gcp/services.mjs';
 import * as idpLifecycle from './idp/lifecycle.mjs';
 import * as idpRoster from './idp/roster.mjs';
@@ -33,12 +35,14 @@ export const COLLECTORS = Object.freeze([
   awsNetwork,
   awsData,
   awsConfig,
+  awsTransit,
   gcpIam,
   gcpLogging,
   gcpNetwork,
   gcpData,
   gcpPolicy,
   gcpServices,
+  gcpTransit,
   boundaryAttribution,
   idpLifecycle,
   idpRoster,

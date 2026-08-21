@@ -1,0 +1,73 @@
+#!/bin/sh
+# Commit guards for ksi-harness.
+#
+# scripts/setup-git.mjs already PINS the identity in local config. This ENFORCES it at commit
+# time, which is a different job: local config can be overridden by `git -c user.name=...`, and a
+# fresh clone or a new worktree has no local config at all until somebody remembers to run setup.
+# Until this hook existed, nothing in this repository checked what a commit was actually authored
+# as - the identity was a default, not a rule.
+#
+# It matters here more than the warning suggests. This repository is public and owned by
+# RootCawsLLC; the account rejects pushes exposing its private address, so a commit made under the
+# wrong identity cannot be fixed forward, only rewritten.
+#
+# core.hooksPath is what makes this run, and it is relative, so git resolves it per working tree.
+# That means .githooks/ must stay TRACKED: an untracked hooks directory exists only in the
+# checkout that created it, and every linked worktree would silently run no hooks at all.
+
+expected_login="${KSI_GIT_LOGIN:-RootCawsLLC}"
+
+# GIT_AUTHOR_IDENT resolves the identity this commit would actually use, from whichever layer it
+# comes from - -c flags, environment, local config, global config. The trailing timestamp and
+# offset are not identity, so they are stripped.
+ident=$(git var GIT_AUTHOR_IDENT 2>/dev/null | sed 's/ [0-9][0-9]* [-+][0-9][0-9]*$//')
+author_name=${ident%% <*}
+author_email=$(printf '%s' "$ident" | sed -n 's/.*<\(.*\)>$/\1/p')
+
+if [ "$author_name" != "$expected_login" ]; then
+	echo "pre-commit: refusing to commit under the wrong identity." >&2
+	echo "  expected author name: $expected_login" >&2
+	echo "  actual:               ${author_name:-<unset>}" >&2
+	echo "Fix for this clone:  npm run setup" >&2
+	exit 1
+fi
+
+# The address must be a GitHub noreply for that login. Checking the domain rather than a hardcoded
+# numeric id keeps this in step with setup-git.mjs, which derives the address from the GitHub CLI -
+# and it is the actual rule: a real address here is what the account rejects on push.
+case "$author_email" in
+*"$expected_login"@users.noreply.github.com) ;;
+*)
+	echo "pre-commit: refusing to commit with a non-noreply address." >&2
+	echo "  expected: <id>+$expected_login@users.noreply.github.com" >&2
+	echo "  actual:   ${author_email:-<unset>}" >&2
+	echo "A push exposing a private address is rejected by the account, and the commit then has to" >&2
+	echo "be rewritten rather than fixed forward. Run: npm run setup" >&2
+	exit 1
+	;;
+esac
+
+# --- the primary checkout is not a working tree ----------------------------------------------
+#
+# One worktree per session. Two sessions sharing a checkout is not a conflict git can see: in the
+# sibling repository it produced a file rewritten mid-edit, a directory emptied between two
+# commands, and a `git add -A` that staged another session's unfinished work. Nothing warned
+# anybody, because nothing had a rule to break.
+#
+# The git dir and the common git dir are the same path ONLY in the primary worktree; a linked one
+# has its own under .git/worktrees/<name>. --path-format=absolute normalises the primary's
+# relative ".git" so this is not weighing a relative path against an absolute one.
+git_dir=$(git rev-parse --path-format=absolute --absolute-git-dir 2>/dev/null)
+common_dir=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+
+if [ -n "$git_dir" ] && [ "$git_dir" = "$common_dir" ] && [ "$ALLOW_PRIMARY_COMMIT" != "1" ]; then
+	echo "pre-commit: refusing to commit in the primary checkout." >&2
+	echo "  Work belongs in a worktree, one per session, so two sessions cannot share an index." >&2
+	echo "" >&2
+	echo "  Make one:  node ~/.claude/scripts/worktree.mjs add ksi-harness <branch>" >&2
+	echo "" >&2
+	echo "  Your staged changes are untouched and still here. Nothing was lost." >&2
+	echo "" >&2
+	echo "  Deliberate exception:  ALLOW_PRIMARY_COMMIT=1 git commit ..." >&2
+	exit 1
+fi

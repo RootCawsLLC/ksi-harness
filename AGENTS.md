@@ -86,10 +86,16 @@ failing at submission time is not.
 
 Read [ADR 0002](docs/adr/0002-coverage-honesty.md) before touching `routes.yaml`.
 
-- `automated` requires a written `sufficiency` argument that the checks leave nothing material out.
-  **Nothing currently qualifies, and a test asserts the count is zero.** If you promote an indicator,
-  that test will fail — which is the mechanism working. Change it deliberately, in the same commit,
-  with the argument written.
+- `automated` requires a written `sufficiency` argument that the checks leave nothing material out,
+  **and the argument must name the boundary it holds for** — sufficiency is a property of a boundary,
+  not of an indicator (ADR 0011). Where the condition does not hold the route resolves back to
+  `partial` and reports the gap underneath it, so a promotion never widens a claim by accident.
+  `KSI-CNA-DFP` is the only indicator that qualifies today. The count was zero for as long as the
+  routing map existed and that zero was worth more than a percentage — but it was a symptom of the
+  property, not the property itself, so do not read the 1 as permission for a second.
+  `tests/routes.test.mjs` guards the property directly now: every `automated` route carries an
+  argument, a non-empty `holds_when`, and an `unautomated` gap for everywhere else. A promotion
+  missing any of the three fails there. Promote deliberately, in the same commit, argument written.
 - `partial` requires `unautomated` naming what the checks do not establish. Write it for a sceptical
   reader who will quote it back. It is printed in the coverage report and carried into the SDR.
 - `manual` requires an owner, an artifact and why automation is the wrong instrument. Manual is a

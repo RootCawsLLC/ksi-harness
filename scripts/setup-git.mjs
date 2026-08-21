@@ -96,6 +96,30 @@ if (problems.length) {
   process.exit(0);
 }
 
+/**
+ * Arm the hook, in both modes.
+ *
+ * Pinning the identity in config is not the same as enforcing it: `git -c user.name=...` walks
+ * straight past local config, and a fresh clone or a new worktree has none until somebody
+ * remembers to run setup. .githooks/pre-commit is what actually refuses the commit.
+ *
+ * Done on `prepare` as well as `setup` on purpose - that is what arms a newly created worktree,
+ * which is otherwise a tree where the wrong author can reach a commit. It still must not fail an
+ * install, so a failure here warns and carries on.
+ */
+const HOOKS_PATH = '.githooks';
+if (inRepo) {
+  try {
+    const current = git(['config', '--local', 'core.hooksPath'], { allowFailure: true });
+    if (current !== HOOKS_PATH) {
+      git(['config', '--local', 'core.hooksPath', HOOKS_PATH]);
+      console.log(`Armed the commit guards: core.hooksPath=${HOOKS_PATH}`);
+    }
+  } catch {
+    console.warn(`Could not set core.hooksPath - commits in this clone are NOT guarded.`);
+  }
+}
+
 const name = git(['config', 'user.name'], { allowFailure: true });
 const email = git(['config', 'user.email'], { allowFailure: true });
 if (name && email) console.log(`Commit identity: ${name} <${email}>`);

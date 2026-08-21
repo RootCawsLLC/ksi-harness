@@ -102,6 +102,28 @@ Read [ADR 0002](docs/adr/0002-coverage-honesty.md) before touching `routes.yaml`
   decision, not a backlog item; otherwise it is `unaddressed` wearing a better label.
 - `unaddressed` requires a `reason` and a `next`. A gap with no next step is a gap nobody owns.
 
+## Commit guards
+
+`npm run setup` pins the commit identity in local config and arms `.githooks/pre-commit`, which
+enforces it. Those are different jobs: `git -c user.name=...` walks straight past local config,
+and a fresh clone or a new worktree has none until somebody runs setup. Before this hook existed,
+`.githooks/` here was an empty untracked directory and `core.hooksPath` was unset, so commits were
+checked by nothing at all.
+
+The hook refuses three things:
+
+- an author name that is not `RootCawsLLC` (or `$KSI_GIT_LOGIN`);
+- an address that is not a GitHub noreply for that login — the owning account rejects pushes
+  exposing a private address, and such a commit has to be rewritten rather than fixed forward;
+- a commit in the **primary checkout**. Work belongs in a linked worktree, one per session, so two
+  sessions cannot share an index. `node ~/.claude/scripts/worktree.mjs add ksi-harness <branch>`
+  makes one; `ALLOW_PRIMARY_COMMIT=1` is the deliberate exception. Staged changes survive a
+  refusal.
+
+**`.githooks/` must stay tracked.** `core.hooksPath` is the relative path `.githooks`, resolved by
+git against each working tree — so an untracked hooks directory exists only in the checkout that
+created it, and every linked worktree silently runs no hooks at all.
+
 ## Things that will get reverted
 
 - Marking an indicator `automated` without the argument.
@@ -115,7 +137,7 @@ Read [ADR 0002](docs/adr/0002-coverage-honesty.md) before touching `routes.yaml`
 ## Commands
 
 ```bash
-npm run setup            # pin the local git commit identity (writes local config only)
+npm run setup            # pin the commit identity AND arm .githooks (local config only)
 npm test                 # 393 tests
 npm run policy           # policy unit tests + gate + negative control
 npm run vendor:verify    # the ruleset pin still matches

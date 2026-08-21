@@ -1,6 +1,6 @@
 # ADR 0002 — Four coverage levels, and a written argument for the top one
 
-**Status:** accepted · **Date:** 2026-08-18
+**Status:** accepted · **Date:** 2026-08-18 · **Amended by** [ADR 0011](0011-sufficiency-is-boundary-dependent.md)
 
 ## Context
 
@@ -57,6 +57,18 @@ declaration is, what the evidence says, and whether the claimed cadence is borne
 It never reports that an indicator is *met*. That is a judgement a person signs.
 
 ## The number this produces today
+
+> **Amended 2026-08-19 by [ADR 0011](0011-sufficiency-is-boundary-dependent.md). The numbers below
+> are the ones this decision produced on the day it was made, and are kept as written.**
+>
+> The zero held for as long as sufficiency was treated as a property of an indicator. Once it was
+> recognised as a property of a *boundary*, `KSI-CNA-DFP` became promotable: the count is now 1
+> against a single-provider profile and still 0 against a wider one, because the route resolves
+> back to `partial` where its condition does not hold.
+>
+> The guard moved with it. `tests/routes.test.mjs` no longer asserts a zero — it asserts what the
+> zero stood for, that no route claims sufficiency unconditionally and that every route claiming
+> it states its gap elsewhere. Read the paragraph below as the reasoning, not as the current count.
 
 **Zero of 46 applicable indicators are `automated`**, against 11 implemented checks and 20
 indicators with real passing automation behind them.

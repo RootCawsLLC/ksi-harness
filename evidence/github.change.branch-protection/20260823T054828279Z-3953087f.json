@@ -1,0 +1,53 @@
+{
+  "check_id": "github.change.branch-protection",
+  "ksis": [
+    "KSI-CMT-RMV",
+    "KSI-CMT-RVP"
+  ],
+  "collector": {
+    "path": "src/collectors/github/change.mjs",
+    "version": "1.0.0",
+    "source_commit": "44e832d6aad2a064f9e628f057a6acf044a98377"
+  },
+  "collected_at": "2026-08-23T05:48:28.279Z",
+  "scope": {
+    "repositories": [
+      "RootCawsLLC/ksi-harness"
+    ],
+    "branch_window_days": 30,
+    "since": "2026-07-24T05:48:28.279Z"
+  },
+  "population": {
+    "expected": 1,
+    "examined": 1,
+    "complete": true,
+    "decidable": 1,
+    "source_of_truth": "Declared production default branches, with classic protection and rulesets read as a union",
+    "enumerated_from": "the repositories declared in the profile, counted before any protection setting was read"
+  },
+  "result": "warn",
+  "assertion": "Every production default branch requires review before merge and enumerates every actor permitted to bypass that requirement.",
+  "items": [
+    {
+      "id": "RootCawsLLC/ksi-harness:main",
+      "status": "warn",
+      "detail": "Token lacks permission to verify this: Resource not accessible by integration",
+      "observed": {
+        "reason": "permission"
+      }
+    }
+  ],
+  "metric": {
+    "metric_id": "github.change.protected_branches",
+    "value": 0,
+    "unit": "ratio"
+  },
+  "chain": {
+    "previous_sha256": "bd1ada548ffd7ecff439bf8e810056fb7a4ff3aba12af020fcf3a816403cf070",
+    "index": 7
+  },
+  "integrity": {
+    "content_sha256": "3953087f296902563efe69c96add88fa9ad86fd414c54873b7af27d20b9ac421",
+    "signed": false
+  }
+}

@@ -49,16 +49,16 @@
     "yaml": "^2.8.1"
   },
   "optionalDependencies": {
-    "@aws-sdk/client-cloudtrail": "^3.1112.0",
-    "@aws-sdk/client-cloudwatch-logs": "^3.1112.0",
-    "@aws-sdk/client-config-service": "^3.1112.0",
-    "@aws-sdk/client-ec2": "^3.1112.0",
-    "@aws-sdk/client-elastic-load-balancing-v2": "^3.1112.0",
-    "@aws-sdk/client-iam": "^3.1112.0",
-    "@aws-sdk/client-kms": "^3.1112.0",
-    "@aws-sdk/client-s3": "^3.1112.0",
-    "@aws-sdk/client-s3-control": "^3.1112.0",
-    "@aws-sdk/client-secrets-manager": "^3.1112.0",
-    "@aws-sdk/client-sts": "^3.1112.0"
+    "@aws-sdk/client-cloudtrail": "^3.1116.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1116.0",
+    "@aws-sdk/client-config-service": "^3.1116.0",
+    "@aws-sdk/client-ec2": "^3.1116.0",
+    "@aws-sdk/client-elastic-load-balancing-v2": "^3.1116.0",
+    "@aws-sdk/client-iam": "^3.1116.0",
+    "@aws-sdk/client-kms": "^3.1116.0",
+    "@aws-sdk/client-s3": "^3.1116.0",
+    "@aws-sdk/client-s3-control": "^3.1116.0",
+    "@aws-sdk/client-secrets-manager": "^3.1116.0",
+    "@aws-sdk/client-sts": "^3.1116.0"
   }
 }

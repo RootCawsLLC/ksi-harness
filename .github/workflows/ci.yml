@@ -18,6 +18,82 @@ env:
   ACTIONLINT_VERSION: 1.7.12
 
 jobs:
+  # Where a pull request came from, which CODEOWNERS silently depends on.
+  #
+  # That file's reasoning opens "every pull request on this repository is opened by `xnasusx` and
+  # carries commits authored by `RootCawsLLC`". The conclusion it draws from that -- leave
+  # `require_code_owner_reviews` off, because enabling it would let a RootCawsLLC approval satisfy a
+  # requirement it does not really satisfy -- is only sound while the premise holds.
+  #
+  # Nothing enforced the premise, and #27 broke it: a pull request opened from this repository, by
+  # the account that owns it. Since RootCawsLLC is the only collaborator and GitHub forbids
+  # approving your own pull request, that PR could not be approved by anybody. The review
+  # requirement was not inconvenient, it was unsatisfiable -- so the only way to merge was to
+  # relax the protection, and the protection was relaxed.
+  #
+  # That is the failure mode worth refusing. A rule whose ordinary response is "turn the rule off"
+  # decays whether or not anyone intends it to, and the decay leaves no record: branch protection
+  # carries no modification history and a personal account has no audit log, so afterwards there is
+  # no way to establish what was changed or for how long.
+  #
+  # So the check is here rather than in a hook. A pre-push hook would give faster feedback and could
+  # be skipped by the person it is meant to stop; this runs on the pull request itself, reports on
+  # it, and can be made a required context.
+  provenance:
+    runs-on: ubuntu-latest
+    steps:
+      # Every value comes through `env` rather than being interpolated into the script. A fork can
+      # choose its own repository and branch names, and those strings would otherwise be pasted
+      # into a shell by the runner before bash ever sees them -- the injection this repository
+      # ships policy rules about.
+      - name: Refuse a pull request opened from this repository
+        env:
+          EVENT: ${{ github.event_name }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.repository }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          # Deliberately not skipped with a job-level `if`. A skipped job reports as skipped rather
+          # than as success, and a required context that reports skipped is a required context that
+          # blocks -- so the job always runs and decides here.
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "Not a pull request (${EVENT}); provenance is not a question here."
+            exit 0
+          fi
+
+          if [ "$HEAD_REPO" != "$BASE_REPO" ]; then
+            echo "Opened from ${HEAD_REPO}, which is not ${BASE_REPO}. Independent approval is possible."
+            exit 0
+          fi
+
+          # Dependabot opens same-repository branches and cannot do otherwise. Its commits are
+          # authored by the bot, so an approval from RootCawsLLC is independent of the author and
+          # the requirement means what it says. Named explicitly rather than exempting bots as a
+          # class: a second bot should be a decision, not something this check discovers.
+          if [ "$AUTHOR" = "dependabot[bot]" ]; then
+            echo "Opened from ${BASE_REPO} by ${AUTHOR}, which cannot fork. Its commits are not authored by the reviewer."
+            exit 0
+          fi
+
+          echo "::error::Pull request opened from ${BASE_REPO} by ${AUTHOR} rather than from a fork."
+          cat <<'WHY'
+
+          Open it from the fork instead.
+
+          RootCawsLLC is the only collaborator on this repository and GitHub does not allow
+          approving your own pull request. A pull request opened from this repository by that
+          account therefore cannot be approved by anyone, so the required review is not merely
+          awkward to obtain -- it is impossible, and the only route to merging is to weaken the
+          branch protection.
+
+          That happened once already, on #27, and it left no record: branch protection has no
+          modification history and a personal account has no audit log.
+
+          .github/CODEOWNERS explains why the two-account arrangement is load-bearing. This check
+          exists to keep its opening premise true.
+          WHY
+          exit 1
+
   test:
     runs-on: ubuntu-latest
     steps:

@@ -1,18 +1,18 @@
 {
   "schema": "ksi-harness/evidence-manifest/1",
-  "generated_at": "2026-08-28T21:17:39.307Z",
+  "generated_at": "2026-08-29T04:16:29.689Z",
   "run_uri": null,
   "locker": ".locker/evidence",
-  "bundle_count": 48,
+  "bundle_count": 52,
   "unreadable": [],
   "tampered": [],
   "checks": [
     {
       "check_id": "github.change.branch-protection",
-      "runs": 12,
+      "runs": 13,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-08-28T21:17:11.892Z",
-      "chain_head_sha256": "f1e4ab30ee303bbbc14781d2bbccc088c8558d4c4ffe79fd3c12ba892e0c7819",
+      "last_collected_at": "2026-08-29T04:16:07.745Z",
+      "chain_head_sha256": "fc77a924f9a1c311d784d733f5a0934024b08d7fe49696d5bea86e1f6516302f",
       "chain_ok": true,
       "bundles": [
         {
@@ -62,15 +62,19 @@
         {
           "collected_at": "2026-08-28T21:17:11.892Z",
           "content_sha256": "f1e4ab30ee303bbbc14781d2bbccc088c8558d4c4ffe79fd3c12ba892e0c7819"
+        },
+        {
+          "collected_at": "2026-08-29T04:16:07.745Z",
+          "content_sha256": "fc77a924f9a1c311d784d733f5a0934024b08d7fe49696d5bea86e1f6516302f"
         }
       ]
     },
     {
       "check_id": "github.change.pr-review",
-      "runs": 12,
+      "runs": 13,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-08-28T21:17:11.892Z",
-      "chain_head_sha256": "2b8a95fab3a2553ef620345892719a1534dba96fa83ee0b784951f2330389e7e",
+      "last_collected_at": "2026-08-29T04:16:07.745Z",
+      "chain_head_sha256": "8ef29b269f48674640e00a7b2597fbadd13b1378e1e45e73b7623a3576037c7b",
       "chain_ok": true,
       "bundles": [
         {
@@ -120,15 +124,19 @@
         {
           "collected_at": "2026-08-28T21:17:11.892Z",
           "content_sha256": "2b8a95fab3a2553ef620345892719a1534dba96fa83ee0b784951f2330389e7e"
+        },
+        {
+          "collected_at": "2026-08-29T04:16:07.745Z",
+          "content_sha256": "8ef29b269f48674640e00a7b2597fbadd13b1378e1e45e73b7623a3576037c7b"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.dependency-alerts",
-      "runs": 12,
+      "runs": 13,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-08-28T21:17:11.892Z",
-      "chain_head_sha256": "8e206cd81441eaf512e81e9ba84e6aa71ce0304917400fdc374974017fae6961",
+      "last_collected_at": "2026-08-29T04:16:07.745Z",
+      "chain_head_sha256": "41447adaa4bafdda96a9bd1c0db7d2a8706392dc67dfb36f520b7ef92b05d0d9",
       "chain_ok": true,
       "bundles": [
         {
@@ -178,15 +186,19 @@
         {
           "collected_at": "2026-08-28T21:17:11.892Z",
           "content_sha256": "8e206cd81441eaf512e81e9ba84e6aa71ce0304917400fdc374974017fae6961"
+        },
+        {
+          "collected_at": "2026-08-29T04:16:07.745Z",
+          "content_sha256": "41447adaa4bafdda96a9bd1c0db7d2a8706392dc67dfb36f520b7ef92b05d0d9"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.workflow-pinning",
-      "runs": 12,
+      "runs": 13,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-08-28T21:17:11.892Z",
-      "chain_head_sha256": "efbce7afc59cf3e8488656deeb9ecfd0d1f6b2542efc293a23574acec84c70f1",
+      "last_collected_at": "2026-08-29T04:16:07.745Z",
+      "chain_head_sha256": "d1b22fb7a90bcbd10d494eabb45c604e9cf5281a73b70e9e76ba0e5db7f4732f",
       "chain_ok": true,
       "bundles": [
         {
@@ -236,9 +248,13 @@
         {
           "collected_at": "2026-08-28T21:17:11.892Z",
           "content_sha256": "efbce7afc59cf3e8488656deeb9ecfd0d1f6b2542efc293a23574acec84c70f1"
+        },
+        {
+          "collected_at": "2026-08-29T04:16:07.745Z",
+          "content_sha256": "d1b22fb7a90bcbd10d494eabb45c604e9cf5281a73b70e9e76ba0e5db7f4732f"
         }
       ]
     }
   ],
-  "root_sha256": "5a16686c5d3a18e5d641bad8bc83bd465eefa819d05c585020a5780a64f01dce"
+  "root_sha256": "a2162f3b36e7e52d130352e3d2dc5c450a28b2576ead70fb579fd07e97b7c876"
 }

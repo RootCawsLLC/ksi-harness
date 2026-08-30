@@ -1,18 +1,18 @@
 {
   "schema": "ksi-harness/evidence-manifest/1",
-  "generated_at": "2026-08-29T04:16:29.689Z",
+  "generated_at": "2026-08-30T04:16:27.357Z",
   "run_uri": null,
   "locker": ".locker/evidence",
-  "bundle_count": 52,
+  "bundle_count": 56,
   "unreadable": [],
   "tampered": [],
   "checks": [
     {
       "check_id": "github.change.branch-protection",
-      "runs": 13,
+      "runs": 14,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-08-29T04:16:07.745Z",
-      "chain_head_sha256": "fc77a924f9a1c311d784d733f5a0934024b08d7fe49696d5bea86e1f6516302f",
+      "last_collected_at": "2026-08-30T04:16:03.127Z",
+      "chain_head_sha256": "6a4ee359fdca06235613dcb75ef4c1ef8fb605e4f47a77fdf8b395cfc07b29e0",
       "chain_ok": true,
       "bundles": [
         {
@@ -66,15 +66,19 @@
         {
           "collected_at": "2026-08-29T04:16:07.745Z",
           "content_sha256": "fc77a924f9a1c311d784d733f5a0934024b08d7fe49696d5bea86e1f6516302f"
+        },
+        {
+          "collected_at": "2026-08-30T04:16:03.127Z",
+          "content_sha256": "6a4ee359fdca06235613dcb75ef4c1ef8fb605e4f47a77fdf8b395cfc07b29e0"
         }
       ]
     },
     {
       "check_id": "github.change.pr-review",
-      "runs": 13,
+      "runs": 14,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-08-29T04:16:07.745Z",
-      "chain_head_sha256": "8ef29b269f48674640e00a7b2597fbadd13b1378e1e45e73b7623a3576037c7b",
+      "last_collected_at": "2026-08-30T04:16:03.127Z",
+      "chain_head_sha256": "dd825d35bb04d9356e46374fbbec1c05acc9d2179df5e2168e584e4571848f09",
       "chain_ok": true,
       "bundles": [
         {
@@ -128,15 +132,19 @@
         {
           "collected_at": "2026-08-29T04:16:07.745Z",
           "content_sha256": "8ef29b269f48674640e00a7b2597fbadd13b1378e1e45e73b7623a3576037c7b"
+        },
+        {
+          "collected_at": "2026-08-30T04:16:03.127Z",
+          "content_sha256": "dd825d35bb04d9356e46374fbbec1c05acc9d2179df5e2168e584e4571848f09"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.dependency-alerts",
-      "runs": 13,
+      "runs": 14,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-08-29T04:16:07.745Z",
-      "chain_head_sha256": "41447adaa4bafdda96a9bd1c0db7d2a8706392dc67dfb36f520b7ef92b05d0d9",
+      "last_collected_at": "2026-08-30T04:16:03.127Z",
+      "chain_head_sha256": "97527f595a78831a12e22c9826ab766a7ebafe16903e4e8338639dce39dc1e57",
       "chain_ok": true,
       "bundles": [
         {
@@ -190,15 +198,19 @@
         {
           "collected_at": "2026-08-29T04:16:07.745Z",
           "content_sha256": "41447adaa4bafdda96a9bd1c0db7d2a8706392dc67dfb36f520b7ef92b05d0d9"
+        },
+        {
+          "collected_at": "2026-08-30T04:16:03.127Z",
+          "content_sha256": "97527f595a78831a12e22c9826ab766a7ebafe16903e4e8338639dce39dc1e57"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.workflow-pinning",
-      "runs": 13,
+      "runs": 14,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-08-29T04:16:07.745Z",
-      "chain_head_sha256": "d1b22fb7a90bcbd10d494eabb45c604e9cf5281a73b70e9e76ba0e5db7f4732f",
+      "last_collected_at": "2026-08-30T04:16:03.127Z",
+      "chain_head_sha256": "894923fd4f72a1690b0765546b0d784940a8903bf8228d321dbd2d526dbf8a80",
       "chain_ok": true,
       "bundles": [
         {
@@ -252,9 +264,13 @@
         {
           "collected_at": "2026-08-29T04:16:07.745Z",
           "content_sha256": "d1b22fb7a90bcbd10d494eabb45c604e9cf5281a73b70e9e76ba0e5db7f4732f"
+        },
+        {
+          "collected_at": "2026-08-30T04:16:03.127Z",
+          "content_sha256": "894923fd4f72a1690b0765546b0d784940a8903bf8228d321dbd2d526dbf8a80"
         }
       ]
     }
   ],
-  "root_sha256": "a2162f3b36e7e52d130352e3d2dc5c450a28b2576ead70fb579fd07e97b7c876"
+  "root_sha256": "009d6098eea953b387748388dcc8ed5ddc74b34c16c9906068a3b33331127bb3"
 }

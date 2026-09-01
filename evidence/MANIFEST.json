@@ -1,18 +1,18 @@
 {
   "schema": "ksi-harness/evidence-manifest/1",
-  "generated_at": "2026-08-31T04:16:35.009Z",
+  "generated_at": "2026-09-01T04:22:50.774Z",
   "run_uri": null,
   "locker": ".locker/evidence",
-  "bundle_count": 60,
+  "bundle_count": 64,
   "unreadable": [],
   "tampered": [],
   "checks": [
     {
       "check_id": "github.change.branch-protection",
-      "runs": 15,
+      "runs": 16,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-08-31T04:16:12.765Z",
-      "chain_head_sha256": "4010376f6b13080b230bb2305a2c50877500d507af2425ce04ff413739255b32",
+      "last_collected_at": "2026-09-01T04:22:23.086Z",
+      "chain_head_sha256": "07fa91057e0f1adb40e42db52982f1fc36cbd86d2f1c60c5df7f431e9d039e67",
       "chain_ok": true,
       "bundles": [
         {
@@ -74,15 +74,19 @@
         {
           "collected_at": "2026-08-31T04:16:12.765Z",
           "content_sha256": "4010376f6b13080b230bb2305a2c50877500d507af2425ce04ff413739255b32"
+        },
+        {
+          "collected_at": "2026-09-01T04:22:23.086Z",
+          "content_sha256": "07fa91057e0f1adb40e42db52982f1fc36cbd86d2f1c60c5df7f431e9d039e67"
         }
       ]
     },
     {
       "check_id": "github.change.pr-review",
-      "runs": 15,
+      "runs": 16,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-08-31T04:16:12.765Z",
-      "chain_head_sha256": "c831e0d2cc0c8365df3ff2620eb8dd60505096aa7aebab6f8d387c71ca49b910",
+      "last_collected_at": "2026-09-01T04:22:23.086Z",
+      "chain_head_sha256": "74f98a5bda6fb29b2a9f0897a760da8e1943ae9ca114901cf98ff1d1a5cbe15d",
       "chain_ok": true,
       "bundles": [
         {
@@ -144,15 +148,19 @@
         {
           "collected_at": "2026-08-31T04:16:12.765Z",
           "content_sha256": "c831e0d2cc0c8365df3ff2620eb8dd60505096aa7aebab6f8d387c71ca49b910"
+        },
+        {
+          "collected_at": "2026-09-01T04:22:23.086Z",
+          "content_sha256": "74f98a5bda6fb29b2a9f0897a760da8e1943ae9ca114901cf98ff1d1a5cbe15d"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.dependency-alerts",
-      "runs": 15,
+      "runs": 16,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-08-31T04:16:12.765Z",
-      "chain_head_sha256": "e77d4b1a5b2d7ec028e866b628249f8efded52f8226fd3664e5f759b965a46c6",
+      "last_collected_at": "2026-09-01T04:22:23.086Z",
+      "chain_head_sha256": "460b7cd0340bc630962d80afe031dd359ee00f0ee7c1f6c404ac8c90a1532ee6",
       "chain_ok": true,
       "bundles": [
         {
@@ -214,15 +222,19 @@
         {
           "collected_at": "2026-08-31T04:16:12.765Z",
           "content_sha256": "e77d4b1a5b2d7ec028e866b628249f8efded52f8226fd3664e5f759b965a46c6"
+        },
+        {
+          "collected_at": "2026-09-01T04:22:23.086Z",
+          "content_sha256": "460b7cd0340bc630962d80afe031dd359ee00f0ee7c1f6c404ac8c90a1532ee6"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.workflow-pinning",
-      "runs": 15,
+      "runs": 16,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-08-31T04:16:12.765Z",
-      "chain_head_sha256": "e8741387cc1c8d88afa60438a1ca8711f7b4c0d8d56354405cd7a89c4928fd52",
+      "last_collected_at": "2026-09-01T04:22:23.086Z",
+      "chain_head_sha256": "a516cf045c8d2ffba0d74851c2810f3dab28a84829f89422d6b83c375a37c6e4",
       "chain_ok": true,
       "bundles": [
         {
@@ -284,9 +296,13 @@
         {
           "collected_at": "2026-08-31T04:16:12.765Z",
           "content_sha256": "e8741387cc1c8d88afa60438a1ca8711f7b4c0d8d56354405cd7a89c4928fd52"
+        },
+        {
+          "collected_at": "2026-09-01T04:22:23.086Z",
+          "content_sha256": "a516cf045c8d2ffba0d74851c2810f3dab28a84829f89422d6b83c375a37c6e4"
         }
       ]
     }
   ],
-  "root_sha256": "2170661e92b04bf2c1575888195b73b562c66ba5d9ab3ffeb368b912e3a51669"
+  "root_sha256": "bbf9852c97cd87b2699873c483d19e8368510cdfbe5f6291a470814929c486f0"
 }

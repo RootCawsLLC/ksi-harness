@@ -1,0 +1,467 @@
+{
+  "check_id": "github.change.pr-review",
+  "ksis": [
+    "KSI-CMT-LMC",
+    "KSI-CMT-VTD"
+  ],
+  "collector": {
+    "path": "src/collectors/github/change.mjs",
+    "version": "1.0.0",
+    "source_commit": "7ab51d04b5441c9f876497255cd4f1c1b94301d4"
+  },
+  "collected_at": "2026-09-03T05:35:33.038Z",
+  "scope": {
+    "repositories": [
+      "RootCawsLLC/ksi-harness"
+    ],
+    "branch_window_days": 30,
+    "since": "2026-08-04T05:35:33.038Z"
+  },
+  "population": {
+    "expected": 40,
+    "examined": 40,
+    "complete": true,
+    "decidable": 40,
+    "source_of_truth": "Every commit on each declared production default branch in the period, via repos/commits",
+    "enumerated_from": "the repositories declared in the profile, counted before any commit listing was made; each repository that could not be listed is itemised rather than dropped"
+  },
+  "result": "fail",
+  "assertion": "Every commit reaching a production default branch in the period arrived through a pull request approved by someone other than its author.",
+  "items": [
+    {
+      "id": "scope/RootCawsLLC/ksi-harness",
+      "status": "pass",
+      "detail": "39 of 39 enumerated commit(s) carry a review question this check can decide"
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@7ab51d04",
+      "status": "fail",
+      "detail": "Only approval on #32 is from the commit author (RootCawsLLC)",
+      "observed": {
+        "author": "RootCawsLLC",
+        "approvers": [
+          "RootCawsLLC"
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@1d6ddd1b",
+      "status": "pass",
+      "detail": "Approved on #31 by RootCawsLLC",
+      "observed": {
+        "author": "dependabot[bot]",
+        "approvers": [
+          "RootCawsLLC"
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@44e832d6",
+      "status": "fail",
+      "detail": "Only approval on #25 is from the commit author (RootCawsLLC)",
+      "observed": {
+        "author": "RootCawsLLC",
+        "approvers": [
+          "RootCawsLLC"
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@f2b7dde1",
+      "status": "fail",
+      "detail": "Only approval on #29 is from the commit author (RootCawsLLC)",
+      "observed": {
+        "author": "RootCawsLLC",
+        "approvers": [
+          "RootCawsLLC"
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@2af67d3d",
+      "status": "fail",
+      "detail": "Merged via #27 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          27
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@a6ba38ec",
+      "status": "fail",
+      "detail": "Only approval on #26 is from the commit author (RootCawsLLC)",
+      "observed": {
+        "author": "RootCawsLLC",
+        "approvers": [
+          "RootCawsLLC"
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@aca8b2dd",
+      "status": "fail",
+      "detail": "Only approval on #24 is from the commit author (RootCawsLLC)",
+      "observed": {
+        "author": "RootCawsLLC",
+        "approvers": [
+          "RootCawsLLC"
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@10466b07",
+      "status": "fail",
+      "detail": "Only approval on #24 is from the commit author (RootCawsLLC)",
+      "observed": {
+        "author": "RootCawsLLC",
+        "approvers": [
+          "RootCawsLLC"
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@b827c813",
+      "status": "fail",
+      "detail": "Only approval on #23 is from the commit author (RootCawsLLC)",
+      "observed": {
+        "author": "RootCawsLLC",
+        "approvers": [
+          "RootCawsLLC"
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@3958812c",
+      "status": "fail",
+      "detail": "Only approval on #23 is from the commit author (RootCawsLLC)",
+      "observed": {
+        "author": "RootCawsLLC",
+        "approvers": [
+          "RootCawsLLC"
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@0958f3c8",
+      "status": "fail",
+      "detail": "Only approval on #23 is from the commit author (RootCawsLLC)",
+      "observed": {
+        "author": "RootCawsLLC",
+        "approvers": [
+          "RootCawsLLC"
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@1a6db829",
+      "status": "fail",
+      "detail": "Merged via #22 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          22
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@7822b85d",
+      "status": "fail",
+      "detail": "Merged via #21 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          21
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@7dca3a4f",
+      "status": "fail",
+      "detail": "Merged via #20 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          20
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@a3893077",
+      "status": "fail",
+      "detail": "Merged via #19 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          19
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@3a85745e",
+      "status": "fail",
+      "detail": "Merged via #18 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          18
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@197da417",
+      "status": "fail",
+      "detail": "Merged via #17 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          17
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@13689292",
+      "status": "fail",
+      "detail": "Merged via #16 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          16
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@0d9f465a",
+      "status": "fail",
+      "detail": "Merged via #15 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          15
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@01b3b90a",
+      "status": "fail",
+      "detail": "Merged via #14 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          14
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@79ea152f",
+      "status": "fail",
+      "detail": "Merged via #14 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          14
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@c6f8475d",
+      "status": "fail",
+      "detail": "Merged via #13 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          13
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@181d38ad",
+      "status": "fail",
+      "detail": "Merged via #12 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          12
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@d1e37e68",
+      "status": "fail",
+      "detail": "Merged via #11 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          11
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@111c8c74",
+      "status": "fail",
+      "detail": "Merged via #10 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          10
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@2ce1ecfe",
+      "status": "fail",
+      "detail": "Merged via #9 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          9
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@83e835e8",
+      "status": "fail",
+      "detail": "Merged via #9 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          9
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@8ec38d3d",
+      "status": "fail",
+      "detail": "Merged via #9 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          9
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@c71ced55",
+      "status": "fail",
+      "detail": "Merged via #8 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          8
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@b37d1a4c",
+      "status": "fail",
+      "detail": "Merged via #8 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          8
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@a93d004b",
+      "status": "fail",
+      "detail": "Merged via #6 with no approving review",
+      "observed": {
+        "author": "xnasusx",
+        "pulls": [
+          6
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@07e810cb",
+      "status": "fail",
+      "detail": "Merged via #4 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          4
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@46635c5f",
+      "status": "fail",
+      "detail": "Merged via #3 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          3
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@0d4b1c12",
+      "status": "fail",
+      "detail": "Merged via #2 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          2
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@980c2f68",
+      "status": "fail",
+      "detail": "Merged via #1 with no approving review",
+      "observed": {
+        "author": "RootCawsLLC",
+        "pulls": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@08b02280",
+      "status": "fail",
+      "detail": "Pushed directly to main with no pull request",
+      "observed": {
+        "author": "RootCawsLLC"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@e1f4c133",
+      "status": "fail",
+      "detail": "Pushed directly to main with no pull request",
+      "observed": {
+        "author": "RootCawsLLC"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@3b263b58",
+      "status": "fail",
+      "detail": "Pushed directly to main with no pull request",
+      "observed": {
+        "author": "RootCawsLLC"
+      }
+    },
+    {
+      "id": "RootCawsLLC/ksi-harness@b460e8ef",
+      "status": "fail",
+      "detail": "Pushed directly to main with no pull request",
+      "observed": {
+        "author": "RootCawsLLC"
+      }
+    }
+  ],
+  "metric": {
+    "metric_id": "github.change.reviewed_commits",
+    "value": 0.05,
+    "unit": "ratio"
+  },
+  "chain": {
+    "previous_sha256": "9a525568ce321c8ebed87ec544a3a484e6e15292805c226a59a1b53bd0eb23d9",
+    "index": 17
+  },
+  "integrity": {
+    "content_sha256": "208b33041b93c7d01fbe4dbfe42e981438466519b5dd014da5da77f54fb443b1",
+    "signed": false
+  }
+}

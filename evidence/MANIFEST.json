@@ -1,18 +1,18 @@
 {
   "schema": "ksi-harness/evidence-manifest/1",
-  "generated_at": "2026-09-03T05:36:04.616Z",
+  "generated_at": "2026-09-04T04:23:56.042Z",
   "run_uri": null,
   "locker": ".locker/evidence",
-  "bundle_count": 72,
+  "bundle_count": 76,
   "unreadable": [],
   "tampered": [],
   "checks": [
     {
       "check_id": "github.change.branch-protection",
-      "runs": 18,
+      "runs": 19,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-03T05:35:33.038Z",
-      "chain_head_sha256": "f0687f8f68e1cfde39de2e31937710e9634de6de60f508a53c8cfa8bc312c165",
+      "last_collected_at": "2026-09-04T04:23:29.223Z",
+      "chain_head_sha256": "daaef56e6d3a639c005bcdfcde7c1933132b9cf37e128f1cc2ff4ac4789cdd4d",
       "chain_ok": true,
       "bundles": [
         {
@@ -86,15 +86,19 @@
         {
           "collected_at": "2026-09-03T05:35:33.038Z",
           "content_sha256": "f0687f8f68e1cfde39de2e31937710e9634de6de60f508a53c8cfa8bc312c165"
+        },
+        {
+          "collected_at": "2026-09-04T04:23:29.223Z",
+          "content_sha256": "daaef56e6d3a639c005bcdfcde7c1933132b9cf37e128f1cc2ff4ac4789cdd4d"
         }
       ]
     },
     {
       "check_id": "github.change.pr-review",
-      "runs": 18,
+      "runs": 19,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-03T05:35:33.038Z",
-      "chain_head_sha256": "208b33041b93c7d01fbe4dbfe42e981438466519b5dd014da5da77f54fb443b1",
+      "last_collected_at": "2026-09-04T04:23:29.223Z",
+      "chain_head_sha256": "64e50762735b81f5a2caa4c4b5c4756d44769d53fa0b3ef53b99d9db9722d52b",
       "chain_ok": true,
       "bundles": [
         {
@@ -168,15 +172,19 @@
         {
           "collected_at": "2026-09-03T05:35:33.038Z",
           "content_sha256": "208b33041b93c7d01fbe4dbfe42e981438466519b5dd014da5da77f54fb443b1"
+        },
+        {
+          "collected_at": "2026-09-04T04:23:29.223Z",
+          "content_sha256": "64e50762735b81f5a2caa4c4b5c4756d44769d53fa0b3ef53b99d9db9722d52b"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.dependency-alerts",
-      "runs": 18,
+      "runs": 19,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-03T05:35:33.038Z",
-      "chain_head_sha256": "1177fd597430cfcb44d85363fd452008f25c5f8bcd2d5fde4b1fcb6d698fb0a1",
+      "last_collected_at": "2026-09-04T04:23:29.223Z",
+      "chain_head_sha256": "a951e1d8f9465f6a1bf78cb49a6ebf92e4480634e0e4c8d76d5bbeab8fe8076c",
       "chain_ok": true,
       "bundles": [
         {
@@ -250,15 +258,19 @@
         {
           "collected_at": "2026-09-03T05:35:33.038Z",
           "content_sha256": "1177fd597430cfcb44d85363fd452008f25c5f8bcd2d5fde4b1fcb6d698fb0a1"
+        },
+        {
+          "collected_at": "2026-09-04T04:23:29.223Z",
+          "content_sha256": "a951e1d8f9465f6a1bf78cb49a6ebf92e4480634e0e4c8d76d5bbeab8fe8076c"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.workflow-pinning",
-      "runs": 18,
+      "runs": 19,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-03T05:35:33.038Z",
-      "chain_head_sha256": "a841507f7b1b860a2e68972c3fb4bb53da37b25919fb46cddd9aac19928504da",
+      "last_collected_at": "2026-09-04T04:23:29.223Z",
+      "chain_head_sha256": "fd42c6f1ab6980a0ee2cd9ca41798981453adbda935b6f18ef5cb6756e79284a",
       "chain_ok": true,
       "bundles": [
         {
@@ -332,9 +344,13 @@
         {
           "collected_at": "2026-09-03T05:35:33.038Z",
           "content_sha256": "a841507f7b1b860a2e68972c3fb4bb53da37b25919fb46cddd9aac19928504da"
+        },
+        {
+          "collected_at": "2026-09-04T04:23:29.223Z",
+          "content_sha256": "fd42c6f1ab6980a0ee2cd9ca41798981453adbda935b6f18ef5cb6756e79284a"
         }
       ]
     }
   ],
-  "root_sha256": "1c427ac74150eef1cae2d2b6dad0d6afcdc02aef8189450796b77b7cb5e1cacf"
+  "root_sha256": "1f00602cf3de773129c8ba71d663d95b7d4584c6e40692bb77064ae3606e15ee"
 }

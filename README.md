@@ -7,6 +7,9 @@ infrastructure changes before merge, and emits schema-valid 20x artifacts.
 It is also an argument about how compliance automation should report, which is the part that took
 longer than the code.
 
+**Live guide** — what it does, when to use it, how to run the fixture demo, and how to point
+it at a real authorization boundary: https://rootcawsllc.github.io/ksi-harness/
+
 ```bash
 npm install
 npm run demo          # end to end against fixtures, no credentials needed

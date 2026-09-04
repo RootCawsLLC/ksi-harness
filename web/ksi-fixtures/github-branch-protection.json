@@ -1,0 +1,40 @@
+{
+  "branches": [
+    {
+      "repo": "northwind/platform",
+      "branch": "main",
+      "classic": {
+        "required_approvals": 2,
+        "dismiss_stale": true,
+        "enforce_admins": true,
+        "bypass_actors": []
+      }
+    },
+    {
+      "repo": "northwind/infra",
+      "branch": "main",
+      "classic": {
+        "required_approvals": 1,
+        "dismiss_stale": false,
+        "enforce_admins": false,
+        "bypass_actors": []
+      },
+      "ruleset": {
+        "name": "protect-main",
+        "required_approvals": 1,
+        "dismiss_stale": true,
+        "bypass_actors": ["Integration:12345(always)"]
+      }
+    },
+    {
+      "repo": "northwind/docs",
+      "branch": "main",
+      "classic": { "required_approvals": 0, "dismiss_stale": false, "enforce_admins": false, "bypass_actors": [] }
+    },
+    {
+      "repo": "northwind/legacy-etl",
+      "branch": "master",
+      "unverifiable": "Token lacks permission to verify this: Resource not accessible by integration"
+    }
+  ]
+}

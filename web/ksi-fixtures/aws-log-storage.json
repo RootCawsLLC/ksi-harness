@@ -1,0 +1,47 @@
+{
+  "account": "123456789012",
+  "account_block_public_access": true,
+  "buckets": [
+    {
+      "name": "northwind-audit-logs",
+      "blockPublicAccess": true,
+      "publicAcl": false,
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "AWSCloudTrailWrite",
+            "Effect": "Allow",
+            "Principal": { "Service": "cloudtrail.amazonaws.com" },
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::northwind-audit-logs/AWSLogs/123456789012/*"
+          },
+          {
+            "Sid": "SecurityTeamRead",
+            "Effect": "Allow",
+            "Principal": { "AWS": "arn:aws:iam::123456789012:role/SecurityAudit" },
+            "Action": ["s3:GetObject", "s3:ListBucket"],
+            "Resource": "arn:aws:s3:::northwind-audit-logs/*"
+          }
+        ]
+      }
+    },
+    {
+      "name": "northwind-legacy-logs",
+      "blockPublicAccess": false,
+      "publicAcl": false,
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "PartnerAnalytics",
+            "Effect": "Allow",
+            "Principal": { "AWS": "arn:aws:iam::999888777666:root" },
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::northwind-legacy-logs/*"
+          }
+        ]
+      }
+    }
+  ]
+}

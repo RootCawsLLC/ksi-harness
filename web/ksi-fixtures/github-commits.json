@@ -1,0 +1,52 @@
+{
+  "commits": [
+    {
+      "repo": "northwind/platform",
+      "branch": "main",
+      "sha": "9f1c2d3e4b5a67890123456789abcdef01234567",
+      "author": "avery",
+      "merge_commit": false,
+      "pulls": [{ "number": 481, "reviews": [{ "state": "APPROVED", "user": "priya" }] }]
+    },
+    {
+      "repo": "northwind/platform",
+      "branch": "main",
+      "sha": "1a2b3c4d5e6f7890abcdef0123456789abcdef01",
+      "author": "marcus",
+      "merge_commit": false,
+      "pulls": [{ "number": 482, "reviews": [{ "state": "APPROVED", "user": "marcus" }] }]
+    },
+    {
+      "repo": "northwind/platform",
+      "branch": "main",
+      "sha": "abcdef0123456789abcdef0123456789abcdef01",
+      "author": "marcus",
+      "merge_commit": false,
+      "pulls": []
+    },
+    {
+      "repo": "northwind/platform",
+      "branch": "main",
+      "sha": "fedcba9876543210fedcba9876543210fedcba98",
+      "author": "avery",
+      "merge_commit": true,
+      "pulls": [{ "number": 480, "reviews": [{ "state": "APPROVED", "user": "priya" }] }]
+    },
+    {
+      "repo": "northwind/infra",
+      "branch": "main",
+      "sha": "0123456789abcdef0123456789abcdef01234567",
+      "author": "priya",
+      "merge_commit": false,
+      "pulls": [{ "number": 96, "reviews": [{ "state": "COMMENTED", "user": "avery" }] }]
+    },
+    {
+      "repo": "northwind/infra",
+      "branch": "main",
+      "sha": "89abcdef0123456789abcdef0123456789abcdef",
+      "author": "priya",
+      "merge_commit": false,
+      "pulls": [{ "number": 97, "reviews": [{ "state": "APPROVED", "user": "avery" }] }]
+    }
+  ]
+}

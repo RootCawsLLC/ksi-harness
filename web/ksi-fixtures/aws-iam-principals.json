@@ -1,0 +1,119 @@
+{
+  "note": "enumerated is what iam:ListUsers + iam:ListRoles returned, counted before any policy document was read; principals is what could then be resolved. LegacyOps is in the first list and not the second on purpose. It is the fixture that proves the population reconciliation is load-bearing rather than arithmetic, because the denominator here cannot be derived from the graded list.",
+  "account": "123456789012",
+  "enumerated_users": ["avery", "marcus", "priya", "ci-deploy"],
+  "enumerated": [
+    "user/avery",
+    "user/marcus",
+    "user/priya",
+    "user/ci-deploy",
+    "role/BreakGlassAdmin",
+    "role/AppRuntime",
+    "role/TerraformApply",
+    "role/LegacyOps"
+  ],
+  "unexamined": [
+    {
+      "id": "role/LegacyOps",
+      "reason": "AccessDenied on iam:ListAttachedRolePolicies; the collector role may not read this role's policies"
+    }
+  ],
+  "principals": [
+    {
+      "type": "user",
+      "name": "avery",
+      "attached": ["ReadOnlyAccess"],
+      "inline": [],
+      "attachedDocuments": [],
+      "permissionsBoundary": null,
+      "trustedPrincipals": []
+    },
+    {
+      "type": "user",
+      "name": "marcus",
+      "attached": ["AdministratorAccess"],
+      "inline": [],
+      "attachedDocuments": [],
+      "permissionsBoundary": null,
+      "trustedPrincipals": []
+    },
+    {
+      "type": "user",
+      "name": "ci-deploy",
+      "attached": [],
+      "inline": [
+        {
+          "name": "deploy-everything",
+          "document": {
+            "Version": "2012-10-17",
+            "Statement": [{ "Effect": "Allow", "Action": "*", "Resource": "*" }]
+          }
+        }
+      ],
+      "attachedDocuments": [],
+      "permissionsBoundary": null,
+      "trustedPrincipals": []
+    },
+    {
+      "type": "user",
+      "name": "priya",
+      "attached": ["PowerUserAccess"],
+      "inline": [],
+      "attachedDocuments": [],
+      "permissionsBoundary": "arn:aws:iam::123456789012:policy/EngineerBoundary",
+      "trustedPrincipals": []
+    },
+    {
+      "type": "role",
+      "name": "BreakGlassAdmin",
+      "attached": ["AdministratorAccess"],
+      "inline": [],
+      "attachedDocuments": [],
+      "permissionsBoundary": null,
+      "trustedPrincipals": ["arn:aws:iam::123456789012:saml-provider/Okta"]
+    },
+    {
+      "type": "role",
+      "name": "AppRuntime",
+      "attached": [],
+      "inline": [
+        {
+          "name": "read-app-bucket",
+          "document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              { "Effect": "Allow", "Action": ["s3:GetObject"], "Resource": "arn:aws:s3:::northwind-app/*" }
+            ]
+          }
+        }
+      ],
+      "attachedDocuments": [],
+      "permissionsBoundary": null,
+      "trustedPrincipals": ["ec2.amazonaws.com"]
+    },
+    {
+      "type": "role",
+      "name": "TerraformApply",
+      "attached": [],
+      "inline": [],
+      "attachedDocuments": [
+        {
+          "name": "terraform-broad",
+          "document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "NotAction": ["iam:*", "organizations:*"],
+                "Resource": "*",
+                "Condition": { "StringEquals": { "aws:RequestedRegion": "us-east-1" } }
+              }
+            ]
+          }
+        }
+      ],
+      "permissionsBoundary": null,
+      "trustedPrincipals": ["arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"]
+    }
+  ]
+}

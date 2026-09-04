@@ -1,0 +1,18 @@
+{
+  "note": "Data Access logs are off by default on GCP, which is why the declared services are the denominator. storage has DATA_READ only, so DATA_WRITE is missing. secretmanager is fully configured but exempts a service account, which removes it from the trail silently while the config still reads as enabled. bigquery is not configured at all.",
+  "project": "elevenlabs-fedramp-demo",
+  "declared_services": [
+    "storage.googleapis.com",
+    "iam.googleapis.com",
+    "cloudkms.googleapis.com",
+    "secretmanager.googleapis.com",
+    "bigquery.googleapis.com"
+  ],
+  "audit_configs": [
+    { "service": "allServices", "auditLogConfigs": [{ "logType": "ADMIN_READ" }] },
+    { "service": "storage.googleapis.com", "auditLogConfigs": [{ "logType": "DATA_READ" }] },
+    { "service": "iam.googleapis.com", "auditLogConfigs": [{ "logType": "DATA_READ" }, { "logType": "DATA_WRITE" }] },
+    { "service": "cloudkms.googleapis.com", "auditLogConfigs": [{ "logType": "DATA_READ" }, { "logType": "DATA_WRITE" }] },
+    { "service": "secretmanager.googleapis.com", "auditLogConfigs": [{ "logType": "DATA_READ", "exemptedMembers": ["serviceAccount:batch@elevenlabs-fedramp-demo.iam.gserviceaccount.com"] }, { "logType": "DATA_WRITE" }] }
+  ]
+}

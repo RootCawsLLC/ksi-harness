@@ -1,0 +1,21 @@
+{
+  "note": "The preventive half. disableServiceAccountKeyCreation is not enforced, which is why the detective key check in gcp/iam.mjs can find keys tomorrow even if it finds none today. publicAccessPrevention is enforced but carries an exception, which reads as compliant on a dashboard and is not. vmExternalIpAccess was denied rather than absent, so it is a gap.",
+  "project": "elevenlabs-fedramp-demo",
+  "required": [
+    { "id": "iam.disableServiceAccountKeyCreation", "why": "prevents downloadable service account keys being created at all" },
+    { "id": "storage.publicAccessPrevention", "why": "prevents a bucket being made public regardless of its own IAM" },
+    { "id": "sql.restrictPublicIp", "why": "prevents a database being given a public address" },
+    { "id": "compute.requireOsLogin", "why": "forces SSH through IAM rather than metadata-distributed keys" },
+    { "id": "iam.allowedPolicyMemberDomains", "why": "prevents sharing with identities outside the organization" }
+  ],
+  "unexamined": [
+    { "id": "constraint/compute.vmExternalIpAccess", "reason": "PERMISSION_DENIED on orgpolicy.policies.getEffectivePolicy" }
+  ],
+  "effective": [
+    { "constraint": "iam.disableServiceAccountKeyCreation", "enforced": false, "source": null, "exceptions": [] },
+    { "constraint": "storage.publicAccessPrevention", "enforced": true, "source": "parent", "exceptions": ["projects/elevenlabs-public-assets"] },
+    { "constraint": "sql.restrictPublicIp", "enforced": true, "source": "parent", "exceptions": [] },
+    { "constraint": "compute.requireOsLogin", "enforced": true, "source": null, "exceptions": [] },
+    { "constraint": "iam.allowedPolicyMemberDomains", "enforced": true, "source": "parent", "exceptions": [] }
+  ]
+}

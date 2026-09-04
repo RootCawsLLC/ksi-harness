@@ -1,0 +1,358 @@
+# Example service profile.
+#
+# The profile is where the certification boundary is *declared*. Nothing in this harness
+# discovers scope from the environment, which is a deliberate constraint rather than a missing
+# feature: if collection enumerated whatever it could see, a new account or repository would
+# join the authorization boundary without anyone deciding it should, and the evidence would
+# quietly redefine what was certified.
+
+service_name: Northwind Voice API
+provider: Northwind Systems, Inc.
+
+# Class C (Moderate-equivalent) is the practical ceiling today: Class D has no 20x path and
+# stays on Rev5, with a pilot targeted for FY27.
+certification_class: c
+
+# The authorization boundary, when it is a product mode rather than a network perimeter.
+#
+# Every other scope construct here is infrastructural — accounts, projects, regions, repos —
+# and that works when the boundary is drawn around resources. It does not when the boundary is
+# drawn around a *capability*, because that boundary moves when a feature flag moves and a
+# harness enumerating infrastructure will not notice.
+#
+# So membership is a selector on the resource itself, and every enumerated resource lands in
+# exactly one of three states: in, out, or unattributed. The third is the point. A resource
+# nobody has attributed is in the boundary or outside it depending on who is asked, which is
+# the condition an authorization exists to remove — so it fails rather than being filtered out.
+boundary:
+  description: >
+    Text-to-Speech and Speech-to-Text, in zero-retention mode only. Voice cloning, analytics
+    and telephony integrations are outside the boundary and are not deployed in the government
+    environment.
+
+  selector:
+    gcp_label: fedramp-boundary
+    aws_tag: FedRAMPBoundary
+    in_values: [true, in-scope]
+    out_values: [false, out-of-scope]
+
+  in_scope:
+    - id: tts
+      name: Text to Speech
+      condition: Zero retention mode only
+    - id: stt
+      name: Speech to Text
+      condition: Zero retention mode only
+
+  # Nothing here can confirm a product capability is switched off — that is a claim about
+  # configuration, not infrastructure. Each exclusion therefore names the mechanism and the
+  # person who attests to it, the same discipline the `manual` coverage level applies.
+  out_of_scope:
+    - id: voice-cloning
+      name: Voice cloning
+      excluded_by: >
+        Not deployed in the government environment; the model endpoints are absent rather
+        than disabled.
+      attested_by: Platform engineering lead
+    - id: telephony
+      name: Telephony integrations
+      excluded_by: Disabled by default and unavailable on the government tier.
+      attested_by: Product security lead
+
+aws:
+  accounts:
+    - id: "123456789012"
+      regions: [us-east-1]
+    - id: "210987654321"
+      regions: [us-east-1, us-west-2]
+
+  # The read-only role this harness assumes in each account. A bare name expands to
+  # `arn:aws:iam::<account>:role/<name>`; a full ARN may use `{account}` as a placeholder.
+  #
+  # Required as soon as more than one account is in scope, and the run is refused without it.
+  # Collecting several accounts on one ambient credential would file the same account's evidence
+  # under every account id in the boundary — a complete-looking report over a boundary that was
+  # never visited, which is worse than not running. An account this role cannot be assumed into
+  # becomes a named gap in every affected population rather than an absence.
+  collector_role: KsiHarnessReadOnly
+
+  # Ports the service is intended to expose to the internet. Anything else reachable from
+  # 0.0.0.0/0 is a finding rather than a design decision, and stating the intent here is what
+  # lets the check tell those apart.
+  public_ports: [80, 443]
+
+# The GCP half of the boundary. Three of these keys are denominators rather than settings,
+# and that is the point: `audited_services` is the list KSI-MLA-LET asks to be maintained,
+# `required_constraints` is a statement of intended state that Organization Policy is then
+# checked against, and `cmek_required_buckets` is what turns "note the key custody" into a
+# claim that can fail. A check whose denominator came from the environment could only ever
+# report what is there.
+gcp:
+  organization_id: "419827365104"
+
+  # `intended_services` is the declared functional surface: the service APIs a project is supposed
+  # to have enabled. `gcp.service.surface` reads the actual set from serviceusage.googleapis.com
+  # and fails anything absent from this list, because a project can only be acted upon through an
+  # API enabled on it — one that is off cannot be called, by an operator or by an attacker.
+  #
+  # Declared per project rather than once for the boundary, because the projects differ: a logging
+  # project that had quietly acquired inference APIs is a finding, not a footnote.
+  projects:
+    - id: northwind-voice-prod
+      intended_services:
+        - run.googleapis.com
+        - secretmanager.googleapis.com
+        - cloudkms.googleapis.com
+        - artifactregistry.googleapis.com
+    - id: northwind-voice-logs
+      intended_services:
+        - bigquery.googleapis.com
+        - pubsub.googleapis.com
+        - cloudkms.googleapis.com
+
+  # Services whose Data Access logs must be on. These default to OFF on GCP, which is the
+  # most common reason an investigation finds no record of a read.
+  audited_services:
+    - storage.googleapis.com
+    - iam.googleapis.com
+    - cloudkms.googleapis.com
+    - secretmanager.googleapis.com
+
+  # Principals permitted to read log data. Anything else with read access on a sink
+  # destination is a least-privilege finding rather than a configuration detail.
+  log_readers:
+    - group:security@northwind.example
+    - serviceAccount:siem-ingest@northwind-voice-logs.iam.gserviceaccount.com
+
+  # Buckets that must hold customer-managed keys. Everything in GCS is encrypted at rest
+  # unconditionally, so this declaration is what gives the check something to falsify.
+  cmek_required_buckets:
+    - northwind-customer-audio
+    - northwind-voice-models
+
+  # Organization Policy constraints required on every declared project. These are enforced
+  # when the API call is made rather than after the fact, which makes them the preventive
+  # counterpart to the detective collectors — the same pairing as the Terraform gate.
+  required_constraints:
+    - id: iam.disableServiceAccountKeyCreation
+      why: prevents downloadable service account keys being created at all
+    - id: storage.publicAccessPrevention
+      why: prevents a bucket being made public regardless of its own IAM
+    - id: sql.restrictPublicIp
+      why: prevents a database being given a public address
+    - id: compute.requireOsLogin
+      why: forces SSH through IAM rather than metadata-distributed keys
+
+github:
+  repositories:
+    - name: northwind/platform
+      branch: main
+    - name: northwind/infra
+      branch: main
+    - name: northwind/docs
+      branch: main
+  window_days: 30
+
+  # How long an open upstream vulnerability may remain open before it is a finding rather
+  # than a queue. Declared here because it is a decision the programme makes: a critical open
+  # for two days and one open for two hundred are not the same fact, and a fixed threshold
+  # baked into the collector would be somebody else's decision.
+  vulnerability_sla_days:
+    critical: 7
+    high: 30
+    medium: 90
+    low: 180
+
+# Transport security, and the one parameter this harness cannot resolve from the pinned ruleset.
+#
+# Every other parameterised judgement here comes from the vendored FedRAMP rules, because a
+# hand-copied rule goes stale while reading as current. There is no TLS version to copy: the CTL
+# entry for sc-13 says to follow the FedRAMP Cryptographic Module Use rules and carries no number.
+# So the floor is declared, it is recorded in the scope of every bundle graded against it, and the
+# route says plainly that the number came from here rather than from the ruleset.
+#
+# Note what a version floor does not establish. sc-13 is about *validated* cryptographic modules,
+# and a listener negotiating TLS 1.2 with a non-validated module satisfies this and not the
+# control. Nothing a describe call returns tells those apart.
+transit:
+  min_tls_version: "1.2"
+
+  # The paths that are machine-to-machine, which is the scope KSI-SVC-VCM actually claims. An
+  # internet-facing load balancer serving browsers is not one, and requiring client certificates of
+  # it would be a finding against a correct configuration — so this is a declaration rather than a
+  # discovery, the same shape as cmek_required_buckets.
+  #
+  # The cost is stated on the route: a machine-to-machine path nobody lists here is invisible to
+  # the check. Declaring nothing produces a population with nothing decidable in it, which reports
+  # as a warning rather than as a pass — an admission, not coverage.
+  mutual_auth_required:
+    aws:
+      - internal-api
+      - mesh
+    gcp:
+      - mesh-payments
+      - mesh-ledger
+
+# The pre-merge policy gate. `iac_roots` is the declared scope for infrastructure as code, and it
+# is enumerated from the working tree rather than taken from the policy tool's own report: a file
+# that exists in a gated root but never reached the gate has to be detectable, and it is not if
+# the population is read out of the report that omitted it.
+pipeline:
+  iac_roots:
+    - policy/terraform/compliant
+  policy_source: policy/rego
+  policy_report: .policy/conftest-report.json
+
+# Where findings go when a control changes state.
+#
+# Nothing is defaulted. A finding names a failing control and the resources behind it, so the
+# sink is a decision about who sees an inventory of where this boundary is weakest — not
+# something a tool should guess. Run "ksi notify --sink stdout" to see what would be sent.
+#
+# The rule the notifier enforces: alert on transition, not on state. A control that has been
+# failing for forty days is one piece of news and thirty-nine reasons to stop reading, and a
+# channel people have muted is alerting that looks present and does nothing.
+alerting:
+  sink:
+    # webhook is the honest default when the receiving stack is not yet known: the payload is
+    # the notification itself rather than a shape borrowed from one vendor, because anything
+    # that can receive a webhook can reshape JSON. slack, github-issue and stdout are also
+    # available; see src/alert/sinks.mjs.
+    kind: webhook
+    # Read from the environment rather than written here. Most webhook URLs are credentials,
+    # and this file is committed.
+    url_env: KSI_ALERT_WEBHOOK
+
+# Evidence handling.
+evidence:
+  # Where the locker actually lives, and whether it can be deleted.
+  #
+  # Everything else here protects evidence against being *altered* — the hash chain, the
+  # manifest, the cosign signature, the RFC 3161 token — and all of it is stored inside
+  # `.evidence/`. So it protects the locker against everything except removal: delete
+  # two-thirds of a check's history, regenerate the manifest, and every integrity check still
+  # passes, because a chain proves the consistency of what remains and says nothing about
+  # what is gone.
+  #
+  # `ksi store --profile F` reports what this store guarantees and then verifies it actually
+  # does. A bucket with Object Lock and one without look identical from the client, which is
+  # how an ordinary bucket comes to be called an evidence vault.
+  store:
+    kind: s3
+    bucket: northwind-fedramp-evidence
+    prefix: ksi
+    region: us-east-1
+    # Object Lock in COMPLIANCE mode. GOVERNANCE is refused: it can be overridden by anyone
+    # holding s3:BypassGovernanceRetention, and a retention an administrator can lift does
+    # not survive an administrator being the problem.
+    retain_until: "2034-01-01T00:00:00Z"
+
+  # The other half. Write-once storage prevents deletion; the anchor log makes it detectable
+  # where it was not prevented — in a restored working copy, a mirror, or a locker handed to
+  # an assessor. One append-only line per collection recording the manifest root and the
+  # per-check run counts, chained so the log cannot be trimmed either.
+  #
+  # It belongs somewhere the locker's owner does not control: a different account, a different
+  # bucket, or a file the assessor keeps. Co-locating it with the evidence defeats the point.
+  anchor_log: .anchors/northwind.jsonl
+
+  # The RFC 3161 Time Stamping Authority that attests the manifest root after each collection.
+  #
+  # Deliberately has no default. Which third party attests a programme's evidence is a
+  # decision for the programme, and quietly picking one would put an unreviewed dependency in
+  # the chain of custody. Public authorities that work here include DigiCert
+  # (http://timestamp.digicert.com), Sectigo (http://timestamp.sectigo.com) and FreeTSA
+  # (http://freetsa.org/tsr); pick one whose retention and CA policy you have actually read.
+  #
+  # One token per collection over the manifest root, not one per bundle: the manifest already
+  # names every bundle hash and every chain head, so the token attests that the whole locker
+  # in that state existed by that time. Consecutive runs then bracket every bundle between two
+  # attested times, which is a tighter claim than a timestamp a bundle asserts about itself.
+  tsa_url: http://timestamp.digicert.com
+
+# Contacts that appear in generated 20x artifacts.
+contacts:
+  security: security@northwind.example
+  incident_reporting: soc@northwind.example
+
+# The Certification Package Overview (FRC-CSO-PKG) — the document every other artifact's
+# `certificationPackageOverviewUri` points at. It is declaration rather than observation, so
+# it lives here rather than being derived from evidence: no cloud account knows what a company
+# is called or how it sells.
+#
+#   ksi emit overview --profile examples/northwind.profile.yaml --out out/overview.json
+certification:
+  package_id: FR0000000000
+  uei: NWDVOICE1234
+  service_acronym: NVA
+  type: 20x
+  website: https://northwind.example/voice-api
+  logo: https://northwind.example/assets/logo.png
+  description: >
+    Northwind Voice API provides speech synthesis and transcription over a REST interface.
+    The authorization boundary covers the synthesis and transcription paths only; the
+    analytics and voice-cloning surfaces are outside it and are disabled by default for
+    government tenants.
+  service_model: [SaaS]
+  deployment_model: Government Community Cloud
+  business_category:
+    - Artificial Intelligence (AI)
+    - Communication
+
+  trust_center:
+    url: https://northwind.example/trust
+    description: Policies, assessment reports and the current KSI coverage report.
+    authentication_required: false
+    types: [Trust Center, Assessment Reports]
+
+  # FRC-CSO-PKG requires a Security contact *and* a Sales contact. The schema expresses that
+  # as two `contains` clauses, which ajv reports abstractly — the emitter checks it directly
+  # so a missing role is named rather than discovered at submission.
+  contacts:
+    - type: Security
+      name: Security Operations
+      email: security@northwind.example
+    - type: Sales
+      name: Federal Sales
+      email: gov-sales@northwind.example
+    - type: Primary
+      name: Compliance Lead
+      email: compliance@northwind.example
+      phone: 202-555-0123
+
+  certified_services:
+    - name: Northwind Speech Synthesis
+      description: Text-to-speech over REST, in zero-retention mode only.
+      date_available: 2026-08-03
+
+  # MAS-CSO-TPR. A non-certified dependency inside a package targeting certification is a
+  # boundary question somebody has to answer; declaring it here puts it in front of a
+  # reviewer at the start rather than at assessment.
+  third_party:
+    certified:
+      - id: FR1805751477
+        name: Google Cloud Platform
+        provider: Google
+        use_case: Primary compute, storage and networking for the synthesis path.
+        owner: Platform engineering lead
+        # The authorization is taken from this attestation and its refresh interval, not from
+        # the marketplace — so a dependency whose status changed between attestations is not
+        # detected until the refresh falls due. Stated as a gap on KSI-SCR-MIT.
+        attestation:
+          date: 2026-06-01
+          refresh_days: 365
+        # Hosts let an observed outbound integration be matched back to this entry.
+        hosts: [googleapis.com, google.com]
+    non_certified:
+      - name: Atlas
+        provider: MongoDB
+        website: https://www.mongodb.com/atlas
+        use_case: Tenant metadata and job queue state. Commercial tier, not FedRAMP certified.
+        # A non-certified dependency inside a boundary targeting certification is not
+        # automatically a failure — it is a question, and it becomes a failure when nobody
+        # owns the answer or the date passes without one.
+        owner: Data platform lead
+        resolution:
+          plan: Migrate to Atlas for Government, or bring the data in-boundary
+          target_date: 2027-03-31
+        hosts: [mongodb.com, mongodb.net]

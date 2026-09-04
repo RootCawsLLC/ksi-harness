@@ -1,0 +1,55 @@
+{
+  "note": "allow-https-public is the intended state: declared ports, scoped to a tag. allow-ssh-world is the classic finding — 22 open to the internet with no target tags, so it applies to every instance in the network, and at priority 100 it wins over the deny at 1000. allow-all-internal is sourced from a private range and passes. debug-open is disabled, which is latent rather than live and must not count as a pass.",
+  "project": "elevenlabs-fedramp-demo",
+  "rules": [
+    {
+      "name": "allow-https-public",
+      "direction": "INGRESS",
+      "priority": 1000,
+      "disabled": false,
+      "sourceRanges": ["0.0.0.0/0"],
+      "targetTags": ["tts-frontend"],
+      "allowed": [{ "IPProtocol": "tcp", "ports": ["443"] }]
+    },
+    {
+      "name": "allow-ssh-world",
+      "direction": "INGRESS",
+      "priority": 100,
+      "disabled": false,
+      "sourceRanges": ["0.0.0.0/0"],
+      "allowed": [{ "IPProtocol": "tcp", "ports": ["22"] }]
+    },
+    {
+      "name": "allow-all-internal",
+      "direction": "INGRESS",
+      "priority": 1000,
+      "disabled": false,
+      "sourceRanges": ["10.128.0.0/9"],
+      "allowed": [{ "IPProtocol": "all" }]
+    },
+    {
+      "name": "debug-open",
+      "direction": "INGRESS",
+      "priority": 900,
+      "disabled": true,
+      "sourceRanges": ["0.0.0.0/0"],
+      "allowed": [{ "IPProtocol": "tcp", "ports": ["8080-8090"] }]
+    },
+    {
+      "name": "deny-inbound-default",
+      "direction": "INGRESS",
+      "priority": 1000,
+      "disabled": false,
+      "sourceRanges": ["0.0.0.0/0"],
+      "denied": [{ "IPProtocol": "all" }]
+    },
+    {
+      "name": "allow-egress-all",
+      "direction": "EGRESS",
+      "priority": 1000,
+      "disabled": false,
+      "destinationRanges": ["0.0.0.0/0"],
+      "allowed": [{ "IPProtocol": "all" }]
+    }
+  ]
+}

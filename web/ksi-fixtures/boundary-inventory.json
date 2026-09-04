@@ -1,0 +1,44 @@
+{
+  "note": "A capability-scoped boundary, in the shape a zero-retention product mode takes. tts-cache-legacy and agents-scratch carry no selector at all, and stt-preview carries a value the profile does not define — all three are unattributed, which fails. The agents capability is declared in scope but nothing is attributed to it, which is the gap no per-resource item would show. Telephony and third-party LLM are declared out with a named attester, because no cloud API can confirm a capability is switched off.",
+  "boundary": {
+    "description": "Text-to-Speech, Speech-to-Text and Agents, in Zero Retention Mode only. Third-party model and telephony integrations are outside the boundary and disabled by default.",
+    "selector": {
+      "gcp_label": "fedramp-boundary",
+      "aws_tag": "FedRAMPBoundary",
+      "in_values": ["true", "in-scope"],
+      "out_values": ["false", "out-of-scope"]
+    },
+    "in_scope": [
+      { "id": "tts", "name": "Text to Speech", "condition": "Zero Retention Mode only" },
+      { "id": "stt", "name": "Speech to Text", "condition": "Zero Retention Mode only" },
+      { "id": "agents", "name": "Agents", "condition": "Zero Retention Mode only" }
+    ],
+    "out_of_scope": [
+      {
+        "id": "third-party-llm",
+        "name": "Third-party LLM integrations",
+        "excluded_by": "Disabled by default and unavailable on the government tier; enabling requires a per-tenant change outside the boundary.",
+        "attested_by": "Product security lead"
+      },
+      {
+        "id": "telephony",
+        "name": "Telephony integrations",
+        "excluded_by": "Not deployed in the government environment; the integration is absent rather than disabled.",
+        "attested_by": "Platform engineering lead"
+      }
+    ]
+  },
+  "unexamined": [
+    { "id": "project/voice-research", "reason": "PERMISSION_DENIED enumerating resources; membership unknown" }
+  ],
+  "resources": [
+    { "id": "gcs/customer-audio", "provider": "gcp", "capability": "tts", "labels": { "fedramp-boundary": "true" } },
+    { "id": "gcs/transcripts", "provider": "gcp", "capability": "stt", "labels": { "fedramp-boundary": "true" } },
+    { "id": "sa/tts-runtime", "provider": "gcp", "capability": "tts", "labels": { "fedramp-boundary": "in-scope" } },
+    { "id": "gcs/marketing-site", "provider": "gcp", "labels": { "fedramp-boundary": "false" } },
+    { "id": "s3/telephony-recordings", "provider": "aws", "tags": { "FedRAMPBoundary": "out-of-scope" } },
+    { "id": "gcs/tts-cache-legacy", "provider": "gcp", "labels": { "env": "prod" } },
+    { "id": "s3/agents-scratch", "provider": "aws", "tags": { "Environment": "production" } },
+    { "id": "gcs/stt-preview", "provider": "gcp", "labels": { "fedramp-boundary": "maybe" } }
+  ]
+}

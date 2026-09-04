@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ksi-harness — FedRAMP 20x continuous monitoring</title>
+<meta name="description" content="Continuous control monitoring for FedRAMP 20x. How to run the fixture demo, when to use it, and how to point it at a real authorization boundary.">
+<style>
+:root{
+  --bg:#FAFAF8;--panel:#FFFFFF;--panel-2:#F5F1E8;--border:#e0e0e0;
+  --ink:#1a1a1a;--ink-2:#444444;--ink-3:#666666;--accent:#6B63B5;--accent-soft:#efedf9;
+  --breach:#B4413F;--held:#2F7D53;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#1a1a1a;--panel:#242424;--panel-2:#2d2d2d;--border:#333333;
+    --ink:#f0f0f0;--ink-2:#c0c0c0;--ink-3:#999999;--accent:#8B7FD6;--accent-soft:#2b2740;
+    --breach:#E58A88;--held:#7FC79B;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;padding:2.5rem 1.25rem 4rem;background:var(--bg);color:var(--ink);
+  font:15px/1.65 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:46rem;margin:0 auto}
+h1{font-size:1.7rem;margin:0 0 .35rem;letter-spacing:-.01em}
+.thesis{color:var(--ink-2);margin:0 0 1.25rem;font-size:1.02rem}
+.thesis b{color:var(--ink)}
+nav.toc{display:flex;flex-wrap:wrap;gap:.4rem .75rem;margin:0 0 2rem;font-size:.82rem}
+nav.toc a{color:var(--accent);text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);
+  margin:2.25rem 0 .75rem;font-weight:600}
+h3{font-size:1rem;margin:1.35rem 0 .4rem}
+p,li{color:var(--ink-2)}
+p{margin:0 0 .85rem}
+ul,ol{margin:.2rem 0 1rem;padding-left:1.2rem}
+li{margin:.25rem 0}
+.note{background:var(--panel-2);border-radius:8px;padding:.85rem 1.05rem;font-size:.89rem;
+  color:var(--ink-2);margin:1.25rem 0}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin:0 0 1rem}
+@media (max-width:640px){.pair{grid-template-columns:1fr}}
+.box{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:.85rem 1rem}
+.box h3{margin:.1rem 0 .4rem}
+.box.use{border-left:4px solid var(--held)}
+.box.dont{border-left:4px solid var(--breach)}
+pre{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
+  padding:.85rem 1rem;overflow-x:auto;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color:var(--ink);margin:0 0 1rem}
+code{font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin:0 0 1rem}
+th,td{text-align:left;vertical-align:top;padding:.45rem .5rem .45rem 0;border-bottom:1px solid var(--border)}
+th{color:var(--ink-3);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.06em}
+.card{display:block;background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--accent);
+  border-radius:9px;padding:.9rem 1.1rem;margin-bottom:.6rem}
+.card .t{font-weight:600;margin-bottom:.15rem;color:var(--ink)}
+.card .d{color:var(--ink-3);font-size:.87rem}
+.stat{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:1.35rem;font-weight:600;color:var(--ink)}
+footer{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--border);
+  color:var(--ink-3);font-size:.84rem}
+footer a{color:var(--accent)}
+</style>
+</head>
+<body><div class="wrap">
+
+<h1>ksi-harness</h1>
+<p class="thesis">Continuous control monitoring for <b>FedRAMP 20x</b>. It pins FedRAMP’s own
+machine-readable rules as the source of truth, collects evidence with population reconciliation,
+and will not mark an indicator <code>automated</code> until someone writes why the checks leave
+nothing material out. The headline number is currently zero. That is the point.</p>
+
+<nav class="toc" aria-label="On this page">
+  <a href="#what">What it does</a>
+  <a href="#when">When to use it</a>
+  <a href="#how">How to use it</a>
+  <a href="#org">Take it into your org</a>
+  <a href="#demo">What the fixture run shows</a>
+  <a href="#limits">What it is not</a>
+</nav>
+
+<h2 id="what">What it does</h2>
+<p>A conventional tool would take 29 implemented checks and 25 indicators with passing fixture evidence and print a coverage percentage north of 50%. This one reports:</p>
+<pre>FedRAMP Consolidated Rules  ·  Class C
+46 applicable indicators of 46 in the ruleset
+
+automated      0
+partial       25
+manual        14
+unaddressed    7</pre>
+<p>An indicator reaches <code>automated</code> only when a written sufficiency argument exists — and that argument is a property of a <b>boundary</b>, not of the indicator. The same routing map answers three different true numbers against three profiles. With no profile, the condition cannot be evaluated, so the headline stays zero.</p>
+<p>Collectors reconcile populations before they grade. An incomplete population can never be a pass. Emitters read only control state and write schema-valid 20x artefacts (SDR, OCR, SCN, overview) plus an OSCAL projection for Rev5 customers. Evidence is hash-chained; the chain head is meant to live in a signed manifest and an anchor log in a different repository.</p>
+
+<h2 id="when">When and where to use it</h2>
+<div class="pair">
+  <div class="box use">
+    <h3>Use it when</h3>
+    <ul>
+      <li>You are on FedRAMP 20x (Class C is the ceiling; Class D does not exist yet) and need continuous monitoring that FedRAMP’s own rules can invalidate.</li>
+      <li>You are tired of a collector that paginated badly and still reported “all users have MFA.”</li>
+      <li>You need preventive (Rego / conftest on IaC) and detective (collectors on deployed state) paired, with the gate’s own result folded back in as evidence.</li>
+      <li>You want a GRC engineer to practise writing the gap, not hiding it behind a percentage.</li>
+    </ul>
+  </div>
+  <div class="box dont">
+    <h3>Do not use it when</h3>
+    <ul>
+      <li>You need CMMC / 800-171 Rev 2. That is <a href="https://rootcawsllc.github.io/cui-control-plane/">cui-control-plane</a>. CMMC is out of scope here on purpose.</li>
+      <li>You need a 3PAO authorization. This produces schema-valid artefacts. It does not produce an authorization, and it will not write <code>ksiAssessment</code>.</li>
+      <li>You want High / Rev5-only OSCAL as the system of record. 20x does not use OSCAL. An OSCAL emitter ships beside the 20x formats because customers still ask.</li>
+    </ul>
+  </div>
+</div>
+
+<h2 id="how">How to use it</h2>
+<p>Node 22+. The demo needs no credentials and contacts no real system.</p>
+<p><b>0. Run the whole path against fixtures.</b></p>
+<pre>git clone https://github.com/RootCawsLLC/ksi-harness.git
+cd ksi-harness
+npm install
+npm run demo</pre>
+<p>That verifies the ruleset pin, prints the Class C catalog, explains one indicator, validates the routing map, collects twice (so a chain exists), verifies hashes, diffs the two runs, prints the coverage report, and emits SDR, OCR, SCN, OSCAL assessment results, and a Markdown coverage file. Every fixture bundle is marked as fixture-derived. The interesting output is the coverage report, not the SDR.</p>
+<p><b>1. Learn the catalog before you collect anything real.</b></p>
+<pre>npx ksi catalog --class c
+npx ksi explain KSI-IAM-APM
+npx ksi checks
+npx ksi routes validate
+npx ksi routes baseline --out routes.new.yaml</pre>
+<p><code>routes baseline</code> is the first command on a new boundary. This repository’s own <code>routes.yaml</code> describes <i>these</i> collectors in <i>this</i> environment. Cloning it and editing the profile inherits those claims, and they are not true elsewhere. A baseline is 46 <code>unaddressed</code>: a programme on its first day. The validate warnings <i>are</i> the backlog.</p>
+<p><b>2. Declare the boundary. Do not discover it.</b> The profile names accounts, projects, repositories, capabilities, third parties. If collection enumerated whatever it could see, a new account would join the authorization boundary without anyone deciding it should.</p>
+<p><b>3. Collect, report, emit.</b></p>
+<pre>npx ksi collect --profile examples/northwind.profile.yaml --fixture fixtures/collectors --out .evidence
+npx ksi coverage --evidence .evidence --md out/coverage.md
+npx ksi verify --evidence .evidence --manifest .evidence/MANIFEST.json
+npx ksi emit sdr --profile examples/northwind.profile.yaml --evidence .evidence --overview-uri https://example.invalid/overview.json</pre>
+<p>For a live AWS/GCP/GitHub boundary, drop <code>--fixture</code> and use the standard credential chains. A multi-account AWS run without <code>aws.collector_role</code> is refused: collecting several accounts on one ambient credential files the same account’s evidence under every id in the boundary.</p>
+<p><b>4. Alert on transition, not on state.</b> <code>ksi notify</code> names what moved. A control that has been failing for forty days is one piece of news and thirty-nine reasons to mute the channel.</p>
+
+<h2 id="org">Take it into your organisation</h2>
+<ol>
+  <li><b>Pin the ruleset.</b> Do not restate FedRAMP indicator text in your own files. <code>vendor/fedramp/</code> is hashed. <code>npm run drift</code> tells you when upstream moved and which routes it invalidates.</li>
+  <li><b>Write the gap.</b> <code>partial</code> requires <code>unautomated</code>. <code>automated</code> requires a sufficiency argument <i>and</i> the boundary it holds for. If you cannot write the argument, the honest level is <code>partial</code>.</li>
+  <li><b>Reconcile the population before you grade.</b> <code>expected</code> comes from an enumeration made before grading, named in <code>enumerated_from</code>. A permission gap and a clean environment must not produce the same green tick.</li>
+  <li><b>Keep the locker.</b> A scheduled workflow that checks out fresh, collects into a gitignored directory, and uploads an artefact nobody reads back will report <code>cadence_unmet: 0</code> forever. Restore the locker, verify it, then collect.</li>
+  <li><b>Put the anchor somewhere you do not control.</b> A hash beside its own data proves very little. <code>ksi-anchors</code> is the worked example: a different repository, a token that can write only that repository, branch protection that blocks force-push.</li>
+  <li><b>Do not commit real evidence to the harness repo.</b> A bundle is an inventory of where the boundary is weakest. Fixture runs are how you learn; <code>evidence.store</code> is how you keep the real thing.</li>
+</ol>
+<p>Adding a collector: pure <code>grade()</code> separate from fetch, a fixture under <code>fixtures/collectors/</code>, a route that claims it. A check no route claims is evidence collected for nothing. See <a href="https://github.com/RootCawsLLC/ksi-harness/blob/main/AGENTS.md">AGENTS.md</a>.</p>
+
+<h2 id="demo">What the fixture run shows</h2>
+<p>This page is not a hosted control plane — the tool is a CLI. The live part is that you can reproduce the numbers below on a laptop with no account.</p>
+<div class="card">
+  <div class="t"><span class="stat">0</span> automated</div>
+  <div class="d">Twenty-five indicators have real passing fixture evidence. None has a sufficiency argument that holds for the default (no-profile) view.</div>
+</div>
+<div class="card">
+  <div class="t">Same map, three boundaries, three answers</div>
+  <div class="d"><code>examples/skylark.profile.yaml</code> can resolve automated 1. <code>northwind</code> stays 0 because AWS is in scope and the gap is shown. No profile: 0, unresolved.</div>
+</div>
+<div class="card">
+  <div class="t">Two collections, one chain</div>
+  <div class="d">The demo collects twice on purpose. One collection is a collection; two are a cadence. Edit a bundle and <code>ksi verify</code> names the break.</div>
+</div>
+<div class="card">
+  <div class="t">This repository is one of its own subjects</div>
+  <div class="d">Against <code>examples/self.profile.yaml</code>, branch-protection can pass and pr-review can fail — settings say what is supposed to happen; commit history says what did. The failure is left standing.</div>
+</div>
+
+<h2 id="limits">What it is not</h2>
+<div class="note">
+  <b>Not a certification.</b> Not complete — unaddressed indicators each have a stated reason and a named next step.
+  Not a substitute for judgement. Lula 2 said it: automated tests alone were insufficient for real
+  compliance verification. That cuts against this project too.
+  Completeness of a population is the invariant that matters; a hash stored beside its own data is
+  not tamper detection. The full argument is the
+  <a href="https://github.com/RootCawsLLC/ksi-harness">README</a> and
+  <a href="https://github.com/RootCawsLLC/ksi-harness/tree/main/docs/adr">eleven ADRs</a>.
+</div>
+
+<footer>
+  Source, ADRs, companion anchor log:
+  <a href="https://github.com/RootCawsLLC/ksi-harness">github.com/RootCawsLLC/ksi-harness</a>
+  · Portfolio:
+  <a href="https://xnasusx.github.io/portfolio/#builds">xnasusx.github.io/portfolio</a><br>
+  Copyright &copy; 2026 RootCaws LLC &middot; Apache-2.0
+</footer>
+
+</div></body>
+</html>

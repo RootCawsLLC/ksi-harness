@@ -1,0 +1,26 @@
+{
+  "name": "ksi-harness-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hosted demo GUI for ksi-harness. Runs the real tool out-of-process against bundled fixtures — collects evidence with population reconciliation, builds control state, projects the FedRAMP 20x coverage report, and emits schema-valid 20x + OSCAL artifacts. Never contacts a real cloud account.",
+  "scripts": {
+    "dev": "next dev -p 3220",
+    "build": "next build",
+    "start": "next start -p 3220"
+  },
+  "dependencies": {
+    "ksi-harness": "file:..",
+    "next": "15.5.25",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "server-only": "0.0.1",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.9",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "typescript": "5.5.3"
+  }
+}

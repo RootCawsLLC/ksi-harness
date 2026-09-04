@@ -1,0 +1,10 @@
+**/node_modules
+**/.next
+.git
+web/.env*.local
+**/*.log
+source.zip
+infra-web/.terraform
+.evidence
+.evidence-*
+out

@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "The enabled service surface of a project, against the surface the profile declares.",
+    "",
+    "Shaped so the demo shows both directions the check grades. run.googleapis.com and",
+    "secretmanager.googleapis.com are enabled and declared, so they pass. aiplatform is enabled",
+    "and undeclared — functionality nobody defined, which fails. dataflow is declared and not",
+    "enabled, which warns: the definition describes an estate that is not running, and that is a",
+    "stale document rather than an exposure.",
+    "",
+    "The baseline services a project always carries are filtered by the collector rather than",
+    "listed here, because enabling them was never a decision anyone made."
+  ],
+  "project": "northwind-voice-prod",
+  "enabled": [
+    "serviceusage.googleapis.com",
+    "logging.googleapis.com",
+    "monitoring.googleapis.com",
+    "run.googleapis.com",
+    "secretmanager.googleapis.com",
+    "cloudkms.googleapis.com",
+    "aiplatform.googleapis.com"
+  ],
+  "intended": [
+    "run.googleapis.com",
+    "secretmanager.googleapis.com",
+    "cloudkms.googleapis.com",
+    "dataflow.googleapis.com"
+  ],
+  "unexamined": []
+}

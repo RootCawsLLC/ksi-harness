@@ -1,0 +1,31 @@
+{
+  "note": "northwind/docs has alerting switched off, which is the finding the indicator is actually about: an empty alert list there is an absence of monitoring rather than an absence of vulnerabilities. The critical in platform is 41 days old against a 7-day window and fails; the high is 12 days against 30 and warns. northwind/legacy is enumerated but the token cannot read it.",
+  "sla_days": { "critical": 7, "high": 30, "medium": 90, "low": 180 },
+  "unexamined": [
+    { "id": "northwind/archive", "reason": "PERMISSION_DENIED reading vulnerability alert state" }
+  ],
+  "repositories": [
+    {
+      "repo": "northwind/platform",
+      "alerts_enabled": true,
+      "alerts": [
+        { "number": 41, "severity": "critical", "package": "jinja2", "advisory": "GHSA-q2x7-8rv6-6q7h", "created_at": "2026-07-08T09:00:00Z" },
+        { "number": 55, "severity": "high", "package": "lodash", "advisory": "GHSA-29mw-wpgm-hmr9", "created_at": "2026-08-06T11:30:00Z" }
+      ]
+    },
+    {
+      "repo": "northwind/infra",
+      "alerts_enabled": true,
+      "alerts": []
+    },
+    {
+      "repo": "northwind/docs",
+      "alerts_enabled": false,
+      "alerts": []
+    },
+    {
+      "repo": "northwind/legacy",
+      "unverifiable": "alerting is enabled but the alert list could not be read: Token lacks permission to verify this: Resource not accessible by integration"
+    }
+  ]
+}

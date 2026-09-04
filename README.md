@@ -10,6 +10,9 @@ longer than the code.
 **Live guide** — what it does, when to use it, how to run the fixture demo, and how to point
 it at a real authorization boundary: https://rootcawsllc.github.io/ksi-harness/
 
+**Run it in your browser** — a hosted demo runs the real monitoring pipeline against fixtures (no
+credentials), showing KSIs evaluated with full-population evidence and 20x artifacts emitted: https://jpk6sgmqpe.us-east-2.awsapprunner.com
+
 ```bash
 npm install
 npm run demo          # end to end against fixtures, no credentials needed

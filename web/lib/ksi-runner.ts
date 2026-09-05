@@ -48,7 +48,64 @@ function scriptPath(): string {
 
 const HARD_TIMEOUT_MS = 290_000;
 
+/**
+ * How many runs may be in flight at once, and why there is a limit at all.
+ *
+ * Each run forks a Node process that performs two fixture collections, builds control state,
+ * projects the coverage report and emits the 20x and OSCAL artifacts, holding a slot for up to
+ * `HARD_TIMEOUT_MS`. Nothing bounded how many of those an anonymous caller could start at once, so
+ * the cost of a request was high, the cost of making one was nothing, and the endpoint is meant to
+ * be publicly reachable.
+ *
+ * The cap lives here rather than in the route because the resource being protected is the child
+ * process, not the HTTP handler. A limit in the route protects the route; a second caller of
+ * `runKsi` would walk straight past it.
+ *
+ * Two is a working default rather than a tuned one: enough that a second visitor is not made to
+ * wait behind the first, few enough that the box is not the thing under test.
+ */
+const MAX_CONCURRENT_RUNS = Number(process.env.KSI_MAX_CONCURRENT_RUNS ?? 2);
+
+/**
+ * Refused for capacity, which is a different answer from a run that failed.
+ *
+ * The caller should retry; nothing is wrong with the request or the estate. Kept as its own type
+ * so the route can map it to 429 rather than inferring from message text.
+ */
+export class RunCapacityExceeded extends Error {}
+
+let active = 0;
+
+/** Current in-flight run count. Exported for tests and for anything that wants to report load. */
+export function activeRuns(): number {
+  return active;
+}
+
 export async function runKsi(req: RunRequest): Promise<RunResult> {
+  // Check and increment with no `await` between them. Node runs this on one thread, so the pair is
+  // atomic in the only sense that matters here — a second request cannot observe the count between
+  // the test and the increment. Written as one block deliberately: inserting an await above the
+  // increment would reintroduce the race this exists to prevent.
+  if (active >= MAX_CONCURRENT_RUNS) {
+    throw new RunCapacityExceeded(
+      `${MAX_CONCURRENT_RUNS} runs are already in progress. Each takes up to ${Math.round(
+        HARD_TIMEOUT_MS / 1000
+      )}s; try again shortly.`
+    );
+  }
+  active += 1;
+
+  try {
+    return await spawnRun(req);
+  } finally {
+    // In `finally` so the slot is returned on every path — resolution, rejection, and the timeout
+    // that kills the child. A decrement on the success path alone would leak a slot per failure
+    // until the endpoint refused everything, which is a worse outage than the one being prevented.
+    active -= 1;
+  }
+}
+
+function spawnRun(req: RunRequest): Promise<RunResult> {
   return new Promise<RunResult>((resolve, reject) => {
     const child = spawn(process.execPath, [scriptPath()], {
       cwd: process.cwd(),

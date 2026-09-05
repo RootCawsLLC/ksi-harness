@@ -204,7 +204,7 @@ jobs:
       - name: Emit OSCAL assessment results
         run: node src/cli.mjs emit oscal-ar --evidence .evidence --out out/oscal-assessment-results.json
 
-      - name: Summarise coverage in the run
+      - name: Summarize coverage in the run
         run: cat out/coverage.md >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

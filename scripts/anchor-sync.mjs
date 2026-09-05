@@ -139,6 +139,74 @@ export const redact = (text) => String(text ?? '').replace(/(x-access-token:)[^@
 const CANNOT_WRITE = /denied to|403|not authorized|Permission.*denied|Authentication failed|repository not found/i;
 
 /**
+ * Push failures worth trying again, and only those.
+ *
+ * A transient network failure currently costs the same as a broken credential: the anchor is not
+ * written, the locker is already published, and the next run opens with `root_unknown` needing a
+ * manual acceptance to clear (#65). Retrying is the cheapest thing that removes that class of
+ * cost entirely.
+ *
+ * Recognition is conservative on purpose, the same way `NO_ANCHOR_YET` is. Anything not
+ * recognisably transient fails on the first attempt, because a retry loop over an unclassified
+ * error is how a real failure becomes a slow failure with a less useful message.
+ */
+const TRANSIENT_PUSH =
+  /Could not resolve host|Connection (timed out|reset|refused)|early EOF|RPC failed|unexpected disconnect|Operation timed out|HTTP 5\d\d|The remote end hung up/i;
+
+/**
+ * A push rejected because the remote moved under us.
+ *
+ * Deliberately **not** retried, because retrying the identical push cannot succeed: the local
+ * clone is behind and every attempt will be rejected the same way. It needs the whole publish
+ * repeated — re-clone, re-copy, re-commit — which is a different operation from a retry and is
+ * left for #65 rather than smuggled in here. Failing immediately with the reason is the honest
+ * answer; a retry loop would spend the budget and then report a timeout for something that was
+ * never going to work.
+ */
+const MOVED_UNDER_US = /non-fast-forward|fetch first|Updates were rejected|behind its remote counterpart/i;
+
+/**
+ * Pushes, retrying only what a retry can fix.
+ *
+ * `sleep` is injected so the tests do not spend the backoff, and `run` so the failure shapes can
+ * be exercised without arranging a broken network.
+ */
+export function pushWithRetry(remote, dir, { run: runImpl = run, sleep = sleepSync, attempts = 3 } = {}) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      runImpl(['push', remote.url, `HEAD:${remote.branch}`], { cwd: dir });
+      if (attempt > 1) console.log(`Push succeeded on attempt ${attempt}.`);
+      return { attempts: attempt };
+    } catch (err) {
+      const reported = redact(err.stderr || err.message);
+      const line = reported.split('\n').filter(Boolean).pop() ?? '';
+
+      if (MOVED_UNDER_US.test(reported)) {
+        throw new Error(
+          `The anchor at ${remote.repo} moved while this run was preparing its entry: ${line}\n` +
+            'Not retried, because retrying the same push cannot succeed against a clone that is now behind. ' +
+            'Re-run the publish, which re-clones and re-appends.'
+        );
+      }
+      if (!TRANSIENT_PUSH.test(reported) || attempt >= attempts) {
+        throw err;
+      }
+
+      // Linear rather than exponential: this is bounded at a handful of seconds inside a job that
+      // has already spent minutes collecting, and a long backoff would just be a slower failure.
+      const waitMs = attempt * 2000;
+      console.log(`Push failed (${line}). Attempt ${attempt} of ${attempts}; retrying in ${waitMs / 1000}s.`);
+      sleep(waitMs);
+    }
+  }
+}
+
+/** Blocking sleep. The publish path is synchronous throughout, and this keeps it that way. */
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/**
  * Proves the anchor credential can write, before anything expensive happens.
  *
  * A successful restore proves nothing about the token, and that is not a subtle point — it is how
@@ -316,7 +384,7 @@ export function publish(localPath, remote) {
       ? `Anchor ${process.env.GITHUB_REPOSITORY ?? ''} at ${after} entry(s)\n\nRecorded by ${process.env.KSI_RUN_URL}`
       : `Anchor ${process.env.GITHUB_REPOSITORY ?? ''} at ${after} entry(s)`;
     run(['commit', '-m', message], { cwd: dir });
-    run(['push', remote.url, `HEAD:${remote.branch}`], { cwd: dir });
+    pushWithRetry(remote, dir);
     console.log(`Published the anchor to ${remote.repo}:${remote.file} (${after} entry(s)).`);
     return 0;
   } finally {

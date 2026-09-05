@@ -138,7 +138,7 @@ created it, and every linked worktree silently runs no hooks at all.
 
 ```bash
 npm run setup            # pin the commit identity AND arm .githooks (local config only)
-npm test                 # 423 tests
+npm test                 # 430 tests
 npm run policy           # policy unit tests + gate + negative control
 npm run vendor:verify    # the ruleset pin still matches
 npm run routes:validate  # routing map against catalog and registry

@@ -148,6 +148,47 @@ jobs:
 
       - run: npm test
 
+  # The web GUI is built here because nothing else builds it.
+  #
+  # Every dependency bump against /web has been arriving with a full set of green checks that say
+  # nothing about it: the app is never built, so `test`, `gate`, `scan` and `artifacts` all pass
+  # while the framework, the types and the container go unexercised. #45 (node 22 -> 26), #50
+  # (next 15 -> 16) and #51 (typescript 5 -> 7) are three major bumps that would each have merged
+  # on evidence that did not exist.
+  #
+  # `next build` is the cheapest thing that produces real evidence. It type-checks the whole app on
+  # the way through -- which is what makes it, rather than `tsc --noEmit`, the check that covers a
+  # TypeScript major -- and it fails on the App Router API changes a Next major is most likely to
+  # break. It does not cover the Dockerfile, and that gap is stated rather than implied: a runtime
+  # bump still needs a container build nobody runs yet.
+  #
+  # `npm ci` rather than `npm install`: the lockfile is committed and a build that silently
+  # resolved different versions from the ones under review would defeat the point of building.
+  web-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # `ksi-harness` is a `file:..` dependency, so the parent has to be installable before the
+      # web app can resolve it.
+      - name: Install the tool the GUI links to
+        run: npm ci
+
+      - name: Install the web app
+        working-directory: web
+        run: npm ci
+
+      # Type errors are build errors here. `eslint.ignoreDuringBuilds` is set in next.config.mjs,
+      # so linting is deliberately not part of this and is not claimed to be.
+      - name: Build the web app
+        working-directory: web
+        run: npm run build
+
   artifacts:
     needs: test
     runs-on: ubuntu-latest

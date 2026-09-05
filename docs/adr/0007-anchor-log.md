@@ -15,7 +15,7 @@ chain proves the internal consistency of whatever it is handed.
 There are also two cases where the store's guarantee is simply absent:
 
 - **The store is misconfigured.** `ksi store` refuses GOVERNANCE mode and unlocked retention, but only
-  when somebody runs it. A programme that declared a store and never verified it has a claim, not a
+  when somebody runs it. A program that declared a store and never verified it has a claim, not a
   control.
 - **The store is not used at all.** The default is the local filesystem, which promises nothing.
 
@@ -168,5 +168,5 @@ have chosen after the fact is a stronger position than either alone.
 - A first run has nothing to reconcile against, and reports that rather than passing. An empty anchor
   log is reported as empty, not treated as agreement.
 - **The log is a disclosure risk of its own.** Check ids and run counts are far less sensitive than
-  bundles — no account ids, no resource names, no findings — but the shape of a programme's
+  bundles — no account ids, no resource names, no findings — but the shape of a program's
   monitoring is still information. It is small enough to keep private easily, which is the point.

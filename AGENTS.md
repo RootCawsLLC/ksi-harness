@@ -14,7 +14,7 @@ the numbers look better, the first question is whether it made them more true.
 
 ## Ground truth lives in `vendor/`, not in this code
 
-Indicator text, control mappings, FedRAMP-defined terms and organisation-defined parameter values
+Indicator text, control mappings, FedRAMP-defined terms and organization-defined parameter values
 are resolved from the pinned ruleset at run time.
 
 - **Do not restate rule content in source, tests, or docs.** Resolve it through
@@ -72,7 +72,7 @@ failing at submission time is not.
 
 1. Name the indicator in the message text: `KSI-SVC-SIN: <resource> <what is wrong>`. The pipeline
    collector recovers indicator ids from finding text, so the prefix is load-bearing, not a comment.
-2. Handle **both input shapes**. `resources(kind)` normalises conftest's HCL parse and
+2. Handle **both input shapes**. `resources(kind)` normalizes conftest's HCL parse and
    `terraform show -json` plan output. Do not read `input.resource` directly.
 3. Write the triggering **and** non-triggering case. Derive fixtures from real `conftest parse`
    output, not from the shape you assume — hand-written fixtures in an assumed shape are how this

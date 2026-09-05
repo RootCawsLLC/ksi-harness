@@ -154,7 +154,7 @@ github:
   window_days: 30
 
   # How long an open upstream vulnerability may remain open before it is a finding rather
-  # than a queue. Declared here because it is a decision the programme makes: a critical open
+  # than a queue. Declared here because it is a decision the program makes: a critical open
   # for two days and one open for two hundred are not the same fact, and a fixed threshold
   # baked into the collector would be somebody else's decision.
   vulnerability_sla_days:
@@ -165,7 +165,7 @@ github:
 
 # Transport security, and the one parameter this harness cannot resolve from the pinned ruleset.
 #
-# Every other parameterised judgement here comes from the vendored FedRAMP rules, because a
+# Every other parameterized judgment here comes from the vendored FedRAMP rules, because a
 # hand-copied rule goes stale while reading as current. There is no TLS version to copy: the CTL
 # entry for sc-13 says to follow the FedRAMP Cryptographic Module Use rules and carries no number.
 # So the floor is declared, it is recorded in the scope of every bundle graded against it, and the
@@ -258,8 +258,8 @@ evidence:
 
   # The RFC 3161 Time Stamping Authority that attests the manifest root after each collection.
   #
-  # Deliberately has no default. Which third party attests a programme's evidence is a
-  # decision for the programme, and quietly picking one would put an unreviewed dependency in
+  # Deliberately has no default. Which third party attests a program's evidence is a
+  # decision for the program, and quietly picking one would put an unreviewed dependency in
   # the chain of custody. Public authorities that work here include DigiCert
   # (http://timestamp.digicert.com), Sectigo (http://timestamp.sectigo.com) and FreeTSA
   # (http://freetsa.org/tsr); pick one whose retention and CA policy you have actually read.

@@ -17,7 +17,7 @@ means 800-53 is available as a pivot without anyone authoring a crosswalk.
 
 The second fact makes it valuable. **CJIS Security Policy v6.0 restructured onto the 800-53 Rev 5
 catalog**, using 800-53 identifiers verbatim across 18 control families, each with a P1–P4
-priority. v6.1 (25 June 2026) continues it. Practically: if you run an 800-53 Moderate programme,
+priority. v6.1 (25 June 2026) continues it. Practically: if you run an 800-53 Moderate program,
 most CJIS control text is inherited rather than re-authored. What CJIS genuinely adds is
 fingerprint-based personnel screening, the Security Addendum in Appendix H, and agency-held keys —
 a short list of real deltas rather than a new framework.
@@ -35,10 +35,10 @@ ruleset already publishes.
 
 - `controlIndex()` in `src/catalog/ksi.mjs` builds the reverse index: control id → the indicators
   that touch it. 209 controls, from the pinned file, computed rather than authored.
-- Control ids are normalised before comparison. The ruleset uses two dialects for the same
+- Control ids are normalized before comparison. The ruleset uses two dialects for the same
   control — KSI mappings use the OSCAL-style dotted form (`ac-6.1`) and the CTL section uses a
   dashed zero-padded form (`AC-06-01`) — and nothing crosswalks until those converge.
-- `controlOverlay()` reads the **CTL** section, which carries FedRAMP's organisation-defined
+- `controlOverlay()` reads the **CTL** section, which carries FedRAMP's organization-defined
   parameter values and clarifying guidance. CTL is easy to miss: it is not described in FedRAMP's
   own `AGENTS.md`. Anything generating Rev5 material needs it, and ignoring it means emitting a
   package with unfilled ODPs.
@@ -47,7 +47,7 @@ The direction matters. Collect evidence against **indicators**, then score a con
 framework transitively. The reverse — collecting per framework — means collecting the same evidence
 several times and reconciling the copies.
 
-Consequently, adding CJIS is not a new collection programme. It is a profile that selects controls
+Consequently, adding CJIS is not a new collection program. It is a profile that selects controls
 from the existing index, plus explicit handling of the genuine deltas, which are personnel and
 contractual rather than technical and therefore `manual` routes under ADR 0002.
 

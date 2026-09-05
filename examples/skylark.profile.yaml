@@ -13,7 +13,7 @@
 #   ksi coverage                                            # partial: unresolved, no profile given
 #
 # Everything else here is deliberately small. This is a boundary for demonstrating one mechanism,
-# not a second worked example of a whole programme — northwind is that.
+# not a second worked example of a whole program — northwind is that.
 
 service_name: Skylark Transcription
 provider: Skylark Systems Ltd
@@ -39,7 +39,7 @@ boundary:
       excluded_by: Not offered to federal customers; disabled at the service level.
       attested_by: Head of Platform
     - id: diarisation
-      description: Speaker separation and labelling.
+      description: Speaker separation and labeling.
       excluded_by: Requires retaining voice characteristics, which the boundary forbids.
       attested_by: Head of Platform
 
@@ -125,7 +125,7 @@ idp:
 
 # Transport security, and the one parameter this harness cannot resolve from the pinned ruleset.
 #
-# Every other parameterised judgement here comes from the vendored FedRAMP rules, because a
+# Every other parameterized judgment here comes from the vendored FedRAMP rules, because a
 # hand-copied rule goes stale while reading as current. There is no TLS version to copy: the CTL
 # entry for sc-13 says to follow the FedRAMP Cryptographic Module Use rules and carries no number.
 # So the floor is declared, it is recorded in the scope of every bundle graded against it, and the

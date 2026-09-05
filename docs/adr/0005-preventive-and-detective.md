@@ -16,7 +16,7 @@ It is detective, it sees everything including changes made by hand, and it canno
 Each has a blind spot the other covers, and the blind spots are not symmetrical. A gate cannot see
 a security group edited in the console. A collector cannot prevent the edit, and by the time it
 reports, the exposure has existed for up to a collection interval. Neither is sufficient, and a
-programme that has one usually reports as though it had both.
+program that has one usually reports as though it had both.
 
 There is a third problem specific to gates, and it is the one that turns a working control into no
 evidence at all: **a red X in a pipeline run is not retained**. The run log ages out. Next quarter,
@@ -68,12 +68,12 @@ as green:
   (`not encryption_configured`) kept firing, so the suite looked alive. Twenty unit tests passed,
   because the test fixtures were hand-written JSON in the shape I assumed rather than the shape
   conftest emits.
-- The IAM wildcard rule normalised `Action` and `Resource` for arrays and objects but not for the
+- The IAM wildcard rule normalized `Action` and `Resource` for arrays and objects but not for the
   string form. `"Action": "*"` — the most common way to write a full administrative grant —
   matched nothing.
 
 Both are silent-pass bugs in a control whose entire purpose is to not silently pass. A negative
-control is the cheapest available defence, and the unit tests are now derived from real
+control is the cheapest available defense, and the unit tests are now derived from real
 `conftest parse` output.
 
 ## Being honest about what a gate can decide

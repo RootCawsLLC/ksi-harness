@@ -69,7 +69,7 @@ Consider `KSI-CED-RAT`, which asks whether security training was **effective** a
 cohorts. Every LMS exposes completion percentages through an API. Wiring that up and marking the
 indicator green takes an afternoon, and is entirely wrong: completion is not effectiveness. The
 check would pass forever and the indicator would never have been evidenced. That is the most
-tempting false pass in the catalog, and a tool optimised for a coverage percentage will take it.
+tempting false pass in the catalog, and a tool optimized for a coverage percentage will take it.
 
 So this one declares, for all 46 indicators, exactly how each is evidenced and what the evidence
 does not establish. Full reasoning in [ADR 0002](docs/adr/0002-coverage-honesty.md).
@@ -380,7 +380,7 @@ showed the key custody and not the transport would be actively misleading about 
 merely incomplete.
 
 One number here is declared rather than resolved, and the route says so. Every other parameterised
-judgement in this harness comes from the pinned ruleset, but the vendored `CTL` entry for sc-13
+judgment in this harness comes from the pinned ruleset, but the vendored `CTL` entry for sc-13
 points at the FedRAMP Cryptographic Module Use rules and carries no TLS version. So the floor lives
 at `transit.min_tls_version`, it is recorded in the scope of every bundle graded against it, and the
 gap is stated: a version floor is necessary and not sufficient, because sc-13 is about *validated*
@@ -497,7 +497,7 @@ collectors establish about the environment they were written for. Cloning the ha
 the profile would inherit every one of those claims, and they are not true elsewhere — which is a
 correctness problem rather than an ergonomic one, because the whole argument for the coverage report
 is that the declarations behind it are true. The baseline declares all 46 `unaddressed`, so a new
-boundary's first report reads `unaddressed 46`: not a failure, a description of a programme on its
+boundary's first report reads `unaddressed 46`: not a failure, a description of a program on its
 first day. Every implemented check goes unclaimed, so `routes validate` warns about each one — that
 warning list *is* the backlog, and it shrinks visibly as they are routed.
 
@@ -778,7 +778,7 @@ One practical trap: **branch protection is unavailable on private repositories w
 plan.** The choice is a private log with the no-rewrite rule as convention, or a public one where it
 is enforced. Anchor entries carry check ids, run counts and hashes — no findings, no resource names,
 no accounts — so publishing them is usually defensible, but it is a real decision and the shape of a
-monitoring programme is still information. One anchor repository per sensitivity level; do not point
+monitoring program is still information. One anchor repository per sensitivity level; do not point
 a private boundary at a public log because it was convenient.
 
 Note what the configured mode does and does not buy: it separates storage and credential, **not
@@ -879,7 +879,7 @@ Hence the `--latest` option, and a test that fails if the direction is ever chan
 - **Not complete.** 8 indicators are `unaddressed` at Class C, each with a stated reason and a named
   next step. Two are blocked on distribution rather than effort: CIS Benchmarks sit behind member
   distribution and cannot be vendored into a public repository.
-- **Not a substitute for judgement.** Lula 2's README, worth quoting against one's own enthusiasm:
+- **Not a substitute for judgment.** Lula 2's README, worth quoting against one's own enthusiasm:
   "automated tests alone were insufficient for real compliance verification." That cuts against
   naive compliance-as-code, including this.
 - **No real evidence is committed to this branch.** A bundle names accounts, roles, buckets and
@@ -895,7 +895,7 @@ Hence the `--latest` option, and a test that fails if the direction is ever chan
 
 ## Scope notes
 
-**CJIS** is an 800-53 Rev 5 overlay, not a new programme. v6.0 restructured onto the Rev 5 catalog
+**CJIS** is an 800-53 Rev 5 overlay, not a new program. v6.0 restructured onto the Rev 5 catalog
 using 800-53 identifiers verbatim; the genuine deltas — fingerprint-based personnel screening, the
 Appendix H Security Addendum, agency-held keys — are personnel and contractual, so they are `manual`
 routes. There is no central certifying body, so it repeats per state CSA.
@@ -906,7 +906,7 @@ incorporates the February 2020 revision by reference) while `usnistgov/oscal-con
 catalog at all. Phase 2 was suspended on 13 July 2026, with only Level 1 (Self) and Level 2 (Self)
 designatable. Spending engineering effort there now is a bad trade.
 
-## Licence
+## License
 
 Apache-2.0. The evidence bundle contract is carried over from `RootCawsLLC/grc-wizard`, where it was
 built against a SOC 2 control set and shaken out in live runs.

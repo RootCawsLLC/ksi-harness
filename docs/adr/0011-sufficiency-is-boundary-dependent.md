@@ -19,7 +19,7 @@ only four indicators invoke no FedRAMP-defined term, and therefore carry no `FRD
 profile declares. Of those four:
 
 - **`KSI-IAM-APM`** is permanently blocked. "Passwordless *when feasible*" is a documented human
-  judgement, and no API reports feasibility.
+  judgment, and no API reports feasibility.
 - **`KSI-SVC-SIN`** is blocked by population. "Information" has no enumerable denominator, and
   "otherwise secured from unwanted modification" is an unbounded integrity claim.
 - **`KSI-IAM-AAM`** is unaddressed and needs an identity-provider collector first.
@@ -110,7 +110,7 @@ readable by a person.
   see that a route was written to be automated and did not qualify here.
 - **This makes promotion easier, and that is the risk.** The friction ADR 0002 deliberately built
   is now avoidable by narrowing a condition until the argument becomes true — `providers_within` of
-  exactly the provider you happen to run. The defence is that the argument is still prose a person
+  exactly the provider you happen to run. The defense is that the argument is still prose a person
   reads, and a condition narrow enough to be dishonest is visible in the same diff. It is worth
   watching whether the `automated` count climbs faster than the arguments get better.
 - **Nothing else was promoted.** Three of the four candidates remain blocked for reasons that are

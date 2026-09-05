@@ -71,7 +71,7 @@ Class C certified — shipped OSCAL export in February 2026 while also shipping 
 mappings, which is exactly this hedge.
 
 The OSCAL emitter is roughly 200 lines because the state model does the work. If FedRAMP reverses
-course, or a customer standardises on OSCAL, the cost is a projection rather than a rewrite. If
+course, or a customer standardizes on OSCAL, the cost is a projection rather than a rewrite. If
 20x stays as it is, the cost of having kept it was 200 lines.
 
 ## Consequences

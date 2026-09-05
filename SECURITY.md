@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Report privately through [GitHub Security Advisories](https://github.com/RootCawsLLC/ksi-harness/security/advisories/new)
-rather than in a public issue. Expect an acknowledgement within three working days.
+rather than in a public issue. Expect an acknowledgment within three working days.
 
 If you would rather not use GitHub, the repository's `SECURITY_CONTACT` variable names an address.
 

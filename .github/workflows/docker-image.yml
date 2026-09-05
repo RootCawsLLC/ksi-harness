@@ -1,0 +1,53 @@
+name: docker-image
+
+# Builds the web container image and runs it, asserting it comes up as the
+# non-root `node` user and actually serves HTTP. Path-filtered so it runs only
+# when the web app or this workflow changes. This is what a local `docker build`
+# would prove; the daemon that authored the Dockerfile change had none.
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/docker-image.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+    steps:
+      # actions/checkout v4.2.2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Build the web image
+        run: docker build -f web/Dockerfile -t ksi-web-test .
+
+      - name: Run it and assert non-root + serving
+        env:
+          PORT: '3220'
+        run: |
+          set -euo pipefail
+          docker run -d --name web -p ${PORT}:${PORT} ksi-web-test
+          # The container's default user must be the non-root `node` (uid 1000).
+          uid="$(docker exec web id -u)"
+          echo "container uid: ${uid}"
+          if [ "${uid}" != "1000" ]; then
+            echo "::error::expected uid 1000 (node), got ${uid}"
+            docker logs web || true
+            exit 1
+          fi
+          # It must actually serve (a start-time permission error would crash it).
+          ok=""
+          for i in $(seq 1 30); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${PORT}/" || echo 000)"
+            if [ "${code}" != "000" ]; then echo "HTTP ${code}"; ok=1; break; fi
+            sleep 2
+          done
+          if [ -z "${ok}" ]; then
+            echo "::error::server never responded"
+            docker logs web || true
+            exit 1
+          fi
+          docker rm -f web

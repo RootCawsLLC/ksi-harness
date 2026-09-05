@@ -129,6 +129,68 @@ const NO_ANCHOR_YET =
  */
 export const redact = (text) => String(text ?? '').replace(/(x-access-token:)[^@\s]*/g, '$1***');
 
+/**
+ * Errors from a push that mean the credential cannot write, as opposed to could not be used.
+ *
+ * The distinction is the same one `checkout` draws for clones and `optional()` draws for the AWS
+ * collectors: "I was refused" and "I could not reach it" call for opposite responses, and merging
+ * them turns an outage into a permissions finding or vice versa.
+ */
+const CANNOT_WRITE = /denied to|403|not authorized|Permission.*denied|Authentication failed|repository not found/i;
+
+/**
+ * Proves the anchor credential can write, before anything expensive happens.
+ *
+ * A successful restore proves nothing about the token, and that is not a subtle point — it is how
+ * a wrong credential survived a whole run on 2026-08-21. `xnasusx/ksi-anchors` is public, so
+ * cloning it needs no credential at all: the restore step succeeded with a token owned by an
+ * account that had no access, reported a plausible entry count, and the failure appeared only at
+ * the publish step, after a full collection had already run and pushed evidence to the evidence
+ * branch — thereby opening the gap described in #65.
+ *
+ * So every diagnosis of a bad anchor token cost a complete collection and left behind a state
+ * needing `ksi anchor accept` to clear.
+ *
+ * `git push --dry-run` performs the whole authentication and permission negotiation and then
+ * declines to transfer anything. It is the cheapest thing that answers the question actually being
+ * asked, and it answers it in under a second rather than at the end of an hour.
+ */
+export function assertWritable(remote, { run: runImpl = run } = {}) {
+  const dir = mkdtempSync(join(tmpdir(), 'ksi-anchor-probe-'));
+  try {
+    // A push needs a repository to push *from*, and a bare init is enough: --dry-run negotiates
+    // credentials and refs and then stops, so nothing here is ever transferred.
+    runImpl(['init', '--initial-branch', remote.branch, dir]);
+    runImpl(['push', '--dry-run', remote.url, `HEAD:${remote.branch}`], { cwd: dir });
+    return { writable: true };
+  } catch (err) {
+    const reported = redact(err.stderr || err.message);
+
+    // An empty local repository has no HEAD to push, so git refuses before it ever contacts the
+    // remote. That is this probe's own shape rather than anything about the credential.
+    if (/does not match any|src refspec|HEAD/i.test(reported) && !CANNOT_WRITE.test(reported)) {
+      return { writable: true, note: 'nothing to push; credentials negotiated' };
+    }
+
+    const line = reported.split('\n').filter(Boolean).find((l) => CANNOT_WRITE.test(l)) ?? reported.split('\n').filter(Boolean).pop() ?? '';
+
+    if (!CANNOT_WRITE.test(reported)) {
+      // Could not reach it. Not a permissions finding, and not something to fail a run over here:
+      // the publish step will surface it with the real error if it persists.
+      return { writable: null, detail: line };
+    }
+    throw new Error(
+      `The anchor credential cannot write ${remote.repo} (branch ${remote.branch}): ${line}\n` +
+        'Checked before collecting, because a successful restore proves nothing: the anchor repository ' +
+        'may be public, and cloning it needs no credential at all. Without this the first evidence of a ' +
+        'wrong token is a failed push at the end of a full collection, which also leaves an anchor gap ' +
+        'behind it.'
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 /** Clones the anchor repository into a scratch directory. Shallow is fine: only the tip is read. */
 function checkout(remote) {
   const dir = mkdtempSync(join(tmpdir(), 'ksi-anchor-'));
@@ -160,6 +222,14 @@ function checkout(remote) {
  * disagrees" — which are different findings and must not be merged into one.
  */
 export function restore(localPath, remote) {
+  // Before the read, because the read is the step that cannot tell you anything.
+  const probe = assertWritable(remote);
+  if (probe.writable === null) {
+    console.log(`Could not confirm write access to ${remote.repo}: ${probe.detail}. Continuing; the publish will report it.`);
+  } else {
+    console.log(`Write access to ${remote.repo} confirmed${probe.note ? ` (${probe.note})` : ''}.`);
+  }
+
   const dir = checkout(remote);
   try {
     const source = join(dir, remote.file);

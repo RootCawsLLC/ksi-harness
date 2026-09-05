@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-import { anchorRemote, publish, redact, restore } from '../scripts/anchor-sync.mjs';
+import { anchorRemote, assertWritable, publish, redact, restore } from '../scripts/anchor-sync.mjs';
 
 /**
  * The anchor is only worth anything if it lives where the evidence writer cannot reach it, and
@@ -297,4 +297,77 @@ test('the redaction removes a token from the url git quotes back', () => {
   assert.doesNotMatch(cleaned, /github_pat_NOT_A_REAL_SECRET/);
   assert.match(cleaned, /x-access-token:\*\*\*@github\.com/);
   assert.equal(redact(undefined), '');
+});
+
+/* ------------------------------------------- proving the credential can write */
+
+/**
+ * A successful restore proves nothing about the anchor credential, and that is not academic.
+ *
+ * On 2026-08-21 the token was replaced with one owned by an account that had no access to the
+ * anchor repository. `Restore the anchor log` succeeded, because `xnasusx/ksi-anchors` is public
+ * and cloning it needs no credential at all. The failure surfaced only at the publish step, after
+ * a full collection had already run and pushed evidence to the evidence branch -- which is also
+ * how the gap in #65 opens.
+ *
+ * `git push --dry-run` negotiates authentication and permissions and then transfers nothing, so
+ * the question can be answered in under a second instead of at the end of an hour.
+ */
+test('a writable remote passes the preflight and is not mutated by it', () => {
+  const repo = anchorRepo({ seeded: ENTRY(1) });
+  try {
+    const before = repo.read();
+    assert.equal(assertWritable(repo.remote).writable, true);
+    assert.equal(repo.read(), before, 'a dry run must not change the remote');
+  } finally {
+    repo.cleanup();
+  }
+});
+
+// The case that went undetected for a whole run.
+test('a credential that cannot write is refused, before anything is collected', () => {
+  const denied = () => {
+    const err = new Error('command failed');
+    err.stderr = 'remote: Permission to test/anchors.git denied to WrongAccount.\nfatal: unable to access: 403';
+    throw err;
+  };
+  assert.throws(
+    () => assertWritable({ repo: 'test/anchors', branch: 'main', url: 'https://x' }, { run: denied }),
+    /cannot write test\/anchors/
+  );
+  assert.throws(
+    () => assertWritable({ repo: 'test/anchors', branch: 'main', url: 'https://x' }, { run: denied }),
+    /a successful restore proves nothing/
+  );
+});
+
+// Being unreachable is not a permissions finding. Failing the run here would turn a network blip
+// into an anchor-configuration error, and the publish step reports the real thing if it persists.
+test('an unreachable remote is reported, not raised', () => {
+  const unreachable = () => {
+    const err = new Error('command failed');
+    err.stderr = 'fatal: unable to access: Could not resolve host: github.com';
+    throw err;
+  };
+  const result = assertWritable({ repo: 'test/anchors', branch: 'main', url: 'https://x' }, { run: unreachable });
+  assert.equal(result.writable, null);
+  assert.match(result.detail, /Could not resolve host/);
+});
+
+// git puts the remote url in its error text, and the url carries the token.
+test('the preflight does not print the token it failed with', () => {
+  const denied = () => {
+    const err = new Error('command failed');
+    err.stderr = "remote: Permission denied.\nfatal: unable to access 'https://x-access-token:github_pat_NOT_REAL@github.com/a/b.git/': 403";
+    throw err;
+  };
+  try {
+    assertWritable({ repo: 'a/b', branch: 'main', url: 'https://x' }, { run: denied });
+    assert.fail('should have raised');
+  } catch (err) {
+    assert.doesNotMatch(err.message, /github_pat_NOT_REAL/);
+    // The invariant is that the token never appears, not that a redaction marker does: which
+    // line git's error is summarised from varies, and only some of them carry the url at all.
+    assert.doesNotMatch(err.message, /x-access-token:[^*]/);
+  }
 });

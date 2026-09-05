@@ -9,7 +9,7 @@ import { openFindings } from '../evidence/state.mjs';
  *    are different claims, and a single status column forces them into one — which is how a
  *    report comes to show green for an indicator whose automation was never argued to settle it.
  *  - Every gap is printed with its stated reason. The route file already requires one, so the
- *    report has no excuse to summarise a gap as a number.
+ *    report has no excuse to summarize a gap as a number.
  */
 
 const COVERAGE_ORDER = ['automated', 'partial', 'manual', 'unaddressed', 'unrouted'];

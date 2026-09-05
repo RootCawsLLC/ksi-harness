@@ -23,7 +23,7 @@ function quarterBounds(to) {
 }
 
 /**
- * Summarises what changed, from the locker rather than from memory.
+ * Summarizes what changed, from the locker rather than from memory.
  *
  * Only differences are reported. A check that passed at the start of the period and passes now
  * is not a change, and listing it would pad the report with reassurance — which is how a
@@ -113,7 +113,7 @@ export function emit(state, { overviewUri, reportTo = state.generated_at, active
       changes: plannedChanges(state),
     },
     // Accepted vulnerabilities are reported in full under VER-RPT-AVI, not here. This harness
-    // does not manage a vulnerability register, and summarising one it cannot see would be
+    // does not manage a vulnerability register, and summarizing one it cannot see would be
     // asserting an absence.
     acceptedVulnerabilities:
       'No accepted vulnerabilities are tracked by this harness. Accepted vulnerabilities are reported separately ' +

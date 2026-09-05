@@ -57,7 +57,7 @@ export function gradeAttribution(resources, boundary, { unexamined = [] } = {}) 
             status: 'fail',
             detail:
               `Declared in scope${capability.condition ? ` (${capability.condition})` : ''} but no enumerated ` +
-              `resource is attributed to it. Either the capability runs on resources nobody labelled, or the ` +
+              `resource is attributed to it. Either the capability runs on resources nobody labeled, or the ` +
               `declaration names something the boundary does not actually contain.`,
           }
     );

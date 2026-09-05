@@ -147,7 +147,7 @@ export function resolveProjects(profile) {
  * Runs one grading function against every project the profile declares.
  *
  * Returns `{ parts, unexamined, projects }` shaped for `mergeGraded`. A project that cannot
- * be read becomes an itemised gap rather than an absence, which is the difference between a
+ * be read becomes an itemized gap rather than an absence, which is the difference between a
  * boundary of six projects reported as incomplete and a boundary of four reported as clean.
  */
 export async function perProject(profile, fn) {

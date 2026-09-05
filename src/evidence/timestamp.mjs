@@ -84,7 +84,7 @@ export function buildRequest(digestHex, { nonce = randomBytes(8), certReq = true
  * DER INTEGER content as hex, with the leading zero a positive integer may carry removed.
  *
  * `integer()` prepends 0x00 when the high bit is set, so the same nonce can come back one
- * byte longer than it went out and compare unequal while being identical. Normalising both
+ * byte longer than it went out and compare unequal while being identical. Normalizing both
  * sides is what makes the comparison about the value rather than about its encoding.
  */
 function normaliseNonce(buf) {
@@ -223,8 +223,8 @@ export function parseResponse(der, { expectDigestHex = null, expectNonce = null 
 /**
  * Requests a token from a Time Stamping Authority over HTTP.
  *
- * The authority is never defaulted. Which third party a compliance programme trusts to attest
- * its evidence is a decision that belongs to the programme, and quietly picking one would put
+ * The authority is never defaulted. Which third party a compliance program trusts to attest
+ * its evidence is a decision that belongs to the program, and quietly picking one would put
  * an unreviewed dependency in the chain of custody.
  */
 export async function requestTimestamp(digestHex, { url, timeoutMs = 15000, fetchImpl = fetch } = {}) {
@@ -232,7 +232,7 @@ export async function requestTimestamp(digestHex, { url, timeoutMs = 15000, fetc
     throw new Error(
       'No Time Stamping Authority configured. Set evidence.tsa_url in the profile or KSI_TSA_URL in the ' +
         'environment. This is deliberately not defaulted: which third party attests your evidence is a ' +
-        'decision for the programme, not for this tool.'
+        'decision for the program, not for this tool.'
     );
   }
 

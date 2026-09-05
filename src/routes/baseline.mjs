@@ -15,7 +15,7 @@ import { ALL_CHECKS } from '../collectors/registry.mjs';
  * So the honest starting point for a new adopter is that nothing has been assessed yet. A
  * generated baseline says exactly that for all forty-six indicators, validates, and produces
  * a coverage report reading `unaddressed 46` on the first run — which is not a failure of the
- * tool but an accurate description of a programme on its first day. Every promotion from
+ * tool but an accurate description of a program on its first day. Every promotion from
  * there is then something a person did deliberately, which is the same discipline the
  * `automated` level already enforces, applied to onboarding.
  *
@@ -51,7 +51,7 @@ const REASON =
 function nextFor(indicator) {
   return (
     `Decide how this is evidenced in this environment. If a check can settle part of it, wire one and ` +
-    `move this route to "partial" with the remainder named under "unautomated". If it is a judgement ` +
+    `move this route to "partial" with the remainder named under "unautomated". If it is a judgment ` +
     `rather than a measurement, move it to "manual" with an owner, an artifact and a reason automation ` +
     `is the wrong tool. Theme ${indicator.theme}: ${indicator.theme_name}.`
   );

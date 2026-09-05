@@ -126,7 +126,7 @@ export function gradePrReview(commits, { scopeId = 'declared repositories', unex
       source_of_truth: 'Every commit on each declared production default branch in the period, via repos/commits',
       enumerated_from:
         'the repositories declared in the profile, counted before any commit listing was made; each repository ' +
-        'that could not be listed is itemised rather than dropped',
+        'that could not be listed is itemized rather than dropped',
     },
     metric: { metric_id: 'github.change.reviewed_commits', value: passRate(items), unit: 'ratio' },
   };

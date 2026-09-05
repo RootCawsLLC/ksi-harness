@@ -132,7 +132,7 @@ export function isHumanMember(member) {
  *
  * A condition on the binding is recorded but does not clear it. Conditions on GCP bindings
  * are commonly resource- or time-scoped, and only the time-scoped ones bear on standing
- * privilege — which is a judgement this check surfaces rather than makes.
+ * privilege — which is a judgment this check surfaces rather than makes.
  */
 export function gradePrivilegedAccess(bindings, { projectId, unexamined = [] } = {}) {
   const items = [];

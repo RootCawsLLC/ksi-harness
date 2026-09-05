@@ -173,7 +173,7 @@ export function gradeRegister(register, observed, { now = Date.now(), unexamined
  *
  * Webhooks are the reachable surface: every one names an external host receiving repository
  * events, which makes it a third-party data flow by definition. Installed GitHub Apps would
- * be the richer signal and need organisation-admin scope, so their absence is a stated gap
+ * be the richer signal and need organization-admin scope, so their absence is a stated gap
  * on the route rather than a silent one.
  */
 async function fetchIntegrations(repos) {

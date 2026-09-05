@@ -119,7 +119,7 @@ export function gradeWorkflowPinning(repos, { declared = null, unexamined = [] }
       source_of_truth: 'Every `uses:` reference in every file under .github/workflows in each declared repository',
       enumerated_from:
         'the repositories declared in the profile; each one that answered contributes its own workflow references, ' +
-        'and each one that did not is itemised rather than dropped',
+        'and each one that did not is itemized rather than dropped',
     },
     metric: { metric_id: 'github.supply_chain.pinned_actions', value: passRate(items), unit: 'ratio' },
   };

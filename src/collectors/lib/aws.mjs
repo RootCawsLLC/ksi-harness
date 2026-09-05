@@ -4,7 +4,7 @@ export { accountItem, describePorts, mergeGraded, passRate } from './grade.mjs';
 /**
  * Shared plumbing for the AWS checks.
  *
- * Carried over from RootCawsLLC/grc-wizard, where each of these behaviours was arrived at
+ * Carried over from RootCawsLLC/grc-wizard, where each of these behaviors was arrived at
  * by a live run producing wrong evidence. Four jobs, all about keeping checks honest
  * rather than convenient:
  *
@@ -15,7 +15,7 @@ export { accountItem, describePorts, mergeGraded, passRate } from './grade.mjs';
  *  - A hard line between "this resource has no such configuration" and "I was not allowed
  *    to look", which `optional()` enforces.
  *  - Cross-account collection over the accounts the profile declares, with every account
- *    that could not be reached itemised rather than dropped. A real authorization boundary
+ *    that could not be reached itemized rather than dropped. A real authorization boundary
  *    is almost never one account, and a harness that silently reports the account it
  *    happens to be standing in has redefined the boundary.
  */

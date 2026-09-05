@@ -12,7 +12,7 @@ import { verifyChain, verifyIntegrity } from './bundle.mjs';
  *
  *  - Control state is diffable. A `git log` over the locker, or `ksi diff` over two of its
  *    points, is the change history of the security posture — the artifact continuous
- *    reporting actually needs and the one a screenshot-based programme can never produce.
+ *    reporting actually needs and the one a screenshot-based program can never produce.
  *  - History is the evidence of recurrence. Twenty-six indicators require activity that is
  *    "persistent" in FedRAMP's sense, and a run that happened is only demonstrable if the
  *    previous runs are still there. Retention is therefore a compliance property, not

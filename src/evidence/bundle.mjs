@@ -28,7 +28,7 @@ import { join } from 'node:path';
  * Key Security Indicators it contributes to, rather than a single control id. That is not
  * cosmetic. A KSI is a capability claim broad enough that no single check settles it, so
  * the many-to-many edge has to be first-class or the coverage report will overstate. The
- * indicator-level judgement is assembled in ../routes and ../evidence/state.mjs, and it is
+ * indicator-level judgment is assembled in ../routes and ../evidence/state.mjs, and it is
  * deliberately not something a check can make about itself.
  */
 
@@ -74,7 +74,7 @@ const KSI_ID = /^KSI-[A-Z]{3}-[A-Z]{3}$/;
  *
  * `expected` is the caller's single input and has to come from an enumeration performed
  * before grading — the principals the API listed, the repositories the profile declares,
- * the files on disk. `examined` is computed here. When the two differ, either an itemised
+ * the files on disk. `examined` is computed here. When the two differ, either an itemized
  * `unexamined` list or a written `reconciliation` is required, and `unexamined` is
  * preferred: "three accounts denied the call" is a list rather than a sentence, and a list
  * can be counted, diffed and escalated.
@@ -107,7 +107,7 @@ function resolvePopulation(checkId, population, items) {
   if (unexamined.length && expected !== examined + unexamined.length) {
     throw new Error(
       `${checkId}: population declares ${expected} expected with ${examined} examined and ` +
-        `${unexamined.length} itemised as unexamined, which does not add up.`
+        `${unexamined.length} itemized as unexamined, which does not add up.`
     );
   }
 
@@ -229,7 +229,7 @@ export function writeBundle(bundle, outDir) {
  * This exists so an unwritten check cannot be mistaken for a passing one. It reports
  * `error` with a zero-item population, which is exactly what it is: no evidence.
  * Generating a silent pass here would be the single most damaging bug this tool could have,
- * and it is the specific failure mode that makes a programme's 100% pass rate meaningless.
+ * and it is the specific failure mode that makes a program's 100% pass rate meaningless.
  */
 export function unimplementedBundle({ checkId, ksis, collectorPath, collectedAt, assertion, reason }) {
   return buildBundle({

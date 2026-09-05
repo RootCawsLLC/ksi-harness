@@ -2,7 +2,7 @@
  * Transport security, and the one number this repository cannot resolve from the ruleset.
  *
  * `KSI-SVC-SIN` carries sc-8 and sc-8.1 (transmission confidentiality and integrity) and sc-13
- * (cryptographic protection). Every other parameterised judgement in this harness is resolved from
+ * (cryptographic protection). Every other parameterized judgment in this harness is resolved from
  * the pinned FedRAMP ruleset, because a hand-copied rule is one that goes stale while reading as
  * current. **A TLS version floor is not available there.** The vendored `CTL` entry for SC-13 says
  * to follow the FedRAMP Cryptographic Module Use rules and carries no version number, so there is
@@ -10,7 +10,7 @@
  *
  * The honest response is a declaration rather than a constant. The profile states the floor, it is
  * carried into the bundle's scope so evidence names the standard it was graded against, and the
- * route says plainly that the number came from the organisation and not from the ruleset. Writing
+ * route says plainly that the number came from the organization and not from the ruleset. Writing
  * `1.2` into this file would have been restating rule content the ruleset does not actually state
  * — the failure mode `AGENTS.md` names first.
  *

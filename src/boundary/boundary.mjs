@@ -108,8 +108,8 @@ export function selectorValue(resource, boundary) {
 /**
  * Places one resource in exactly one of the three attribution states.
  *
- * A value present but recognised as neither in nor out is `unattributed` rather than an
- * error: somebody has labelled the resource, they have simply used a value the profile does
+ * A value present but recognized as neither in nor out is `unattributed` rather than an
+ * error: somebody has labeled the resource, they have simply used a value the profile does
  * not define, and that is the same "nobody has decided this" problem wearing a typo.
  */
 export function attribute(resource, boundary) {

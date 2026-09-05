@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-import { anchorRemote, assertWritable, publish, redact, restore } from '../scripts/anchor-sync.mjs';
+import { anchorRemote, assertWritable, publish, pushWithRetry, redact, restore } from '../scripts/anchor-sync.mjs';
 
 /**
  * The anchor is only worth anything if it lives where the evidence writer cannot reach it, and
@@ -370,4 +370,95 @@ test('the preflight does not print the token it failed with', () => {
     // line git's error is summarised from varies, and only some of them carry the url at all.
     assert.doesNotMatch(err.message, /x-access-token:[^*]/);
   }
+});
+
+/* --------------------------------------------- retrying only what a retry can fix */
+
+/**
+ * A transient network failure used to cost exactly what a broken credential costs: the anchor is
+ * not written, the locker is already published, and the next run opens with `root_unknown` needing
+ * a manual acceptance to clear (#65).
+ *
+ * The interesting half of these is what is *not* retried. A retry loop that swallows every failure
+ * turns a real error into a slow error with a worse message, and in one case retries something
+ * that cannot possibly succeed.
+ */
+
+const REMOTE = { repo: 'test/anchors', branch: 'main', url: 'https://example.invalid/x.git' };
+
+/** A `run` that fails `times` times with `stderr`, then succeeds. Counts its calls. */
+function failing(stderr, times) {
+  const state = { calls: 0 };
+  const run = () => {
+    state.calls += 1;
+    if (state.calls <= times) {
+      const err = new Error('command failed');
+      err.stderr = stderr;
+      throw err;
+    }
+  };
+  return { run, state };
+}
+
+test('a transient failure is retried and the push succeeds', () => {
+  const { run, state } = failing('fatal: unable to access: Could not resolve host: github.com', 1);
+  const result = pushWithRetry(REMOTE, '/tmp', { run, sleep: () => {}, attempts: 3 });
+  assert.equal(result.attempts, 2);
+  assert.equal(state.calls, 2);
+});
+
+test('a transient failure that never clears gives up after the budget', () => {
+  const { run, state } = failing('error: RPC failed; HTTP 503', 99);
+  assert.throws(() => pushWithRetry(REMOTE, '/tmp', { run, sleep: () => {}, attempts: 3 }));
+  assert.equal(state.calls, 3, 'and stops at the budget rather than looping');
+});
+
+// Retrying a permissions failure spends the budget to arrive at the same answer, and buries the
+// one line that says what is actually wrong.
+test('a permissions failure is not retried', () => {
+  const { run, state } = failing('remote: Permission to test/anchors.git denied to WrongAccount.', 99);
+  assert.throws(() => pushWithRetry(REMOTE, '/tmp', { run, sleep: () => {}, attempts: 3 }));
+  assert.equal(state.calls, 1, 'the first attempt is the answer');
+});
+
+/**
+ * The case worth getting right. A rejected non-fast-forward means the remote moved while this run
+ * was preparing its entry, so the local clone is behind and *every* retry of the identical push
+ * will be rejected the same way. Retrying it would spend the budget and then report a timeout for
+ * something that was never going to work.
+ */
+test('a push rejected because the remote moved is not retried, and says what to do', () => {
+  const { run, state } = failing('! [rejected] main -> main (non-fast-forward)', 99);
+  assert.throws(
+    () => pushWithRetry(REMOTE, '/tmp', { run, sleep: () => {}, attempts: 3 }),
+    /moved while this run was preparing its entry/
+  );
+  assert.equal(state.calls, 1);
+
+  const { run: run2 } = failing('hint: Updates were rejected because the remote contains work', 99);
+  assert.throws(() => pushWithRetry(REMOTE, '/tmp', { run: run2, sleep: () => {}, attempts: 3 }), /Re-run the publish/);
+});
+
+// Conservative recognition, the same rule NO_ANCHOR_YET follows: anything not recognisably
+// transient fails on the first attempt rather than being retried on the chance it helps.
+test('an unrecognised failure is not retried', () => {
+  const { run, state } = failing('fatal: something nobody has classified yet', 99);
+  assert.throws(() => pushWithRetry(REMOTE, '/tmp', { run, sleep: () => {}, attempts: 3 }));
+  assert.equal(state.calls, 1);
+});
+
+test('the retry backs off between attempts rather than spinning', () => {
+  const waits = [];
+  const { run } = failing('error: RPC failed; HTTP 502', 2);
+  pushWithRetry(REMOTE, '/tmp', { run, sleep: (ms) => waits.push(ms), attempts: 3 });
+  assert.deepEqual(waits, [2000, 4000]);
+});
+
+test('a push that works first time neither sleeps nor retries', () => {
+  const waits = [];
+  const { run, state } = failing('unused', 0);
+  const result = pushWithRetry(REMOTE, '/tmp', { run, sleep: (ms) => waits.push(ms), attempts: 3 });
+  assert.equal(result.attempts, 1);
+  assert.equal(state.calls, 1);
+  assert.deepEqual(waits, []);
 });

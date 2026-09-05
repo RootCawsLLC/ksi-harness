@@ -222,7 +222,7 @@ jobs:
       # A Time Stamping Authority signs the manifest root together with its own time, which
       # turns "this evidence claims to be from Tuesday" into a third party attesting that it
       # existed by Tuesday. Skipped rather than failed when no authority is configured: which
-      # one to trust is a programme decision, not a default this workflow should make.
+      # one to trust is a program decision, not a default this workflow should make.
       - name: Obtain a trusted timestamp over the manifest root
         if: steps.mode.outputs.mode != 'fixtures' && vars.KSI_TSA_URL != ''
         env:

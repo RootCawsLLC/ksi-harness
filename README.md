@@ -167,7 +167,7 @@ invariants are enforced centrally rather than per collector:
 1. **`result` is derived from `items`, never passed in.** A check carrying failing items cannot
    report a pass.
 2. **An incomplete population can never be a pass.** The ceiling is `warn`.
-3. **An unexplained population gap throws.** `examined ≠ expected` requires either an itemised
+3. **An unexplained population gap throws.** `examined ≠ expected` requires either an itemized
    `unexamined` list or a written `reconciliation`, because "three accounts denied the call" is a
    permissions finding while "two roles are service-linked and cannot carry a policy" is a scoping
    decision — and both are invisible in a boolean.
@@ -379,7 +379,7 @@ deny `aws:SecureTransport` will hand its contents to a plaintext HTTP request �
 showed the key custody and not the transport would be actively misleading about that bucket, not
 merely incomplete.
 
-One number here is declared rather than resolved, and the route says so. Every other parameterised
+One number here is declared rather than resolved, and the route says so. Every other parameterized
 judgment in this harness comes from the pinned ruleset, but the vendored `CTL` entry for sc-13
 points at the FedRAMP Cryptographic Module Use rules and carries no TLS version. So the floor lives
 at `transit.min_tls_version`, it is recorded in the scope of every bundle graded against it, and the

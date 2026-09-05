@@ -37,6 +37,23 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: deps(web)
+    groups:
+      # react and react-dom declare a peer dependency on each other, so a bump to either one
+      # alone does not install. Ungrouped, dependabot opened #47 (react) and #48 (react-dom)
+      # separately and both failed at `npm ci`:
+      #
+      #   Conflicting peer dependency: react@18.3.1
+      #   peer react-dom@"^18.2.0 || ... || ^19.0.0" from next@15.5.25
+      #
+      # Neither could ever have merged on its own, and neither was wrong -- the pair simply has
+      # to move together. The @types packages are in the group for the same reason one version
+      # behind the runtime is a type error rather than a warning.
+      react:
+        patterns:
+          - react
+          - react-dom
+          - "@types/react"
+          - "@types/react-dom"
 
   - package-ecosystem: docker
     directory: /web

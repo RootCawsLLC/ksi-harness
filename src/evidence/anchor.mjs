@@ -27,7 +27,7 @@ import { dirname } from 'node:path';
 export const ANCHOR_SCHEMA = 'ksi-harness/evidence-anchor/1';
 
 /** One line per collection. JSON Lines, because appending must never rewrite what is there. */
-export function anchorEntry(manifest, { previousHash = null, runUri = null } = {}) {
+export function anchorEntry(manifest, { previousHash = null, runUri = null, accepted = null } = {}) {
   const entry = {
     schema: ANCHOR_SCHEMA,
     anchored_at: manifest.generated_at,
@@ -38,6 +38,10 @@ export function anchorEntry(manifest, { previousHash = null, runUri = null } = {
     // plausible total if another check grew.
     checks: Object.fromEntries((manifest.checks ?? []).map((c) => [c.check_id, c.runs])),
     run_uri: runUri,
+    // Present only on an entry a person asserted, and **omitted entirely** otherwise rather than
+    // written as null. The chain hashes every field, so adding a null key to pipeline entries
+    // would change their hash and invalidate every entry already in every existing log.
+    ...(accepted ? { accepted } : {}),
     previous_sha256: previousHash,
   };
   entry.entry_sha256 = createHash('sha256').update(JSON.stringify(entry)).digest('hex');
@@ -59,13 +63,54 @@ export function readAnchorLog(path) {
 }
 
 /** Appends one entry, chained onto whatever is already there. */
-export function appendAnchor(path, manifest, { runUri = null } = {}) {
+export function appendAnchor(path, manifest, { runUri = null, accepted = null } = {}) {
   const existing = readAnchorLog(path);
   const previous = existing.length ? existing[existing.length - 1].entry_sha256 : null;
-  const entry = anchorEntry(manifest, { previousHash: previous, runUri });
+  const entry = anchorEntry(manifest, { previousHash: previous, runUri, accepted });
   mkdirSync(dirname(path), { recursive: true });
   appendFileSync(path, `${JSON.stringify(entry)}\n`, 'utf8');
   return entry;
+}
+
+/**
+ * Records that a person accepted the locker's current root, closing a gap the pipeline cannot.
+ *
+ * `verify` runs before collection and the anchor is written after publication, so a run whose
+ * root is in no anchor entry dies before reaching the step that would record it. Fail-closed is
+ * right, but the state has no exit: the gap cannot close itself, and — observed twice on
+ * 2026-08-21 — a run that gets *past* verify and then fails to push the anchor widens the gap it
+ * just failed to close.
+ *
+ * Clearing that by hand meant fetching the anchor, reading the manifest, appending an entry with a
+ * scratch script, verifying the chain, committing and pushing, with the commit message as the only
+ * record of what was accepted and why. A mechanism whose only recovery is improvisation is one
+ * that will eventually be improvised carelessly by somebody who wants the build green.
+ *
+ * So acceptance is an operation with the argument attached to it. Two properties matter:
+ *
+ * **A reason is required.** Not a flag. The entry has to carry why a person asserted this root, in
+ * their words, at the time they knew it — because that sentence is the entire evidential content
+ * of a human overriding a control.
+ *
+ * **The entry is distinguishable from a witnessed one.** `run_uri` is not enough: a pipeline entry
+ * has one too. An `accepted` block says plainly that this root was asserted rather than observed,
+ * so a reader — or an assessor — can tell the two apart without reconstructing history.
+ */
+export function acceptAnchor(path, manifest, { by, reason, runUri = null, at = new Date().toISOString() } = {}) {
+  if (!by?.trim()) {
+    throw new Error('An acceptance must name who made it. Pass --by, or set GITHUB_ACTOR.');
+  }
+  if (!reason?.trim()) {
+    throw new Error(
+      'An acceptance must state why, in a sentence a later reader can weigh. Pass --reason. ' +
+        'The reason is the whole evidential content of overriding a control; without it this is an ' +
+        'unexplained edit to the record of how much evidence there was.'
+    );
+  }
+  return appendAnchor(path, manifest, {
+    runUri,
+    accepted: { by: by.trim(), reason: reason.trim(), at },
+  });
 }
 
 /** Verifies the anchor log is internally consistent — that nothing was removed from it. */
@@ -120,7 +165,9 @@ export function reconcileAgainstAnchor(manifest, entries) {
       kind: 'root_unknown',
       detail:
         `The locker's root ${manifest.root_sha256.slice(0, 12)} appears in no anchor entry. It was either ` +
-        `modified after its last anchor, or never anchored.`,
+        'modified after its last anchor, or never anchored. If the growth is accounted for, ' +
+        "'ksi anchor accept --reason \"...\"' records that judgement as an entry which says a person " +
+        'made it.',
     });
   }
 

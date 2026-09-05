@@ -41,7 +41,7 @@ export const CHECKS = [
 
 const IAC_FILE = /\.(tf|tf\.json)$/;
 
-/** Conftest reports OS-native separators; compare on a single normalised form. */
+/** Conftest reports OS-native separators; compare on a single normalized form. */
 const normalise = (p) => p.split(/[\\/]/).join('/');
 
 export function findIacFiles(root, { base = root } = {}) {

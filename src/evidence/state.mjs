@@ -15,7 +15,7 @@ import { ageInDays, chainBreaks, observedIntervalDays, readLocker } from './lock
  * The boundary this module refuses to cross: it never reports that an indicator is *met*.
  * It reports what the declared coverage is, what the evidence says, and whether the claimed
  * cadence is borne out — and it stops there. Whether a capability claim is satisfied is a
- * judgement a person signs, and a harness that rendered it as a green tick would be
+ * judgment a person signs, and a harness that rendered it as a green tick would be
  * manufacturing exactly the false confidence the coverage model exists to prevent.
  */
 

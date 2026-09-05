@@ -11,9 +11,9 @@
 # Ruleset:   FedRAMP Consolidated Rules 2026.07.14.01 (updated 2026-07-14)
 # Digest:    sha256:135707003f0aaa5ceb10d7d32c2681e5
 # Class:     C — 46 applicable of 46
-# Generated: 2026-08-18
+# Generated: 2026-09-05
 #
-# 19 checks are implemented and none is claimed below. `ksi routes validate` will warn about each
+# 29 checks are implemented and none is claimed below. `ksi routes validate` will warn about each
 # one — that warning is the backlog, and it goes away as you route them.
 
 # ────────────────────────────────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ KSI-CED-RAT:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme CED: Cybersecurity Education.
 
 # ────────────────────────────────────────────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ KSI-CMT-LMC:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme CMT: Change Management.
 
 # Redeploying vs Modifying
@@ -70,7 +70,7 @@ KSI-CMT-RMV:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme CMT: Change Management.
 
 # Reviewing Change Procedures
@@ -85,7 +85,7 @@ KSI-CMT-RVP:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme CMT: Change Management.
 
 # Validating Throughout Deployment
@@ -100,7 +100,7 @@ KSI-CMT-VTD:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme CMT: Change Management.
 
 # ────────────────────────────────────────────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ KSI-CNA-DFP:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme CNA: Cloud Native Architecture.
 
 # Enforcing Intended State
@@ -135,7 +135,7 @@ KSI-CNA-EIS:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme CNA: Cloud Native Architecture.
 
 # Implementing Best Practices
@@ -151,7 +151,7 @@ KSI-CNA-IBP:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme CNA: Cloud Native Architecture.
 
 # Minimizing Attack Surface
@@ -167,7 +167,7 @@ KSI-CNA-MAT:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme CNA: Cloud Native Architecture.
 
 # Optimizing for Availability
@@ -183,7 +183,7 @@ KSI-CNA-OFA:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme CNA: Cloud Native Architecture.
 
 # Restricting Network Traffic
@@ -199,7 +199,7 @@ KSI-CNA-RNT:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme CNA: Cloud Native Architecture.
 
 # Reviewing Protections
@@ -215,7 +215,7 @@ KSI-CNA-RVP:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme CNA: Cloud Native Architecture.
 
 # Using Logical Networking
@@ -231,7 +231,7 @@ KSI-CNA-ULN:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme CNA: Cloud Native Architecture.
 
 # ────────────────────────────────────────────────────────────────────────────────────────────
@@ -251,7 +251,7 @@ KSI-IAM-AAM:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme IAM: Identity and Access Management.
 
 # Adopting Passwordless Methods
@@ -267,7 +267,7 @@ KSI-IAM-APM:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme IAM: Identity and Access Management.
 
 # Ensuring Least Privilege
@@ -283,7 +283,7 @@ KSI-IAM-ELP:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme IAM: Identity and Access Management.
 
 # Authorizing Just-in-Time
@@ -299,7 +299,7 @@ KSI-IAM-JIT:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme IAM: Identity and Access Management.
 
 # Securing Non-User Authentication
@@ -315,7 +315,7 @@ KSI-IAM-SNU:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme IAM: Identity and Access Management.
 
 # Responding to Suspicious Activity
@@ -331,7 +331,7 @@ KSI-IAM-SUS:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme IAM: Identity and Access Management.
 
 # ────────────────────────────────────────────────────────────────────────────────────────────
@@ -350,7 +350,7 @@ KSI-INR-AAR:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme INR: Incident Response.
 
 # Reviewing Incident Response Procedures
@@ -365,7 +365,7 @@ KSI-INR-RIR:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme INR: Incident Response.
 
 # Reviewing Past Incidents
@@ -381,7 +381,7 @@ KSI-INR-RPI:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme INR: Incident Response.
 
 # ────────────────────────────────────────────────────────────────────────────────────────────
@@ -402,7 +402,7 @@ KSI-MLA-ALA:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme MLA: Monitoring, Logging, and Auditing.
 
 # Evaluating Configurations
@@ -418,7 +418,7 @@ KSI-MLA-EVC:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme MLA: Monitoring, Logging, and Auditing.
 
 # Logging Event Types
@@ -434,7 +434,7 @@ KSI-MLA-LET:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme MLA: Monitoring, Logging, and Auditing.
 
 # Operating SIEM Capability
@@ -451,7 +451,7 @@ KSI-MLA-OSM:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme MLA: Monitoring, Logging, and Auditing.
 
 # Reviewing Logs
@@ -466,7 +466,7 @@ KSI-MLA-RVL:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme MLA: Monitoring, Logging, and Auditing.
 
 # ────────────────────────────────────────────────────────────────────────────────────────────
@@ -486,7 +486,7 @@ KSI-PIY-GIV:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme PIY: Policy and Inventory.
 
 # Reviewing Executive Support
@@ -502,7 +502,7 @@ KSI-PIY-RES:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme PIY: Policy and Inventory.
 
 # Reviewing Investments in Security
@@ -518,7 +518,7 @@ KSI-PIY-RIS:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme PIY: Policy and Inventory.
 
 # Reviewing Security in the SDLC
@@ -535,7 +535,7 @@ KSI-PIY-RSD:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme PIY: Policy and Inventory.
 
 # Reviewing Vulnerability Disclosures
@@ -550,7 +550,7 @@ KSI-PIY-RVD:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme PIY: Policy and Inventory.
 
 # ────────────────────────────────────────────────────────────────────────────────────────────
@@ -570,7 +570,7 @@ KSI-RPL-ABO:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme RPL: Recovery Planning.
 
 # Aligning Recovery Plan
@@ -585,7 +585,7 @@ KSI-RPL-ARP:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme RPL: Recovery Planning.
 
 # Reviewing Recovery Objectives
@@ -601,7 +601,7 @@ KSI-RPL-RRO:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme RPL: Recovery Planning.
 
 # Testing Recovery Capabilities
@@ -617,7 +617,7 @@ KSI-RPL-TRC:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme RPL: Recovery Planning.
 
 # ────────────────────────────────────────────────────────────────────────────────────────────
@@ -636,7 +636,7 @@ KSI-SCR-MIT:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme SCR: Supply Chain Risk.
 
 # Monitoring Supply Chain Risk
@@ -653,7 +653,7 @@ KSI-SCR-MON:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme SCR: Supply Chain Risk.
 
 # ────────────────────────────────────────────────────────────────────────────────────────────
@@ -673,7 +673,7 @@ KSI-SVC-ACM:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme SVC: Service Configuration.
 
 # Automating Secret Management
@@ -689,7 +689,7 @@ KSI-SVC-ASM:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme SVC: Service Configuration.
 
 # Evaluating and Improving Security
@@ -705,7 +705,7 @@ KSI-SVC-EIS:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme SVC: Service Configuration.
 
 # Preventing Residual Risk
@@ -722,7 +722,7 @@ KSI-SVC-PRR:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme SVC: Service Configuration.
 
 # Removing Unwanted Data
@@ -740,7 +740,7 @@ KSI-SVC-RUD:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme SVC: Service Configuration.
 
 # Securing Information
@@ -755,7 +755,7 @@ KSI-SVC-SIN:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme SVC: Service Configuration.
 
 # Validating Communications
@@ -771,7 +771,7 @@ KSI-SVC-VCM:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme SVC: Service Configuration.
 
 # Validating Resource Integrity
@@ -786,6 +786,6 @@ KSI-SVC-VRI:
   next: >
     Decide how this is evidenced in this environment. If a check can settle part of it, wire one
     and move this route to "partial" with the remainder named under "unautomated". If it is a
-    judgement rather than a measurement, move it to "manual" with an owner, an artifact and a
+    judgment rather than a measurement, move it to "manual" with an owner, an artifact and a
     reason automation is the wrong tool. Theme SVC: Service Configuration.
 

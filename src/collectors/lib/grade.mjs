@@ -16,7 +16,7 @@
  *
  * An empty population returns 1 rather than 0 or NaN, and that is safe only because the
  * bundle contract now refuses to derive a `pass` from a population with nothing decidable in
- * it. The metric is a trend line; it is not the thing carrying the judgement.
+ * it. The metric is a trend line; it is not the thing carrying the judgment.
  */
 export function passRate(items) {
   const counted = items.filter((i) => i.status !== 'not-applicable');

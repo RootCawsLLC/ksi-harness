@@ -1,7 +1,7 @@
 import { definitions, loadRules } from './rules.mjs';
 
 /**
- * The Key Security Indicator catalog, normalised for programmatic use.
+ * The Key Security Indicator catalog, normalized for programmatic use.
  *
  * Two things this module deliberately does not do:
  *
@@ -131,7 +131,7 @@ export function themes() {
  * The reverse direction is the load-bearing one. Because every indicator carries its
  * 800-53 mappings, a control-keyed framework can be scored transitively from KSI evidence
  * without re-authoring anything — which is the whole argument for treating CJIS as an
- * 800-53 overlay rather than a separate programme. See docs/adr/0004-crosswalk-direction.md.
+ * 800-53 overlay rather than a separate program. See docs/adr/0004-crosswalk-direction.md.
  */
 export function controlIndex() {
   const byControl = new Map();
@@ -149,7 +149,7 @@ export function controlIndex() {
  * FedRAMP's parameter values and guidance for a control, from the ruleset's CTL section.
  *
  * CTL is the Rev5 bridge and it is easy to miss — it is not described in FedRAMP's own
- * AGENTS.md. It carries organisation-defined parameter values (an ODP FedRAMP has already
+ * AGENTS.md. It carries organization-defined parameter values (an ODP FedRAMP has already
  * decided, e.g. AC-6(1) applies to "all functions not publicly accessible") and
  * clarifying guidance. Anything generating Rev5 material needs it; ignoring it means
  * emitting a package with unfilled ODPs.
@@ -161,7 +161,7 @@ export function controlOverlay(controlId) {
   if (!node) return null;
 
   // CTL keys are dashed and zero-padded (AC-06-01) while KSI mappings use the OSCAL-style
-  // dotted form (ac-6.1). Normalise both to compare.
+  // dotted form (ac-6.1). Normalize both to compare.
   const want = normaliseControlId(controlId);
   for (const [key, value] of Object.entries(node)) {
     if (normaliseControlId(key) === want) return { control_id: key, family, ...value };
@@ -169,7 +169,7 @@ export function controlOverlay(controlId) {
   return null;
 }
 
-/** `ac-6.1`, `AC-06-01` and `AC-6(1)` all normalise to `ac-6.1`. */
+/** `ac-6.1`, `AC-06-01` and `AC-6(1)` all normalize to `ac-6.1`. */
 export function normaliseControlId(raw) {
   const parts = String(raw)
     .toLowerCase()

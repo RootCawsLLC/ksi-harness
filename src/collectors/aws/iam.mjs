@@ -334,7 +334,7 @@ export function gradePrivilegedAccess(principals, { enumerated = null, unexamine
     population: {
       // The account item plus every principal the listing named, whether or not its policies
       // could be read. `enumerated` already includes the principals that failed to resolve,
-      // so they are counted here once and itemised in `unexamined`.
+      // so they are counted here once and itemized in `unexamined`.
       expected: 1 + enumeratedCount,
       unexamined,
       source_of_truth: 'iam:ListUsers + iam:ListRoles with attached and inline policies resolved for each',
@@ -410,7 +410,7 @@ async function fetchPrincipals(region, credentials) {
     }
 
     // Only customer-managed policies need their document read; AWS-managed administrative
-    // policies are recognised by name, and reading every AWS-managed document would be a
+    // policies are recognized by name, and reading every AWS-managed document would be a
     // large number of calls for no additional signal.
     const attachedDocuments = [];
     for (const policy of attachedRaw) {

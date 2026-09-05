@@ -60,7 +60,7 @@ export function contactsFrom(cert, profile) {
     ...(c.phone ? { contactPhone: c.phone } : {}),
   }));
 
-  // The older profile shape carries a single security address. Honour it so a profile written
+  // The older profile shape carries a single security address. Honor it so a profile written
   // before this emitter existed still produces a valid Security contact.
   if (!contacts.some((c) => c.contactType === 'Security') && profile?.contacts?.security) {
     contacts.push({ contactType: 'Security', contactName: 'Security', contactEmail: profile.contacts.security });
@@ -120,7 +120,7 @@ export function emit(state, { profile = null } = {}) {
   if (cert.trust_center) {
     serviceProperties.trustCenter = {
       repositoryType: cert.trust_center.types ?? ['Trust Center'],
-      url: need(cert.trust_center.url, 'certification.trust_center.url', 'The trust centre URL.'),
+      url: need(cert.trust_center.url, 'certification.trust_center.url', 'The trust center URL.'),
       repositoryDescription: need(
         cert.trust_center.description,
         'certification.trust_center.description',

@@ -7,7 +7,7 @@ import { SEVERITY } from './notification.mjs';
  * Where a notification goes.
  *
  * Every sink here is stateless except the GitHub one, and that distinction decides the
- * behaviour rather than being an implementation detail. A stateless sink — a webhook, a chat
+ * behavior rather than being an implementation detail. A stateless sink — a webhook, a chat
  * message — can only append, so it must fire on *transitions* or it becomes a daily repeat
  * of yesterday's news. A stateful sink owns something it can revise, so it reconciles: it
  * updates a living issue when the finding set changes and closes it when the controls
@@ -73,7 +73,7 @@ export function slackSink({ url, channel = null }) {
   return {
     kind: 'slack',
     stateful: false,
-    describe: () => ({ kind: 'slack', target: redact(url), why: 'An incoming webhook message, coloured by severity.' }),
+    describe: () => ({ kind: 'slack', target: redact(url), why: 'An incoming webhook message, colored by severity.' }),
     async deliver(notification, { fetchImpl = fetch } = {}) {
       const { context } = notification;
       const detail = [

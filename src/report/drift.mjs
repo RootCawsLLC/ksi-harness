@@ -50,7 +50,7 @@ export async function fetchUpstreamRules(url = RULES_URL) {
  * Compares two rulesets and attributes each change to the routes it affects.
  *
  * A changed statement is reported as `review` rather than `error`: the text moved, and whether
- * that breaks the route's reasoning is a judgement. A new or removed indicator is structural
+ * that breaks the route's reasoning is a judgment. A new or removed indicator is structural
  * and reported as `error`, because route validation will already be failing.
  */
 export function diffRulesets({ pinned, upstream, routes = loadRoutes() }) {

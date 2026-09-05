@@ -4,7 +4,7 @@ export { fixtureScope, loadFixture } from './fixtures.mjs';
 export { mergeGraded, passRate } from './grade.mjs';
 
 /**
- * Talking to an identity provider, and normalising what it says.
+ * Talking to an identity provider, and normalizing what it says.
  *
  * The cloud collectors read an account's *resulting* state: who holds which role today. That is
  * the wrong instrument for `KSI-IAM-AAM`, which asks whether the lifecycle and privileges of
@@ -13,7 +13,7 @@ export { mergeGraded, passRate } from './grade.mjs';
  * it, and only the identity provider knows which it was.
  *
  * Two providers dominate this space and describe the same facts with different nouns, so the
- * collector grades a normalised shape rather than a vendor payload:
+ * collector grades a normalized shape rather than a vendor payload:
  *
  *   account   { id, login, status, source, privileged }
  *   group     { id, name, membership, privileged }
@@ -141,7 +141,7 @@ export function resolveHrSource(hrSource) {
 }
 
 /**
- * Reads and normalises the roster.
+ * Reads and normalizes the roster.
  *
  * Kept separate from grading so the grader takes plain data, like every other collector here.
  * A roster that cannot be read is thrown rather than treated as an empty roster — an empty
@@ -169,7 +169,7 @@ export function loadRoster(source, { readFileImpl = readFileSync } = {}) {
 }
 
 /**
- * The exported roster → the normalised worker shape.
+ * The exported roster → the normalized worker shape.
  *
  * `status` is narrowed to employed / not employed / unrecognised rather than passed through.
  * Every HRIS spells its states differently and a grader branching on vendor vocabulary would
@@ -231,7 +231,7 @@ async function oktaPaginate(idp, path, { fetchImpl = fetch, max = 50 } = {}) {
   return out;
 }
 
-/** Okta users → the normalised account shape. */
+/** Okta users → the normalized account shape. */
 export function normaliseOktaUsers(users, idp) {
   return users.map((u) => ({
     id: u.id,
@@ -244,7 +244,7 @@ export function normaliseOktaUsers(users, idp) {
   }));
 }
 
-/** Okta groups → the normalised group shape. `APP_GROUP` and `BUILT_IN` are directory-driven. */
+/** Okta groups → the normalized group shape. `APP_GROUP` and `BUILT_IN` are directory-driven. */
 export function normaliseOktaGroups(groups, idp) {
   return groups.map((g) => ({
     id: g.id,

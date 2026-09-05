@@ -379,7 +379,7 @@ KSI-MLA-ALA:
   unautomated:
     - >
       Who *can* read log storage is checked. The indicator additionally requires the model
-      be role and attribute based, just-in-time, and keyed to organisationally defined data
+      be role and attribute based, just-in-time, and keyed to organizationally defined data
       sensitivity — and there is no sensitivity classification for log data to key it to yet.
   note: Optional at Class B, required at Class C.
 
@@ -680,7 +680,7 @@ KSI-SVC-SIN:
       carries no evidence here. On AWS, CloudFront distributions and API Gateway custom domains are
       likewise unread; both terminate TLS on their own settings.
     - >
-      The TLS version floor is an organisational declaration at `transit.min_tls_version`, not a
+      The TLS version floor is an organizational declaration at `transit.min_tls_version`, not a
       value resolved from the pinned ruleset. The vendored CTL entry for sc-13 says to follow the
       FedRAMP Cryptographic Module Use rules and carries no version number, so there is nothing to
       pin to and the number in the bundle's scope is the boundary's own. It is also necessary

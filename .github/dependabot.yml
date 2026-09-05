@@ -29,3 +29,18 @@ updates:
       aws-sdk:
         patterns:
           - "@aws-sdk/*"
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps(web)
+
+  - package-ecosystem: docker
+    directory: /web
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: docker

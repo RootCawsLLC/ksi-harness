@@ -11,7 +11,7 @@ import { ALL_CHECKS } from './collectors/registry.mjs';
 import { chainBreaks, computeManifest, readLocker, timestampPath, writeManifest, writeTimestamp } from './evidence/locker.mjs';
 import { buildNotification } from './alert/notification.mjs';
 import { resolveSink, shouldDeliver } from './alert/sinks.mjs';
-import { appendAnchor, readAnchorLog, reconcileAgainstAnchor } from './evidence/anchor.mjs';
+import { acceptAnchor, appendAnchor, readAnchorLog, reconcileAgainstAnchor } from './evidence/anchor.mjs';
 import { resolveStore } from './evidence/store.mjs';
 import { requestTimestamp, verifyToken } from './evidence/timestamp.mjs';
 import { buildState, openFindings } from './evidence/state.mjs';
@@ -477,6 +477,61 @@ async function main() {
             'but would not be detectable if the store itself were ever bypassed.'
         );
       }
+      return 0;
+    }
+
+    case 'anchor': {
+      // The recovery path the anchor previously did not have.
+      //
+      // `verify` runs before collection and the anchor is written after publication, so a run
+      // whose locker root is in no anchor entry dies before reaching the step that would record
+      // it. Fail-closed is correct and the state has no exit -- worse, a run that gets past
+      // verify and then fails to push the anchor widens the gap it just failed to close. Both
+      // were observed on 2026-08-21, and clearing it took two manual interventions with a
+      // scratch script.
+      //
+      // This does not weaken the check. It records the judgement that the growth is accounted
+      // for, as an entry that says a person made it, with their reason attached.
+      if (sub !== 'accept') {
+        console.error('Usage: ksi anchor accept --evidence <dir> --anchor <path> --reason "..." [--by <who>]');
+        return 2;
+      }
+
+      const anchorPath = (flags.anchor !== true && flags.anchor) || readProfile(flags.profile)?.evidence?.anchor_log || null;
+      if (!anchorPath) {
+        console.error('No anchor log given. Pass --anchor <path>, or set evidence.anchor_log in the profile.');
+        return 2;
+      }
+
+      const { manifest } = writeManifest(evidenceDir, { generatedAt: new Date().toISOString() });
+      if (!manifest.bundle_count) {
+        console.error(`No bundles in ${evidenceDir}; there is no root to accept.`);
+        return 1;
+      }
+
+      // Defaulting the actor to GITHUB_ACTOR rather than to a placeholder: an acceptance whose
+      // author is "unknown" is an unexplained edit to the record, which is the thing being
+      // prevented.
+      const by = (flags.by !== true && flags.by) || process.env.GITHUB_ACTOR || null;
+      const reason = flags.reason !== true ? flags.reason : null;
+
+      let entry;
+      try {
+        entry = acceptAnchor(anchorPath, manifest, { by, reason, runUri: process.env.KSI_RUN_URL ?? null });
+      } catch (err) {
+        console.error(err.message);
+        return 2;
+      }
+
+      console.log(
+        `accepted root ${entry.root_sha256.slice(0, 12)} (${entry.bundle_count} bundle(s)) into ${anchorPath}\n` +
+          `  by:     ${entry.accepted.by}\n` +
+          `  reason: ${entry.accepted.reason}`
+      );
+      console.log(
+        '\nThis entry is marked as accepted rather than witnessed, so the log shows a person asserted\n' +
+          'this root. Publish the anchor to its own repository for it to count.'
+      );
       return 0;
     }
 

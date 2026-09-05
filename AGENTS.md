@@ -138,13 +138,28 @@ created it, and every linked worktree silently runs no hooks at all.
 
 ```bash
 npm run setup            # pin the commit identity AND arm .githooks (local config only)
-npm test                 # 408 tests
+npm test                 # 419 tests
 npm run policy           # policy unit tests + gate + negative control
 npm run vendor:verify    # the ruleset pin still matches
 npm run routes:validate  # routing map against catalog and registry
 npm run demo             # the whole path against fixtures
 npm run drift            # upstream ruleset drift and the routes affected
 ```
+
+### Recovering an anchor gap
+
+`verify` runs before collection and the anchor is written after publication, so a run whose locker
+root is in no anchor entry dies before reaching the step that would record it. Fail-closed is
+correct; the state used to have no exit, and a run that got past `verify` and then failed to push
+the anchor widened the gap it had just failed to close.
+
+```bash
+ksi anchor accept --evidence .evidence --anchor .anchors/log.jsonl --reason "why this root is sound"
+```
+
+The reason is required and is the point: it is the entire evidential content of a person overriding
+a control. The entry it writes carries `accepted`, so a reader can tell an asserted root from a
+witnessed one — and acceptance does **not** suppress a later `shrunk` finding.
 
 ## Style
 

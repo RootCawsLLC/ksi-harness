@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { runKsi, RunCapacityExceeded, type RunRequest, type ArtifactKind } from '@/lib/ksi-runner';
+import { randomUUID } from 'node:crypto';
+import { runKsi, RunCapacityExceeded, RunTimedOut, type RunRequest, type ArtifactKind } from '@/lib/ksi-runner';
 
 // The run drives the real tool out-of-process: two fixture collections, state build, coverage
 // projection and artifact emission. It needs the Node runtime and a generous budget.
@@ -34,8 +35,28 @@ export async function POST(request: Request) {
         { status: 429, headers: { 'Retry-After': '60' } }
       );
     }
-    console.error('[run] failed:', err);
-    const message = err instanceof Error ? err.message : 'Run failed.';
-    return NextResponse.json({ error: message }, { status: 500 });
+
+    // The budget was exceeded. Composed here from no external input, so it is safe to return and
+    // is genuinely useful: a caller who waited five minutes should be told why rather than handed
+    // an opaque failure.
+    if (err instanceof RunTimedOut) {
+      return NextResponse.json({ error: err.message }, { status: 504 });
+    }
+
+    // Everything else carries whatever the child printed. The runner puts up to 400 characters of
+    // its stderr into the rejection message, and a spawn failure carries the interpreter path — so
+    // returning `err.message` handed absolute filesystem paths, module resolution detail and stack
+    // structure to any caller who could make a run fail.
+    //
+    // Nothing here leaked a credential: the child runs the offline fixture path and never prints
+    // the environment. What it leaked was internal shape, from a public demo of a tool whose
+    // argument is that evidence should say exactly what it establishes and no more.
+    //
+    // The detail is kept, not discarded. It goes to the log with an id the response also carries,
+    // so an operator can find the one run a caller is asking about without the response having
+    // described the machine it ran on.
+    const id = randomUUID().slice(0, 8);
+    console.error(`[run] failed id=${id}:`, err);
+    return NextResponse.json({ error: 'Run failed.', id }, { status: 500 });
   }
 }

@@ -74,6 +74,15 @@ const MAX_CONCURRENT_RUNS = Number(process.env.KSI_MAX_CONCURRENT_RUNS ?? 2);
  */
 export class RunCapacityExceeded extends Error {}
 
+/**
+ * The run exceeded its budget, which is safe to tell the caller.
+ *
+ * Typed rather than matched on message text so the route can answer it precisely. It is one of
+ * exactly two outcomes whose message is composed here, from no external input, and is therefore
+ * returnable as-is — every other failure carries whatever the child process happened to print.
+ */
+export class RunTimedOut extends Error {}
+
 let active = 0;
 
 /** Current in-flight run count. Exported for tests and for anything that wants to report load. */
@@ -117,7 +126,7 @@ function spawnRun(req: RunRequest): Promise<RunResult> {
     let err = '';
     const killer = setTimeout(() => {
       child.kill('SIGKILL');
-      reject(new Error('Run timed out.'));
+      reject(new RunTimedOut('Run timed out.'));
     }, HARD_TIMEOUT_MS);
 
     child.stdout.on('data', (c) => (out += c.toString()));

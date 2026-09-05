@@ -10,7 +10,7 @@
 # imports natively.
 
 # ---- build: install the tool's deps, then install + build the web app ----
-FROM public.ecr.aws/docker/library/node:22-bookworm-slim AS build
+FROM public.ecr.aws/docker/library/node:26-bookworm-slim AS build
 WORKDIR /repo
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 
@@ -39,7 +39,7 @@ COPY web ./web
 RUN cd web && npm run build
 
 # ---- runner: run `next start` with the full tree in place ----
-FROM public.ecr.aws/docker/library/node:22-bookworm-slim AS runner
+FROM public.ecr.aws/docker/library/node:26-bookworm-slim AS runner
 WORKDIR /repo
 ENV NODE_ENV=production
 ENV PORT=3220

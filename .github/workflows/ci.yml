@@ -148,6 +148,36 @@ jobs:
 
       - run: npm test
 
+  # Whether each lockfile agrees with its manifest about what kind of dependency each package is.
+  #
+  # Dependabot's regeneration writes "@aws-sdk/client-sts" into the root lockfile's `dependencies`
+  # while package.json lists it only under optionalDependencies -- where the lockfile also still
+  # lists it. It arrived on #31, was removed by #33, and came back identically on #35 at the next
+  # version, so it is what happens on every aws-sdk bump rather than a slip that got through once.
+  #
+  # The first attempt at this regenerated the lockfile and diffed it, which is what #34 proposed
+  # and is cheaper. Testing it is what ruled it out: `npm install --package-lock-only` does catch
+  # the defect, but its output depends on the npm running it. npm 11.9.0 strips the `libc` fields
+  # the committed web lockfile carries on @next/swc-linux-*, so that check reports drift whenever
+  # the npm checking differs from the npm that generated the file -- which is the normal state of
+  # affairs across dependabot, CI and a contributor's laptop.
+  #
+  # A required gate that goes red for reasons unconnected to the change is one people learn to
+  # bypass, and this repository already has a control whose ordinary failure mode was disabling it
+  # (#30). So the script compares the thing that is actually wrong and nothing else: it runs no
+  # package manager, reads no network, and gives the same answer on every npm.
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      # No `npm ci`: the check reads the two files and needs nothing installed.
+      - name: Lockfiles agree with their manifests on dependency class
+        run: node scripts/lockfile-classes.mjs . web
+
   # The web GUI is built here because nothing else builds it.
   #
   # Every dependency bump against /web has been arriving with a full set of green checks that say

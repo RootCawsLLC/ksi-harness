@@ -123,8 +123,22 @@ if (TF.length) {
 } else check("7. RDS exposure (no IaC found)", "PASS");
 
 // 8. Over-broad IAM
+//
+// ksi-fixtures/ is excluded, and the reason is specific to what this repository is. Those files
+// are the harness's own test data: deliberately non-compliant inputs that exist so its checks
+// have something to find. `aws-iam-principals.json` contains Action:"*" + Resource:"*" on
+// purpose, because `aws.iam.privileged-access` is supposed to fail it.
+//
+// Scanning them means this gate reports a compliance tool's test fixtures as compliance
+// findings. Today that is a harmless WARN. The reason to fix it now rather than when it matters
+// is that a fixture tripping a FAIL-level rule would block CI on the repository's own test data,
+// and the person debugging that would have no reason to suspect the fixtures were the subject.
+//
+// Deliberately narrow: only the fixture directory, and only for this check. Nothing else about
+// what the gate scans changes.
+const FIXTURES = /(^|\/)ksi-fixtures\//;
 if (TF.length || byExt(new Set([".json"])).length) {
-  const iamFiles = [...TF, ...ALL.filter((f) => /iam|policy/i.test(rel(f)) && /\.(tf|json)$/.test(rel(f)))];
+  const iamFiles = [...TF, ...ALL.filter((f) => /iam|policy/i.test(rel(f)) && /\.(tf|json)$/.test(rel(f)) && !FIXTURES.test(rel(f)))];
   const hits = [];
   for (const f of iamFiles) {
     const c = read(f);

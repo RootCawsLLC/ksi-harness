@@ -29,7 +29,7 @@ jobs:
           PORT: '3220'
         run: |
           set -euo pipefail
-          docker run -d --name web -p ${PORT}:${PORT} ksi-web-test
+          docker run -d --name web -p "${PORT}:${PORT}" ksi-web-test
           # The container's default user must be the non-root `node` (uid 1000).
           uid="$(docker exec web id -u)"
           echo "container uid: ${uid}"
@@ -40,7 +40,7 @@ jobs:
           fi
           # It must actually serve (a start-time permission error would crash it).
           ok=""
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             code="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${PORT}/" || echo 000)"
             if [ "${code}" != "000" ]; then echo "HTTP ${code}"; ok=1; break; fi
             sleep 2

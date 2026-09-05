@@ -52,7 +52,12 @@ ENV KSI_CHANGE=/repo/web/ksi-examples/change.scn.yaml
 # Bring the whole built tree (tool src + vendor + node_modules, web .next + node_modules, scripts,
 # bundled fixtures). The web/node_modules/ksi-harness symlink points at /repo, which exists at the
 # same path here, so it resolves — and the tool's vendor/ and routes.yaml resolve module-relative.
-COPY --from=build /repo /repo
+# Owned by the built-in non-root `node` user so the runtime can read (and Next
+# can write its .next/cache) without running as root.
+COPY --chown=node:node --from=build /repo /repo
+
+# Drop root: the runtime only reads bundled fixtures and serves HTTP.
+USER node
 
 WORKDIR /repo/web
 EXPOSE 3220

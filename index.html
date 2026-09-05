@@ -106,7 +106,7 @@ unaddressed    7</pre>
       <li>You are on FedRAMP 20x (Class C is the ceiling; Class D does not exist yet) and need continuous monitoring that FedRAMP’s own rules can invalidate.</li>
       <li>You are tired of a collector that paginated badly and still reported “all users have MFA.”</li>
       <li>You need preventive (Rego / conftest on IaC) and detective (collectors on deployed state) paired, with the gate’s own result folded back in as evidence.</li>
-      <li>You want a GRC engineer to practise writing the gap, not hiding it behind a percentage.</li>
+      <li>You want a GRC engineer to practice writing the gap, not hiding it behind a percentage.</li>
     </ul>
   </div>
   <div class="box dont">
@@ -133,7 +133,7 @@ npx ksi explain KSI-IAM-APM
 npx ksi checks
 npx ksi routes validate
 npx ksi routes baseline --out routes.new.yaml</pre>
-<p><code>routes baseline</code> is the first command on a new boundary. This repository’s own <code>routes.yaml</code> describes <i>these</i> collectors in <i>this</i> environment. Cloning it and editing the profile inherits those claims, and they are not true elsewhere. A baseline is 46 <code>unaddressed</code>: a programme on its first day. The validate warnings <i>are</i> the backlog.</p>
+<p><code>routes baseline</code> is the first command on a new boundary. This repository’s own <code>routes.yaml</code> describes <i>these</i> collectors in <i>this</i> environment. Cloning it and editing the profile inherits those claims, and they are not true elsewhere. A baseline is 46 <code>unaddressed</code>: a program on its first day. The validate warnings <i>are</i> the backlog.</p>
 <p><b>2. Declare the boundary. Do not discover it.</b> The profile names accounts, projects, repositories, capabilities, third parties. If collection enumerated whatever it could see, a new account would join the authorization boundary without anyone deciding it should.</p>
 <p><b>3. Collect, report, emit.</b></p>
 <pre>npx ksi collect --profile examples/northwind.profile.yaml --fixture fixtures/collectors --out .evidence
@@ -143,7 +143,7 @@ npx ksi emit sdr --profile examples/northwind.profile.yaml --evidence .evidence 
 <p>For a live AWS/GCP/GitHub boundary, drop <code>--fixture</code> and use the standard credential chains. A multi-account AWS run without <code>aws.collector_role</code> is refused: collecting several accounts on one ambient credential files the same account’s evidence under every id in the boundary.</p>
 <p><b>4. Alert on transition, not on state.</b> <code>ksi notify</code> names what moved. A control that has been failing for forty days is one piece of news and thirty-nine reasons to mute the channel.</p>
 
-<h2 id="org">Take it into your organisation</h2>
+<h2 id="org">Take it into your organization</h2>
 <ol>
   <li><b>Pin the ruleset.</b> Do not restate FedRAMP indicator text in your own files. <code>vendor/fedramp/</code> is hashed. <code>npm run drift</code> tells you when upstream moved and which routes it invalidates.</li>
   <li><b>Write the gap.</b> <code>partial</code> requires <code>unautomated</code>. <code>automated</code> requires a sufficiency argument <i>and</i> the boundary it holds for. If you cannot write the argument, the honest level is <code>partial</code>.</li>
@@ -176,7 +176,7 @@ npx ksi emit sdr --profile examples/northwind.profile.yaml --evidence .evidence 
 <h2 id="limits">What it is not</h2>
 <div class="note">
   <b>Not a certification.</b> Not complete — unaddressed indicators each have a stated reason and a named next step.
-  Not a substitute for judgement. Lula 2 said it: automated tests alone were insufficient for real
+  Not a substitute for judgment. Lula 2 said it: automated tests alone were insufficient for real
   compliance verification. That cuts against this project too.
   Completeness of a population is the invariant that matters; a hash stored beside its own data is
   not tamper detection. The full argument is the

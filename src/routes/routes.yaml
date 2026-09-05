@@ -34,7 +34,7 @@ KSI-CED-RAT:
     why_not_automated: >
       Completion percentages are trivially automatable from any LMS and are not what the
       indicator asks for. It asks whether the training was *effective*, across four named
-      cohorts, and effectiveness is a judgement about whether behaviour changed. Automating
+      cohorts, and effectiveness is a judgment about whether behavior changed. Automating
       the completion metric and calling the indicator covered would be the most tempting
       false pass in the catalog.
 
@@ -131,11 +131,11 @@ KSI-CNA-DFP:
       graded against, so neither clause can be satisfied by omitting something from the profile:
       the failure each check exists to find is precisely the one a declaration-derived denominator
       would hide.
-      What this does not reach is behaviour inside an enabled service — what a given Cloud Run
+      What this does not reach is behavior inside an enabled service — what a given Cloud Run
       revision does once it is running. That is excluded deliberately rather than overlooked. The
       indicator constrains the functionality and privileges of infrastructure and services, and the
       workload running on them is the subject of KSI-SVC-CSC and KSI-CNA-MAT, which carry their own
-      gaps. Reading this clause as covering application behaviour would make it unfalsifiable by
+      gaps. Reading this clause as covering application behavior would make it unfalsifiable by
       any means, automated or otherwise.
   unautomated:
     - >
@@ -189,14 +189,14 @@ KSI-CNA-MAT:
   unautomated:
     - >
       Attack surface is evidenced at the network edge only. The indicator's second clause —
-      that lateral movement is minimised if compromised — is a reachability property, not an
+      that lateral movement is minimized if compromised — is a reachability property, not an
       ingress property, and needs east-west path analysis rather than a rule inventory.
 
 KSI-CNA-OFA:
   coverage: unaddressed
   reason: >
     High availability is an architecture property that this harness cannot read from
-    configuration alone: multi-AZ placement is visible, but "appropriately optimised" is
+    configuration alone: multi-AZ placement is visible, but "appropriately optimized" is
     relative to the recovery objectives in KSI-RPL-RRO, which are not yet declared in
     machine-readable form.
   next: >
@@ -258,7 +258,7 @@ KSI-IAM-AAM:
       staleness is graded rather than assumed, so the one failure mode that would read clean while
       being wrong is visible in the same population as the findings.
     - >
-      Only Okta is normalised. An estate on Entra ID, Google Workspace or a directory of its own
+      Only Okta is normalized. An estate on Entra ID, Google Workspace or a directory of its own
       has no evidence here at all, and the collector refuses an unknown provider rather than
       guessing at a payload shape it has never received.
     - >
@@ -280,7 +280,7 @@ KSI-IAM-APM:
       through federation, the authenticator strength that actually matters lives in the IdP
       — whether enrolled factors are FIDO2 rather than TOTP — and that is unread. A federated
       estate can pass this check with no phishing-resistant factor anywhere.
-    - "Passwordless \"when feasible\" implies a documented feasibility judgement; there is no artifact for it."
+    - "Passwordless \"when feasible\" implies a documented feasibility judgment; there is no artifact for it."
 
 KSI-IAM-ELP:
   coverage: partial
@@ -425,7 +425,7 @@ KSI-MLA-OSM:
     - gcp.logging.sink-integrity
   unautomated:
     - >
-      Centralised and tamper-resistant are evidenced (single trail, log-file validation, restrictive
+      Centralized and tamper-resistant are evidenced (single trail, log-file validation, restrictive
       storage policy). Whether a SIEM ingests and correlates it is not — that is the platform's own
       state, and no check reads it.
 
@@ -479,8 +479,8 @@ KSI-PIY-RIS:
     artifact: Security investment review measuring spend against risk reduction
     why_not_automated: >
       This is the indicator quantitative risk analysis actually answers. Loss-exceedance
-      modelling turns "we spent this" into "this much expected loss was avoided", which is
-      the effectiveness claim the indicator wants. The modelling is deliberate analyst work,
+      modeling turns "we spent this" into "this much expected loss was avoided", which is
+      the effectiveness claim the indicator wants. The modeling is deliberate analyst work,
       not a collector.
 
 KSI-PIY-RSD:
@@ -499,10 +499,10 @@ KSI-PIY-RVD:
   cadence: annual
   manual_evidence:
     owner: Security lead
-    artifact: Vulnerability disclosure programme review with intake volume, time to triage, and time to fix
+    artifact: Vulnerability disclosure program review with intake volume, time to triage, and time to fix
     why_not_automated: >
       Report intake and timing are automatable from the intake channel once one exists;
-      whether the programme is *effective* is a judgement about researcher experience and
+      whether the program is *effective* is a judgment about researcher experience and
       outcome quality. FRR process VDR governs the obligation.
 
 KSI-RPL-ABO:
@@ -528,7 +528,7 @@ KSI-RPL-RRO:
     owner: Continuity owner
     artifact: RTO/RPO definitions with the business-need and capability analysis behind them
     why_not_automated: >
-      The objectives are an input to the programme, not an output of it. Declaring them in
+      The objectives are an input to the program, not an output of it. Declaring them in
       machine-readable form is what unblocks KSI-RPL-ABO and KSI-CNA-OFA, so this manual
       artifact is a prerequisite for two automated ones.
 
@@ -559,7 +559,7 @@ KSI-SCR-MIT:
       checked only against itself confirms that a document says what it says. Declared
       dependencies are reconciled against outbound integrations observed in the estate, so a
       destination nobody wrote down is a finding. That observation is webhooks only:
-      installed GitHub Apps are the richer signal and need organisation-admin scope, and SaaS
+      installed GitHub Apps are the richer signal and need organization-admin scope, and SaaS
       reached from outside the code host is not visible at all.
     - >
       "Mitigate" is evidenced as ownership and a dated resolution that has not gone stale — a
@@ -592,7 +592,7 @@ KSI-SCR-MON:
     - >
       The indicator explicitly admits contractual notification as a mechanism, and a contract
       is a document rather than a signal. Nothing here evidences that a supplier's obligation
-      to notify exists or was honoured; that sits with the third-party register and its named
+      to notify exists or was honored; that sits with the third-party register and its named
       owners under KSI-SCR-MIT.
     - >
       An alert open within its window is reported as a warning rather than a pass. The

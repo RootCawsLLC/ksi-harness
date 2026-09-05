@@ -56,8 +56,8 @@ present or absent parses the same way.
 
 ### No authority is defaulted
 
-`--tsa URL` is required and has no fallback. Which third party attests a programme's evidence is a
-decision for the programme: it introduces an external dependency, a jurisdiction, an availability
+`--tsa URL` is required and has no fallback. Which third party attests a program's evidence is a
+decision for the program: it introduces an external dependency, a jurisdiction, an availability
 requirement and a trust relationship. Quietly picking one would place all four in a compliance
 pipeline without anyone deciding, which is precisely the class of unreviewed dependency
 `KSI-SCR-MIT` exists to surface.

@@ -13,9 +13,9 @@ The error is treating "a check passed" as "the requirement is met."
 Take `KSI-CED-RAT`, which asks whether security training was **effective** across four named
 cohorts. Any learning management system exposes completion percentages through an API. Wiring that
 up and marking the indicator green takes an afternoon and is completely wrong: completion is not
-effectiveness, and effectiveness is a judgement about whether behaviour changed. The check would
+effectiveness, and effectiveness is a judgment about whether behavior changed. The check would
 pass forever. The indicator would never have been evidenced. This is the most tempting false pass
-in the entire catalog, and a tool optimised for coverage percentage will take it.
+in the entire catalog, and a tool optimized for coverage percentage will take it.
 
 The same shape recurs everywhere. `KSI-SVC-SIN` says information is "encrypted or otherwise
 secured from unwanted access **or modification**." A collector can enumerate buckets and volumes
@@ -39,7 +39,7 @@ level demands a different argument before the validator will accept it.
 | `manual` | Automation is the wrong instrument, by decision | `cadence`, **`manual_evidence`**: `owner`, `artifact`, `why_not_automated` |
 | `unaddressed` | Nothing yet, admitted | **`reason`** and **`next`** |
 
-Four properties make this more than a labelling convention:
+Four properties make this more than a labeling convention:
 
 1. **A route claiming a check no collector implements is a validation error.** Coverage cannot be
    manufactured out of intent. `src/routes/routes.mjs` resolves every declared check against the
@@ -54,7 +54,7 @@ Four properties make this more than a labelling convention:
 
 The state model refuses to go further. `src/evidence/state.mjs` reports what the coverage
 declaration is, what the evidence says, and whether the claimed cadence is borne out — and stops.
-It never reports that an indicator is *met*. That is a judgement a person signs.
+It never reports that an indicator is *met*. That is a judgment a person signs.
 
 ## The number this produces today
 
@@ -62,7 +62,7 @@ It never reports that an indicator is *met*. That is a judgement a person signs.
 > are the ones this decision produced on the day it was made, and are kept as written.**
 >
 > The zero held for as long as sufficiency was treated as a property of an indicator. Once it was
-> recognised as a property of a *boundary*, `KSI-CNA-DFP` became promotable: the count is now 1
+> recognized as a property of a *boundary*, `KSI-CNA-DFP` became promotable: the count is now 1
 > against a single-provider profile and still 0 against a wider one, because the route resolves
 > back to `partial` where its condition does not hold.
 >
@@ -100,4 +100,4 @@ A conventional tool would render the same evidence as somewhere north of 40% cov
   informative than a sentence naming what is missing, and far easier to average into meaninglessness.
 - **Binary pass/fail, as most tools do.** This is the thing being argued against.
 - **Only shipping indicators that can be fully automated.** Would silently drop the 14 indicators
-  that are genuinely judgement calls, which is the same overstatement by omission.
+  that are genuinely judgment calls, which is the same overstatement by omission.

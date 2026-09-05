@@ -15,7 +15,7 @@ failure is invisible precisely when it matters most, because a permission gap an
 environment produce the same green tick.
 
 This is not hypothetical. It is the normal failure mode of evidence collection at scale, and it is
-why a programme can show a 100% pass rate that means nothing.
+why a program can show a 100% pass rate that means nothing.
 
 The bundle contract here is carried over from `RootCawsLLC/grc-wizard`, where it was built against
 a SOC 2 control set and shaken out in live runs. What changed for FedRAMP 20x is the key: a bundle
@@ -80,10 +80,10 @@ A bundle declares `ksis: [...]`, not `ksi: "..."`.
 A Key Security Indicator is a capability claim broad enough that no single check settles it, and
 one check frequently contributes to several. `aws.config.recorder-state` bears on `KSI-CNA-EIS`,
 `KSI-MLA-EVC` and `KSI-SVC-ACM`, and each of those needs different additional evidence before
-anything could be claimed. Modelling that edge as one-to-one would force either duplicate
+anything could be claimed. Modeling that edge as one-to-one would force either duplicate
 collection or a lie about scope.
 
-The indicator-level judgement is therefore assembled in `src/routes` and `src/evidence/state.mjs`,
+The indicator-level judgment is therefore assembled in `src/routes` and `src/evidence/state.mjs`,
 and it is deliberately **not** something a check can make about itself. A collector reports; the
 routing map decides what that is worth.
 

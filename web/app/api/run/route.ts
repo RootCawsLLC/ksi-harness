@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { runKsi, RunCapacityExceeded, RunTimedOut, type RunRequest, type ArtifactKind } from '@/lib/ksi-runner';
+import { callerFrom, runLimiter } from '@/lib/rate-limit';
 
 // The run drives the real tool out-of-process: two fixture collections, state build, coverage
 // projection and artifact emission. It needs the Node runtime and a generous budget.
@@ -11,6 +12,23 @@ export const maxDuration = 300;
 const KNOWN: ArtifactKind[] = ['sdr', 'ocr', 'scn', 'oscal-ar'];
 
 export async function POST(request: Request) {
+  // Before the body is even read. Parsing input for a caller who is over their limit is work
+  // done on their behalf, and the point of the limit is to stop doing that.
+  const caller = callerFrom(request.headers);
+  const verdict = runLimiter.check(caller.id);
+  if (!verdict.allowed) {
+    return NextResponse.json(
+      { error: 'Too many runs from this address. Each run takes up to five minutes; try again shortly.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(verdict.retryAfterSeconds),
+          'X-RateLimit-Remaining': '0',
+        },
+      }
+    );
+  }
+
   let body: Partial<RunRequest>;
   try {
     body = (await request.json()) as Partial<RunRequest>;

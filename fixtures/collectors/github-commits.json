@@ -6,7 +6,17 @@
       "sha": "9f1c2d3e4b5a67890123456789abcdef01234567",
       "author": "avery",
       "merge_commit": false,
-      "pulls": [{ "number": 481, "reviews": [{ "state": "APPROVED", "user": "priya" }] }]
+      "pulls": [
+        {
+          "number": 481,
+          "reviews": [
+            {
+              "state": "APPROVED",
+              "user": "priya"
+            }
+          ]
+        }
+      ]
     },
     {
       "repo": "northwind/platform",
@@ -14,7 +24,17 @@
       "sha": "1a2b3c4d5e6f7890abcdef0123456789abcdef01",
       "author": "marcus",
       "merge_commit": false,
-      "pulls": [{ "number": 482, "reviews": [{ "state": "APPROVED", "user": "marcus" }] }]
+      "pulls": [
+        {
+          "number": 482,
+          "reviews": [
+            {
+              "state": "APPROVED",
+              "user": "marcus"
+            }
+          ]
+        }
+      ]
     },
     {
       "repo": "northwind/platform",
@@ -30,7 +50,17 @@
       "sha": "fedcba9876543210fedcba9876543210fedcba98",
       "author": "avery",
       "merge_commit": true,
-      "pulls": [{ "number": 480, "reviews": [{ "state": "APPROVED", "user": "priya" }] }]
+      "pulls": [
+        {
+          "number": 480,
+          "reviews": [
+            {
+              "state": "APPROVED",
+              "user": "priya"
+            }
+          ]
+        }
+      ]
     },
     {
       "repo": "northwind/infra",
@@ -38,7 +68,17 @@
       "sha": "0123456789abcdef0123456789abcdef01234567",
       "author": "priya",
       "merge_commit": false,
-      "pulls": [{ "number": 96, "reviews": [{ "state": "COMMENTED", "user": "avery" }] }]
+      "pulls": [
+        {
+          "number": 96,
+          "reviews": [
+            {
+              "state": "COMMENTED",
+              "user": "avery"
+            }
+          ]
+        }
+      ]
     },
     {
       "repo": "northwind/infra",
@@ -46,7 +86,38 @@
       "sha": "89abcdef0123456789abcdef0123456789abcdef",
       "author": "priya",
       "merge_commit": false,
-      "pulls": [{ "number": 97, "reviews": [{ "state": "APPROVED", "user": "avery" }] }]
+      "pulls": [
+        {
+          "number": 97,
+          "reviews": [
+            {
+              "state": "APPROVED",
+              "user": "avery"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "repo": "northwind/platform",
+      "branch": "main",
+      "sha": "c0a1b2c3d4e5f60718293a4b5c6d7e8f90123456",
+      "author": "avery",
+      "co_authors": [
+        "Assistive Tooling <noreply@example.com>"
+      ],
+      "merge_commit": false,
+      "pulls": [
+        {
+          "number": 495,
+          "reviews": [
+            {
+              "state": "APPROVED",
+              "user": "avery"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

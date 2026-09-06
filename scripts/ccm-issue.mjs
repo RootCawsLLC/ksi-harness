@@ -28,6 +28,21 @@ import { pathToFileURL } from 'node:url';
 
 export const TITLE = 'CCM: evidence does not support declared coverage';
 export const LABEL = 'ccm';
+
+/**
+ * Applied by a person to a closed issue, to say the findings in it are known and accepted.
+ *
+ * Without this the escalation had no stand-down a human could operate. `findExisting` looks only
+ * at open issues, so closing one by hand achieved nothing: the next run found no open issue, took
+ * the `create` branch, and filed the same findings again under a new number. An escalation that
+ * reopens every night is one people mute, which is the failure mode this whole file exists to
+ * avoid.
+ *
+ * The acceptance is bound to the **fingerprint**, not to the issue. Accepting a finding set means
+ * accepting *that* set, and a different set has never been agreed to, so if the controls change a
+ * new issue opens and the acceptance does not silently extend over it.
+ */
+export const ACCEPTED_LABEL = 'ccm-accepted';
 const MARKER = 'ksi-fingerprint';
 
 /** Findings carrying at least one check that ran and failed. */
@@ -92,6 +107,10 @@ export const renderBody = ({ findings, mode, profile, runUrl, generatedAt }) => 
     'This issue is updated in place when the set of failing controls changes, and closed',
     'automatically when the evidence supports the declared coverage again.',
     '',
+    'To accept these findings rather than fix them, close this issue and add the ' + ACCEPTED_LABEL + ' label.',
+    'It then stays closed while this exact set of controls is failing, and reopens as a new issue if',
+    'the set changes: an acceptance covers what was accepted, not whatever fails next.',
+    '',
     `<!-- ${MARKER}: ${fingerprint(findings)} -->`,
   );
 
@@ -104,7 +123,7 @@ export const renderBody = ({ findings, mode, profile, runUrl, generatedAt }) => 
  * Pure so the interesting cases are testable without a network: the recovery path in particular is
  * the one nobody exercises by hand, and an escalation that cannot stand down is only half a control.
  */
-export const decide = ({ findings = [], existing = null }) => {
+export const decide = ({ findings = [], existing = null, accepted = null }) => {
   const open = alertable(findings);
 
   if (open.length === 0) {
@@ -112,7 +131,21 @@ export const decide = ({ findings = [], existing = null }) => {
       ? { action: 'close', reason: 'every previously failing control now has evidence supporting it' }
       : { action: 'none', reason: 'no failing controls, and no issue open' };
   }
-  if (!existing) return { action: 'create', reason: `${open.length} failing control(s)` };
+  if (!existing) {
+    // A previously accepted set stays silent only while it is the *same* set. Comparing the
+    // fingerprint rather than merely noting that an acceptance exists is what stops an acceptance
+    // becoming a permanent mute: the moment a different control starts failing, this reopens.
+    if (accepted && readFingerprint(accepted.body) === fingerprint(findings)) {
+      return { action: 'none', reason: `these findings were accepted on #${accepted.number}` };
+    }
+    if (accepted) {
+      return {
+        action: 'create',
+        reason: `${open.length} failing control(s); the set differs from what was accepted on #${accepted.number}`,
+      };
+    }
+    return { action: 'create', reason: `${open.length} failing control(s)` };
+  }
 
   const current = fingerprint(findings);
   return readFingerprint(existing.body) === current
@@ -136,13 +169,43 @@ const gh = (args, { allowFailure = false } = {}) => {
 const ensureLabel = () => {
   const existing = gh(['label', 'list', '--json', 'name'], { allowFailure: true });
   const names = existing ? JSON.parse(existing).map((l) => l.name) : [];
-  if (names.includes(LABEL)) return;
-  gh(['label', 'create', LABEL, '--description', 'Raised by a scheduled control monitoring run', '--color', 'B60205']);
-  console.log(`created the '${LABEL}' label`);
+  if (!names.includes(LABEL)) {
+    gh(['label', 'create', LABEL, '--description', 'Raised by a scheduled control monitoring run', '--color', 'B60205']);
+    console.log(`created the '${LABEL}' label`);
+  }
+  if (!names.includes(ACCEPTED_LABEL)) {
+    gh([
+      'label', 'create', ACCEPTED_LABEL,
+      '--description', 'A closed CCM finding a person accepted; suppresses reopening while the finding set is unchanged',
+      '--color', '5319E7',
+    ]);
+    console.log(`created the '${ACCEPTED_LABEL}' label`);
+  }
 };
 
 const findExisting = () => {
   const raw = gh(['issue', 'list', '--label', LABEL, '--state', 'open', '--json', 'number,body', '--limit', '1']);
+  const [issue] = JSON.parse(raw || '[]');
+  return issue ?? null;
+};
+
+/**
+ * The most recent closed issue a person marked accepted.
+ *
+ * Closed on purpose: an accepted finding is one somebody decided to stop being told about, and
+ * leaving it open to represent that would make the open-issue count stop meaning "needs
+ * attention". The label is what distinguishes it from an issue this script closed itself on
+ * recovery, which must not suppress anything.
+ */
+const findAccepted = () => {
+  const raw = gh([
+    'issue', 'list',
+    '--label', LABEL,
+    '--label', ACCEPTED_LABEL,
+    '--state', 'closed',
+    '--json', 'number,body',
+    '--limit', '1',
+  ]);
   const [issue] = JSON.parse(raw || '[]');
   return issue ?? null;
 };
@@ -154,7 +217,10 @@ const main = () => {
 
   ensureLabel();
   const existing = findExisting();
-  const { action, reason } = decide({ findings, existing });
+  // Only consulted when nothing is open: an open issue is the live state and outranks a past
+  // acceptance, which by definition covered a set that has since been reopened.
+  const accepted = existing ? null : findAccepted();
+  const { action, reason } = decide({ findings, existing, accepted });
 
   const body = renderBody({
     findings,

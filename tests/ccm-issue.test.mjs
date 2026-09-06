@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { alertable, decide, fingerprint, readFingerprint, renderBody } from '../scripts/ccm-issue.mjs';
+import { ACCEPTED_LABEL, alertable, decide, fingerprint, readFingerprint, renderBody } from '../scripts/ccm-issue.mjs';
 
 const finding = (indicator, checks) => ({
   indicator,
@@ -113,4 +113,70 @@ test('the body names the failing checks and carries a readable fingerprint', () 
   assert.match(body, /coverage gap rather than a\s*\n?failing control/);
   // An indicator with only absent checks must not appear as a failing row.
   assert.doesNotMatch(body, /\| KSI-CNA-DFP \|/);
+});
+
+/* ------------------------------------------------- accepting a standing finding */
+
+/**
+ * The escalation could stand down when findings cleared, and not otherwise.
+ *
+ * `findExisting` looks only at open issues, so closing one by hand achieved nothing: the next run
+ * saw no open issue, took the `create` branch, and filed the same findings again under a new
+ * number. #5 is the live example — a true, structural finding that cannot be fixed in code, and
+ * that would have reappeared nightly forever.
+ *
+ * Acceptance is bound to the fingerprint rather than to the issue, which is the part that keeps it
+ * from becoming a mute button.
+ */
+
+const accepted = (findings, number = 5) => ({ number, body: renderBody({ findings, mode: 'm', profile: 'p' }) });
+
+test('findings that were accepted stay silent', () => {
+  const findings = [{ indicator: 'KSI-CMT-LMC', checks: [{ check_id: 'a', result: 'fail' }] }];
+  const result = decide({ findings, existing: null, accepted: accepted(findings) });
+  assert.equal(result.action, 'none');
+  assert.match(result.reason, /accepted on #5/);
+});
+
+/**
+ * The property that stops an acceptance becoming permanent. Accepting one set of failing controls
+ * is not agreement to whatever fails next, so a different set reopens.
+ */
+test('a different failing set reopens despite an acceptance', () => {
+  const wasAccepted = [{ indicator: 'KSI-CMT-LMC', checks: [{ check_id: 'a', result: 'fail' }] }];
+  const nowFailing = [{ indicator: 'KSI-IAM-AAM', checks: [{ check_id: 'b', result: 'fail' }] }];
+  const result = decide({ findings: nowFailing, existing: null, accepted: accepted(wasAccepted) });
+  assert.equal(result.action, 'create');
+  assert.match(result.reason, /differs from what was accepted/);
+});
+
+// An open issue is the live state. A past acceptance covered a set that has since been reopened,
+// so it must not suppress the issue that is currently in front of someone.
+test('an open issue outranks an acceptance', () => {
+  const findings = [{ indicator: 'KSI-CMT-LMC', checks: [{ check_id: 'a', result: 'fail' }] }];
+  const existing = { number: 9, body: renderBody({ findings, mode: 'm', profile: 'p' }) };
+  const result = decide({ findings, existing, accepted: accepted(findings) });
+  assert.equal(result.action, 'none');
+  assert.match(result.reason, /already open/);
+});
+
+test('recovery still closes, and an acceptance does not keep it from doing so', () => {
+  const findings = [{ indicator: 'KSI-CMT-LMC', checks: [{ check_id: 'a', result: 'pass' }] }];
+  const existing = { number: 9, body: 'x' };
+  assert.equal(decide({ findings, existing, accepted: accepted([]) }).action, 'close');
+});
+
+// Absent an acceptance nothing changes, which is what keeps this backward compatible with every
+// caller and every existing test above.
+test('with no acceptance the behaviour is exactly as before', () => {
+  const findings = [{ indicator: 'KSI-CMT-LMC', checks: [{ check_id: 'a', result: 'fail' }] }];
+  assert.equal(decide({ findings, existing: null }).action, 'create');
+  assert.equal(decide({ findings, existing: null, accepted: null }).action, 'create');
+});
+
+test('the body tells the reader how to accept, naming the label it will look for', () => {
+  const findings = [{ indicator: 'KSI-CMT-LMC', checks: [{ check_id: 'a', result: 'fail' }] }];
+  const body = renderBody({ findings, mode: 'm', profile: 'p' });
+  assert.match(body, /close this issue and add the ccm-accepted label/);
+  assert.equal(ACCEPTED_LABEL, 'ccm-accepted');
 });

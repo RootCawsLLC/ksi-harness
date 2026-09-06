@@ -6,7 +6,7 @@ import { test } from 'node:test';
 
 import { gradeMfaCoverage, gradePrivilegedAccess } from '../src/collectors/aws/iam.mjs';
 import { gradeIngressExposure } from '../src/collectors/aws/network.mjs';
-import { gradeBranchProtection, gradePrReview } from '../src/collectors/github/change.mjs';
+import { coAuthorsOf, gradeBranchProtection, gradePrReview } from '../src/collectors/github/change.mjs';
 import { gradeWorkflowPinning } from '../src/collectors/github/supply-chain.mjs';
 import { runAll } from '../src/collectors/run-all.mjs';
 import { buildBundle, verifyChain, writeBundle } from '../src/evidence/bundle.mjs';
@@ -286,4 +286,83 @@ test('a bundle file that will not parse is reported rather than taking down the 
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+/* ------------------------------------------- when the author field is not the writer */
+
+/**
+ * The author field does not always name who wrote the code.
+ *
+ * This repository requires every commit to be authored as one identity whoever produced it, so that
+ * name covers both "the maintainer wrote this" and "something else wrote it and the maintainer
+ * committed it". Read flatly, an approval from that identity is self-approval in both cases — and
+ * in the second case that is simply wrong. `Co-Authored-By` is where the difference survives.
+ *
+ * The grading is deliberately `warn` rather than `pass`. The trailer is self-asserted: whoever
+ * wrote the commit chose what it says, so it cannot establish independence. What it can do is
+ * contradict the assumption that the approver wrote the code, which is a weaker claim and gets a
+ * weaker status.
+ */
+
+const reviewed = (over = {}) => ({
+  repo: 'r',
+  branch: 'main',
+  sha: 'abcdef1234567890',
+  author: 'RootCawsLLC',
+  merge_commit: false,
+  pulls: [{ number: 7, reviews: [{ state: 'APPROVED', user: 'RootCawsLLC' }] }],
+  ...over,
+});
+
+const commitItem = (commit) => gradePrReview([commit]).items.find((i) => i.id.startsWith('r@'));
+
+test('a self-approved commit with no co-author still fails', () => {
+  const item = commitItem(reviewed());
+  assert.equal(item.status, 'fail');
+  assert.match(item.detail, /from the commit author/);
+});
+
+test('a co-author who did not approve weakens the self-approval reading to a warning', () => {
+  const item = commitItem(reviewed({ co_authors: ['Assistive Tooling <noreply@example.com>'] }));
+  assert.equal(item.status, 'warn');
+  assert.match(item.detail, /did not write it alone/);
+  assert.match(item.detail, /Self-asserted/);
+  assert.deepEqual(item.observed.co_authors, ['Assistive Tooling <noreply@example.com>']);
+});
+
+/**
+ * The property that stops this becoming a way to launder a self-approval: naming yourself as your
+ * own co-author says nothing, and must not soften anything.
+ */
+test('naming the approver as co-author launders nothing', () => {
+  const item = commitItem(reviewed({ co_authors: ['RootCawsLLC <317738477+RootCawsLLC@users.noreply.github.com>'] }));
+  assert.equal(item.status, 'fail');
+});
+
+test('a genuinely independent approval still passes, co-author or not', () => {
+  const independent = { pulls: [{ number: 7, reviews: [{ state: 'APPROVED', user: 'someone-else' }] }] };
+  assert.equal(commitItem(reviewed(independent)).status, 'pass');
+  assert.equal(commitItem(reviewed({ ...independent, co_authors: ['Tooling <x@y>'] })).status, 'pass');
+});
+
+test('an unreviewed commit is unaffected by co-authors', () => {
+  assert.equal(commitItem(reviewed({ pulls: [], co_authors: ['Tooling <x@y>'] })).status, 'fail');
+});
+
+/* ------------------------------------------------------------- reading the trailer */
+
+test('co-authors are read from the commit message, which is where GitHub keeps them', () => {
+  const message = 'Subject line\n\nBody text.\n\nCo-Authored-By: Claude Opus 5 <noreply@anthropic.com>';
+  assert.deepEqual(coAuthorsOf(message), ['Claude Opus 5 <noreply@anthropic.com>']);
+});
+
+test('several co-authors are all read, and the header is matched case-insensitively', () => {
+  const message = 'Subject\n\nco-authored-by: A <a@x>\nCo-Authored-By: B <b@x>';
+  assert.deepEqual(coAuthorsOf(message), ['A <a@x>', 'B <b@x>']);
+});
+
+test('a message with no trailer yields nothing rather than throwing', () => {
+  assert.deepEqual(coAuthorsOf('Just a subject'), []);
+  assert.deepEqual(coAuthorsOf(''), []);
+  assert.deepEqual(coAuthorsOf(undefined), []);
 });

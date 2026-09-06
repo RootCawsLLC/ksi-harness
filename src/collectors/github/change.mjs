@@ -11,7 +11,7 @@ export const CHECKS = [
     fixture: 'github-commits',
     assertion:
       'Every commit reaching a production default branch in the period arrived through a pull request approved by ' +
-      'someone other than its author.',
+      'someone who did not write it, judged from the commit author and any recorded co-authors.',
   },
   {
     id: 'github.change.branch-protection',
@@ -79,6 +79,27 @@ export function gradePrReview(commits, { scopeId = 'declared repositories', unex
 
     const independent = approvals.filter((a) => a.by !== commit.author);
     if (independent.length === 0) {
+      // The author field is not always the writer. This repository requires every commit to be
+      // authored as one identity whoever produced it, so an approval from that identity is only
+      // self-approval if that identity actually wrote the code. A `Co-Authored-By` naming somebody
+      // else says it did not — at least not alone.
+      //
+      // That is weaker evidence than a second approver and is graded as weaker. The trailer is
+      // self-asserted: whoever wrote the commit chose what it says, so it cannot establish
+      // independence, only contradict the assumption that the approver wrote it. `warn` is the
+      // status for "could not fully verify", which is exactly the position this leaves you in.
+      const others = (commit.co_authors ?? []).filter((c) => !c.includes(commit.author));
+      if (others.length) {
+        return {
+          id,
+          status: 'warn',
+          detail:
+            `Approved on #${approvals[0].pull} by ${commit.author}, who is also the commit author — but the ` +
+            `commit records ${others.join(", ")} as co-author, so the approver did not write it alone. ` +
+            'Self-asserted, so this weakens the self-approval reading rather than clearing it.',
+          observed: { author: commit.author, approvers: approvals.map((a) => a.by), co_authors: others },
+        };
+      }
       return {
         id,
         status: 'fail',
@@ -248,6 +269,7 @@ async function fetchCommits(repos, since) {
         branch,
         sha: commit.sha,
         author: commit.author?.login ?? commit.commit?.author?.email ?? 'unknown',
+        co_authors: coAuthorsOf(commit.commit?.message),
         merge_commit: (commit.parents ?? []).length > 1,
         pulls,
         pulls_unresolved: unresolved,
@@ -256,6 +278,27 @@ async function fetchCommits(repos, since) {
   }
 
   return { commits, unexamined };
+}
+
+/**
+ * Who else the commit says wrote it.
+ *
+ * The author field does not always name the person who wrote the code. This repository requires
+ * every commit to be authored as `RootCawsLLC` regardless of who produced it, so that one name
+ * covers both "the maintainer wrote this" and "something else wrote this and the maintainer
+ * committed it". `Co-Authored-By` is where the difference survives.
+ *
+ * Parsed from the message rather than taken from the API, because GitHub does not expose
+ * co-authors as structured data — the trailer is the record.
+ */
+export function coAuthorsOf(message) {
+  if (!message) return [];
+  const out = [];
+  for (const line of String(message).split(/\r?\n/)) {
+    const match = /^\s*Co-Authored-By:\s*(.+?)\s*$/i.exec(line);
+    if (match) out.push(match[1]);
+  }
+  return out;
 }
 
 async function fetchProtection(repos) {

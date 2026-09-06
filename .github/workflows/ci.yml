@@ -178,6 +178,35 @@ jobs:
       - name: Lockfiles agree with their manifests on dependency class
         run: node scripts/lockfile-classes.mjs . web
 
+      # The rest of #34: the changes a reviewer cannot see in several hundred lines of generated
+      # JSON. A substituted registry, a package that gained install-time code, or the same version
+      # resolving to different bytes all look exactly like the surrounding churn.
+      #
+      # Needs the base branch's copy to compare against, which a depth-1 checkout does not have —
+      # so the base ref is fetched here rather than by deepening the whole clone. On a push there is
+      # no base to compare to and only the allowlist check applies, which is why the differ treats a
+      # missing baseline as "report state, say nothing about change" rather than as an error.
+      - name: Lockfile changes a reviewer cannot see
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          status=0
+          for dir in . web; do
+            path="${dir#./}/package-lock.json"
+            path="${path#/}"
+            base=-
+            if [ -n "${BASE_REF:-}" ]; then
+              git fetch --no-tags --depth 1 origin "${BASE_REF}" >/dev/null 2>&1 || true
+              if git cat-file -e "${BASE_REF}:${path}" 2>/dev/null; then
+                base="$(mktemp)"
+                git show "${BASE_REF}:${path}" > "${base}"
+              fi
+            fi
+            node scripts/lockfile-diff.mjs "${base}" "${path}" "${path}" || status=1
+          done
+          exit "${status}"
+
   # The web GUI is built here because nothing else builds it.
   #
   # Every dependency bump against /web has been arriving with a full set of green checks that say

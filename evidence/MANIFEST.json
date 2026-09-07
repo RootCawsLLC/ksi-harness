@@ -1,18 +1,18 @@
 {
   "schema": "ksi-harness/evidence-manifest/1",
-  "generated_at": "2026-09-06T04:22:49.075Z",
+  "generated_at": "2026-09-07T04:24:08.673Z",
   "run_uri": null,
   "locker": ".locker/evidence",
-  "bundle_count": 88,
+  "bundle_count": 92,
   "unreadable": [],
   "tampered": [],
   "checks": [
     {
       "check_id": "github.change.branch-protection",
-      "runs": 22,
+      "runs": 23,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-06T04:21:59.088Z",
-      "chain_head_sha256": "e90efb74ca33e0f4b5bd68cefe8e66c0cf3df0bc0d19efeee5dc1b814ece4027",
+      "last_collected_at": "2026-09-07T04:23:15.659Z",
+      "chain_head_sha256": "92ac577154ccf922d4680e383216899c78ca4b52abed59266f54f688105c4b76",
       "chain_ok": true,
       "bundles": [
         {
@@ -102,15 +102,19 @@
         {
           "collected_at": "2026-09-06T04:21:59.088Z",
           "content_sha256": "e90efb74ca33e0f4b5bd68cefe8e66c0cf3df0bc0d19efeee5dc1b814ece4027"
+        },
+        {
+          "collected_at": "2026-09-07T04:23:15.659Z",
+          "content_sha256": "92ac577154ccf922d4680e383216899c78ca4b52abed59266f54f688105c4b76"
         }
       ]
     },
     {
       "check_id": "github.change.pr-review",
-      "runs": 22,
+      "runs": 23,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-06T04:21:59.088Z",
-      "chain_head_sha256": "efbd3bc0891a771707a5c09bf2bf93424b1f54ae92db7f9177bcd320be158110",
+      "last_collected_at": "2026-09-07T04:23:15.659Z",
+      "chain_head_sha256": "067b67a1160dfbff40459e6a3632014bf90c718020b2fa4e46f7ee830be21d79",
       "chain_ok": true,
       "bundles": [
         {
@@ -200,15 +204,19 @@
         {
           "collected_at": "2026-09-06T04:21:59.088Z",
           "content_sha256": "efbd3bc0891a771707a5c09bf2bf93424b1f54ae92db7f9177bcd320be158110"
+        },
+        {
+          "collected_at": "2026-09-07T04:23:15.659Z",
+          "content_sha256": "067b67a1160dfbff40459e6a3632014bf90c718020b2fa4e46f7ee830be21d79"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.dependency-alerts",
-      "runs": 22,
+      "runs": 23,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-06T04:21:59.088Z",
-      "chain_head_sha256": "cf641e04a34abd158063f616ab80a5f0d939d4e89d782cfefab1bf2c5fef95f4",
+      "last_collected_at": "2026-09-07T04:23:15.659Z",
+      "chain_head_sha256": "331a47aa5e92a4543f3e7636cad067fd5796075917ed210e938ef292c8dc80df",
       "chain_ok": true,
       "bundles": [
         {
@@ -298,15 +306,19 @@
         {
           "collected_at": "2026-09-06T04:21:59.088Z",
           "content_sha256": "cf641e04a34abd158063f616ab80a5f0d939d4e89d782cfefab1bf2c5fef95f4"
+        },
+        {
+          "collected_at": "2026-09-07T04:23:15.659Z",
+          "content_sha256": "331a47aa5e92a4543f3e7636cad067fd5796075917ed210e938ef292c8dc80df"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.workflow-pinning",
-      "runs": 22,
+      "runs": 23,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-06T04:21:59.088Z",
-      "chain_head_sha256": "c07d00b652e6bc987a2dd449ba05f370c07e901dc31c2d7c81392cedb55bfd82",
+      "last_collected_at": "2026-09-07T04:23:15.659Z",
+      "chain_head_sha256": "2031731b6d99e65c157a777b15dc622fb88a083f27842849822ef2f6b200f68c",
       "chain_ok": true,
       "bundles": [
         {
@@ -396,9 +408,13 @@
         {
           "collected_at": "2026-09-06T04:21:59.088Z",
           "content_sha256": "c07d00b652e6bc987a2dd449ba05f370c07e901dc31c2d7c81392cedb55bfd82"
+        },
+        {
+          "collected_at": "2026-09-07T04:23:15.659Z",
+          "content_sha256": "2031731b6d99e65c157a777b15dc622fb88a083f27842849822ef2f6b200f68c"
         }
       ]
     }
   ],
-  "root_sha256": "60246b9229911ad5b048883270095e6a265a70651064badf40417164e6e0d8a5"
+  "root_sha256": "a15a67f7125c9f45772ebbc582e5ab78511f64071a701b18d4a86ff4d499f592"
 }

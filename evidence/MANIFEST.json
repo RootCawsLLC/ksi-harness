@@ -1,18 +1,18 @@
 {
   "schema": "ksi-harness/evidence-manifest/1",
-  "generated_at": "2026-09-08T04:24:28.935Z",
+  "generated_at": "2026-09-09T04:24:22.882Z",
   "run_uri": null,
   "locker": ".locker/evidence",
-  "bundle_count": 96,
+  "bundle_count": 100,
   "unreadable": [],
   "tampered": [],
   "checks": [
     {
       "check_id": "github.change.branch-protection",
-      "runs": 24,
+      "runs": 25,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-08T04:23:36.167Z",
-      "chain_head_sha256": "3e2253c8baaa09eb4c0d21e71c9e90cdba1ffc21dc3d1199cfe7a8f333c8e787",
+      "last_collected_at": "2026-09-09T04:23:28.259Z",
+      "chain_head_sha256": "dcd30ef40e9dc64321e9022a51d3f743244e393b5b341ade05130be10702fcf5",
       "chain_ok": true,
       "bundles": [
         {
@@ -110,15 +110,19 @@
         {
           "collected_at": "2026-09-08T04:23:36.167Z",
           "content_sha256": "3e2253c8baaa09eb4c0d21e71c9e90cdba1ffc21dc3d1199cfe7a8f333c8e787"
+        },
+        {
+          "collected_at": "2026-09-09T04:23:28.259Z",
+          "content_sha256": "dcd30ef40e9dc64321e9022a51d3f743244e393b5b341ade05130be10702fcf5"
         }
       ]
     },
     {
       "check_id": "github.change.pr-review",
-      "runs": 24,
+      "runs": 25,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-08T04:23:36.167Z",
-      "chain_head_sha256": "904c0072345c9cb787620f7705ae1615598d83f3fc05e4b57f1826941e7a55b0",
+      "last_collected_at": "2026-09-09T04:23:28.259Z",
+      "chain_head_sha256": "59f4809918c95f6ca101e2d10171475f7e05cfb8f86af5e4e9d8c0a0cce6d84d",
       "chain_ok": true,
       "bundles": [
         {
@@ -216,15 +220,19 @@
         {
           "collected_at": "2026-09-08T04:23:36.167Z",
           "content_sha256": "904c0072345c9cb787620f7705ae1615598d83f3fc05e4b57f1826941e7a55b0"
+        },
+        {
+          "collected_at": "2026-09-09T04:23:28.259Z",
+          "content_sha256": "59f4809918c95f6ca101e2d10171475f7e05cfb8f86af5e4e9d8c0a0cce6d84d"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.dependency-alerts",
-      "runs": 24,
+      "runs": 25,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-08T04:23:36.167Z",
-      "chain_head_sha256": "a762929d05838946594e69a50517444697a4f04af9b58cb62c64470e504e6415",
+      "last_collected_at": "2026-09-09T04:23:28.259Z",
+      "chain_head_sha256": "786ec8c542ccd23113761b2b8865675c64c48d58efd242e382eb28b612fd2d52",
       "chain_ok": true,
       "bundles": [
         {
@@ -322,15 +330,19 @@
         {
           "collected_at": "2026-09-08T04:23:36.167Z",
           "content_sha256": "a762929d05838946594e69a50517444697a4f04af9b58cb62c64470e504e6415"
+        },
+        {
+          "collected_at": "2026-09-09T04:23:28.259Z",
+          "content_sha256": "786ec8c542ccd23113761b2b8865675c64c48d58efd242e382eb28b612fd2d52"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.workflow-pinning",
-      "runs": 24,
+      "runs": 25,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-08T04:23:36.167Z",
-      "chain_head_sha256": "9b12ebbd4ba77a8478a3b42db63fee8b2f9e02274c17201c9327fd177596fe05",
+      "last_collected_at": "2026-09-09T04:23:28.259Z",
+      "chain_head_sha256": "988e2368d40b45ae31c4e8020c95011c09e631b1996a827195ec49a47cf719c0",
       "chain_ok": true,
       "bundles": [
         {
@@ -428,9 +440,13 @@
         {
           "collected_at": "2026-09-08T04:23:36.167Z",
           "content_sha256": "9b12ebbd4ba77a8478a3b42db63fee8b2f9e02274c17201c9327fd177596fe05"
+        },
+        {
+          "collected_at": "2026-09-09T04:23:28.259Z",
+          "content_sha256": "988e2368d40b45ae31c4e8020c95011c09e631b1996a827195ec49a47cf719c0"
         }
       ]
     }
   ],
-  "root_sha256": "bd2ee43c44b8bc9a116da0fdcfb705f32093b74cbfc07171c3739e238edfa9e4"
+  "root_sha256": "bd349fc92d56796419f0e43c0b2bc99845a778cbfd5e0f3d69ce61b4928d3d14"
 }

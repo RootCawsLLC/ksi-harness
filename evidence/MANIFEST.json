@@ -1,18 +1,18 @@
 {
   "schema": "ksi-harness/evidence-manifest/1",
-  "generated_at": "2026-09-09T04:24:22.882Z",
+  "generated_at": "2026-09-10T04:24:33.029Z",
   "run_uri": null,
   "locker": ".locker/evidence",
-  "bundle_count": 100,
+  "bundle_count": 104,
   "unreadable": [],
   "tampered": [],
   "checks": [
     {
       "check_id": "github.change.branch-protection",
-      "runs": 25,
+      "runs": 26,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-09T04:23:28.259Z",
-      "chain_head_sha256": "dcd30ef40e9dc64321e9022a51d3f743244e393b5b341ade05130be10702fcf5",
+      "last_collected_at": "2026-09-10T04:23:37.946Z",
+      "chain_head_sha256": "d177791b6283916fc3153d5c0d97b12627b966fc73e7d19a9e127e28b7a35c5a",
       "chain_ok": true,
       "bundles": [
         {
@@ -114,15 +114,19 @@
         {
           "collected_at": "2026-09-09T04:23:28.259Z",
           "content_sha256": "dcd30ef40e9dc64321e9022a51d3f743244e393b5b341ade05130be10702fcf5"
+        },
+        {
+          "collected_at": "2026-09-10T04:23:37.946Z",
+          "content_sha256": "d177791b6283916fc3153d5c0d97b12627b966fc73e7d19a9e127e28b7a35c5a"
         }
       ]
     },
     {
       "check_id": "github.change.pr-review",
-      "runs": 25,
+      "runs": 26,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-09T04:23:28.259Z",
-      "chain_head_sha256": "59f4809918c95f6ca101e2d10171475f7e05cfb8f86af5e4e9d8c0a0cce6d84d",
+      "last_collected_at": "2026-09-10T04:23:37.946Z",
+      "chain_head_sha256": "5f3959dc1b463eec4ce94e7837551af6f7eef4a276b7de8153b28b88cb15d330",
       "chain_ok": true,
       "bundles": [
         {
@@ -224,15 +228,19 @@
         {
           "collected_at": "2026-09-09T04:23:28.259Z",
           "content_sha256": "59f4809918c95f6ca101e2d10171475f7e05cfb8f86af5e4e9d8c0a0cce6d84d"
+        },
+        {
+          "collected_at": "2026-09-10T04:23:37.946Z",
+          "content_sha256": "5f3959dc1b463eec4ce94e7837551af6f7eef4a276b7de8153b28b88cb15d330"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.dependency-alerts",
-      "runs": 25,
+      "runs": 26,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-09T04:23:28.259Z",
-      "chain_head_sha256": "786ec8c542ccd23113761b2b8865675c64c48d58efd242e382eb28b612fd2d52",
+      "last_collected_at": "2026-09-10T04:23:37.946Z",
+      "chain_head_sha256": "54b9be346dd29a9a1e2d3d8b5e83e1503b51be6d33d3678a944bebfeb9e61957",
       "chain_ok": true,
       "bundles": [
         {
@@ -334,15 +342,19 @@
         {
           "collected_at": "2026-09-09T04:23:28.259Z",
           "content_sha256": "786ec8c542ccd23113761b2b8865675c64c48d58efd242e382eb28b612fd2d52"
+        },
+        {
+          "collected_at": "2026-09-10T04:23:37.946Z",
+          "content_sha256": "54b9be346dd29a9a1e2d3d8b5e83e1503b51be6d33d3678a944bebfeb9e61957"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.workflow-pinning",
-      "runs": 25,
+      "runs": 26,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-09T04:23:28.259Z",
-      "chain_head_sha256": "988e2368d40b45ae31c4e8020c95011c09e631b1996a827195ec49a47cf719c0",
+      "last_collected_at": "2026-09-10T04:23:37.946Z",
+      "chain_head_sha256": "9e9668ba7dd2c6daca49770d5f8db8c1f1ad00578fc30d2469c9c12a098d3c2e",
       "chain_ok": true,
       "bundles": [
         {
@@ -444,9 +456,13 @@
         {
           "collected_at": "2026-09-09T04:23:28.259Z",
           "content_sha256": "988e2368d40b45ae31c4e8020c95011c09e631b1996a827195ec49a47cf719c0"
+        },
+        {
+          "collected_at": "2026-09-10T04:23:37.946Z",
+          "content_sha256": "9e9668ba7dd2c6daca49770d5f8db8c1f1ad00578fc30d2469c9c12a098d3c2e"
         }
       ]
     }
   ],
-  "root_sha256": "bd349fc92d56796419f0e43c0b2bc99845a778cbfd5e0f3d69ce61b4928d3d14"
+  "root_sha256": "caa0a04c1222792e50a67bbff3a095ba47888309050b90155c2a3b6dbda8c861"
 }

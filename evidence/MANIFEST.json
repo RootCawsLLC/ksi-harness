@@ -1,18 +1,18 @@
 {
   "schema": "ksi-harness/evidence-manifest/1",
-  "generated_at": "2026-09-11T04:24:35.246Z",
+  "generated_at": "2026-09-12T04:22:44.789Z",
   "run_uri": null,
   "locker": ".locker/evidence",
-  "bundle_count": 108,
+  "bundle_count": 112,
   "unreadable": [],
   "tampered": [],
   "checks": [
     {
       "check_id": "github.change.branch-protection",
-      "runs": 27,
+      "runs": 28,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-11T04:23:45.536Z",
-      "chain_head_sha256": "868112a6f3dd6ec5161b712b733c1bda1bf1885df19143b2934da8e68641ee27",
+      "last_collected_at": "2026-09-12T04:21:53.370Z",
+      "chain_head_sha256": "9f00bbfcd182b348839312537a43c90dd3058f2e9938aaf527d16736e90a3132",
       "chain_ok": true,
       "bundles": [
         {
@@ -122,15 +122,19 @@
         {
           "collected_at": "2026-09-11T04:23:45.536Z",
           "content_sha256": "868112a6f3dd6ec5161b712b733c1bda1bf1885df19143b2934da8e68641ee27"
+        },
+        {
+          "collected_at": "2026-09-12T04:21:53.370Z",
+          "content_sha256": "9f00bbfcd182b348839312537a43c90dd3058f2e9938aaf527d16736e90a3132"
         }
       ]
     },
     {
       "check_id": "github.change.pr-review",
-      "runs": 27,
+      "runs": 28,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-11T04:23:45.536Z",
-      "chain_head_sha256": "566a5aca3580949c317aefa9bb7b0828d6dceb64c3f74299f5a7d4b70a20dd20",
+      "last_collected_at": "2026-09-12T04:21:53.370Z",
+      "chain_head_sha256": "be19d443a2c6e781bdc26a1246895851817d79a55787b41d42b2c6cba2d1b05e",
       "chain_ok": true,
       "bundles": [
         {
@@ -240,15 +244,19 @@
         {
           "collected_at": "2026-09-11T04:23:45.536Z",
           "content_sha256": "566a5aca3580949c317aefa9bb7b0828d6dceb64c3f74299f5a7d4b70a20dd20"
+        },
+        {
+          "collected_at": "2026-09-12T04:21:53.370Z",
+          "content_sha256": "be19d443a2c6e781bdc26a1246895851817d79a55787b41d42b2c6cba2d1b05e"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.dependency-alerts",
-      "runs": 27,
+      "runs": 28,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-11T04:23:45.536Z",
-      "chain_head_sha256": "67bd913a3615754b3328a31b5441d278571dd54a4b0725028c976195cf1cf069",
+      "last_collected_at": "2026-09-12T04:21:53.370Z",
+      "chain_head_sha256": "70b26710decca77a7786f90e7e498433b5753cfce5c2dc9e83b54b66b67bcf57",
       "chain_ok": true,
       "bundles": [
         {
@@ -358,15 +366,19 @@
         {
           "collected_at": "2026-09-11T04:23:45.536Z",
           "content_sha256": "67bd913a3615754b3328a31b5441d278571dd54a4b0725028c976195cf1cf069"
+        },
+        {
+          "collected_at": "2026-09-12T04:21:53.370Z",
+          "content_sha256": "70b26710decca77a7786f90e7e498433b5753cfce5c2dc9e83b54b66b67bcf57"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.workflow-pinning",
-      "runs": 27,
+      "runs": 28,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-11T04:23:45.536Z",
-      "chain_head_sha256": "217e4ba50e3e5dcc2bd7e0dcd1c37e6875be0f960e103539d10a9893d58f8b8c",
+      "last_collected_at": "2026-09-12T04:21:53.370Z",
+      "chain_head_sha256": "b60823ecd17b0bf10b7b0e10e26049b7cde4e585c16a67fb5c25be804ffd68fa",
       "chain_ok": true,
       "bundles": [
         {
@@ -476,9 +488,13 @@
         {
           "collected_at": "2026-09-11T04:23:45.536Z",
           "content_sha256": "217e4ba50e3e5dcc2bd7e0dcd1c37e6875be0f960e103539d10a9893d58f8b8c"
+        },
+        {
+          "collected_at": "2026-09-12T04:21:53.370Z",
+          "content_sha256": "b60823ecd17b0bf10b7b0e10e26049b7cde4e585c16a67fb5c25be804ffd68fa"
         }
       ]
     }
   ],
-  "root_sha256": "6861803634ef3343d0b3d0345f4e4c3ca0117749845c9b25d430260455b5215b"
+  "root_sha256": "24a7477f74eb1838f6032142643a6c7a688550c9dc7711df88c179deb0e0b7df"
 }

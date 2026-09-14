@@ -1,18 +1,18 @@
 {
   "schema": "ksi-harness/evidence-manifest/1",
-  "generated_at": "2026-09-13T04:22:42.497Z",
+  "generated_at": "2026-09-14T04:25:04.271Z",
   "run_uri": null,
   "locker": ".locker/evidence",
-  "bundle_count": 116,
+  "bundle_count": 120,
   "unreadable": [],
   "tampered": [],
   "checks": [
     {
       "check_id": "github.change.branch-protection",
-      "runs": 29,
+      "runs": 30,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-13T04:21:50.346Z",
-      "chain_head_sha256": "0aa1232e302ececea49319df64831387852a8a4d5fb203ff6384692f91757b3b",
+      "last_collected_at": "2026-09-14T04:24:10.577Z",
+      "chain_head_sha256": "55d9e34a85590f210e141c3e7458b3978babf7d0bd3c6f0016fd38bb59818e48",
       "chain_ok": true,
       "bundles": [
         {
@@ -130,15 +130,19 @@
         {
           "collected_at": "2026-09-13T04:21:50.346Z",
           "content_sha256": "0aa1232e302ececea49319df64831387852a8a4d5fb203ff6384692f91757b3b"
+        },
+        {
+          "collected_at": "2026-09-14T04:24:10.577Z",
+          "content_sha256": "55d9e34a85590f210e141c3e7458b3978babf7d0bd3c6f0016fd38bb59818e48"
         }
       ]
     },
     {
       "check_id": "github.change.pr-review",
-      "runs": 29,
+      "runs": 30,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-13T04:21:50.346Z",
-      "chain_head_sha256": "00166bc4611864a70eb38b1cd631fc28f87c9f381a888252456703a18f5bb33d",
+      "last_collected_at": "2026-09-14T04:24:10.577Z",
+      "chain_head_sha256": "1e21ea498631f06fc2008ed90312e50a610425b6b8466b37f2637f5d6f88a0ea",
       "chain_ok": true,
       "bundles": [
         {
@@ -256,15 +260,19 @@
         {
           "collected_at": "2026-09-13T04:21:50.346Z",
           "content_sha256": "00166bc4611864a70eb38b1cd631fc28f87c9f381a888252456703a18f5bb33d"
+        },
+        {
+          "collected_at": "2026-09-14T04:24:10.577Z",
+          "content_sha256": "1e21ea498631f06fc2008ed90312e50a610425b6b8466b37f2637f5d6f88a0ea"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.dependency-alerts",
-      "runs": 29,
+      "runs": 30,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-13T04:21:50.346Z",
-      "chain_head_sha256": "7a8aa8489df33713edca3e4f2d75b338b9e6933a49cf076a456d66850799547a",
+      "last_collected_at": "2026-09-14T04:24:10.577Z",
+      "chain_head_sha256": "6ffda8806445ca018b8228766a453122fc8a23fd4891d6704baab4551c31957b",
       "chain_ok": true,
       "bundles": [
         {
@@ -382,15 +390,19 @@
         {
           "collected_at": "2026-09-13T04:21:50.346Z",
           "content_sha256": "7a8aa8489df33713edca3e4f2d75b338b9e6933a49cf076a456d66850799547a"
+        },
+        {
+          "collected_at": "2026-09-14T04:24:10.577Z",
+          "content_sha256": "6ffda8806445ca018b8228766a453122fc8a23fd4891d6704baab4551c31957b"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.workflow-pinning",
-      "runs": 29,
+      "runs": 30,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-13T04:21:50.346Z",
-      "chain_head_sha256": "c31fdbeb0a9e83310ebd502417bf2f1ec22512c882d6205658d3525b4d74f28e",
+      "last_collected_at": "2026-09-14T04:24:10.577Z",
+      "chain_head_sha256": "341d89cc3de1d6830de965a1f27d7fadf2991ccd67314c2f5a1374b85d73e9dd",
       "chain_ok": true,
       "bundles": [
         {
@@ -508,9 +520,13 @@
         {
           "collected_at": "2026-09-13T04:21:50.346Z",
           "content_sha256": "c31fdbeb0a9e83310ebd502417bf2f1ec22512c882d6205658d3525b4d74f28e"
+        },
+        {
+          "collected_at": "2026-09-14T04:24:10.577Z",
+          "content_sha256": "341d89cc3de1d6830de965a1f27d7fadf2991ccd67314c2f5a1374b85d73e9dd"
         }
       ]
     }
   ],
-  "root_sha256": "5a541ef0a9fea41f7f616e7b1ce814054af24302facced95106a7216d09000a0"
+  "root_sha256": "1ed52bcdefd846ace025dc1d4f6b63f80bf748f5794ea5d05c484c68fd186b2b"
 }

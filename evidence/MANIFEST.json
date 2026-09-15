@@ -1,18 +1,18 @@
 {
   "schema": "ksi-harness/evidence-manifest/1",
-  "generated_at": "2026-09-14T04:25:04.271Z",
+  "generated_at": "2026-09-15T04:25:45.288Z",
   "run_uri": null,
   "locker": ".locker/evidence",
-  "bundle_count": 120,
+  "bundle_count": 124,
   "unreadable": [],
   "tampered": [],
   "checks": [
     {
       "check_id": "github.change.branch-protection",
-      "runs": 30,
+      "runs": 31,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-14T04:24:10.577Z",
-      "chain_head_sha256": "55d9e34a85590f210e141c3e7458b3978babf7d0bd3c6f0016fd38bb59818e48",
+      "last_collected_at": "2026-09-15T04:24:52.747Z",
+      "chain_head_sha256": "5005efad128bc54fe048c1b221dc84d0a701e7aed29067cb51a1afc17fc5f2ef",
       "chain_ok": true,
       "bundles": [
         {
@@ -134,15 +134,19 @@
         {
           "collected_at": "2026-09-14T04:24:10.577Z",
           "content_sha256": "55d9e34a85590f210e141c3e7458b3978babf7d0bd3c6f0016fd38bb59818e48"
+        },
+        {
+          "collected_at": "2026-09-15T04:24:52.747Z",
+          "content_sha256": "5005efad128bc54fe048c1b221dc84d0a701e7aed29067cb51a1afc17fc5f2ef"
         }
       ]
     },
     {
       "check_id": "github.change.pr-review",
-      "runs": 30,
+      "runs": 31,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-14T04:24:10.577Z",
-      "chain_head_sha256": "1e21ea498631f06fc2008ed90312e50a610425b6b8466b37f2637f5d6f88a0ea",
+      "last_collected_at": "2026-09-15T04:24:52.747Z",
+      "chain_head_sha256": "796e9efccf8864dcd2f1382392a0a6cb8820a5236a8484acb8a42e56b96ffe4b",
       "chain_ok": true,
       "bundles": [
         {
@@ -264,15 +268,19 @@
         {
           "collected_at": "2026-09-14T04:24:10.577Z",
           "content_sha256": "1e21ea498631f06fc2008ed90312e50a610425b6b8466b37f2637f5d6f88a0ea"
+        },
+        {
+          "collected_at": "2026-09-15T04:24:52.747Z",
+          "content_sha256": "796e9efccf8864dcd2f1382392a0a6cb8820a5236a8484acb8a42e56b96ffe4b"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.dependency-alerts",
-      "runs": 30,
+      "runs": 31,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-14T04:24:10.577Z",
-      "chain_head_sha256": "6ffda8806445ca018b8228766a453122fc8a23fd4891d6704baab4551c31957b",
+      "last_collected_at": "2026-09-15T04:24:52.747Z",
+      "chain_head_sha256": "f546838881d39cf29dc4954d1f958b9c7291b266580e42f143e012b6621f1e27",
       "chain_ok": true,
       "bundles": [
         {
@@ -394,15 +402,19 @@
         {
           "collected_at": "2026-09-14T04:24:10.577Z",
           "content_sha256": "6ffda8806445ca018b8228766a453122fc8a23fd4891d6704baab4551c31957b"
+        },
+        {
+          "collected_at": "2026-09-15T04:24:52.747Z",
+          "content_sha256": "f546838881d39cf29dc4954d1f958b9c7291b266580e42f143e012b6621f1e27"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.workflow-pinning",
-      "runs": 30,
+      "runs": 31,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-14T04:24:10.577Z",
-      "chain_head_sha256": "341d89cc3de1d6830de965a1f27d7fadf2991ccd67314c2f5a1374b85d73e9dd",
+      "last_collected_at": "2026-09-15T04:24:52.747Z",
+      "chain_head_sha256": "1034a4eef7d8d5646f17fbd5de1bfd69c3b827835bcc0ff2989c7268ffd1185a",
       "chain_ok": true,
       "bundles": [
         {
@@ -524,9 +536,13 @@
         {
           "collected_at": "2026-09-14T04:24:10.577Z",
           "content_sha256": "341d89cc3de1d6830de965a1f27d7fadf2991ccd67314c2f5a1374b85d73e9dd"
+        },
+        {
+          "collected_at": "2026-09-15T04:24:52.747Z",
+          "content_sha256": "1034a4eef7d8d5646f17fbd5de1bfd69c3b827835bcc0ff2989c7268ffd1185a"
         }
       ]
     }
   ],
-  "root_sha256": "1ed52bcdefd846ace025dc1d4f6b63f80bf748f5794ea5d05c484c68fd186b2b"
+  "root_sha256": "f4f1c53123b2ac35d3c6ea945e7e626b76dae68b958df706b4fcfdb80b10ce40"
 }

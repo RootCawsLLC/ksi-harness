@@ -1,18 +1,18 @@
 {
   "schema": "ksi-harness/evidence-manifest/1",
-  "generated_at": "2026-09-16T04:24:13.011Z",
+  "generated_at": "2026-09-17T09:25:17.616Z",
   "run_uri": null,
   "locker": ".locker/evidence",
-  "bundle_count": 128,
+  "bundle_count": 132,
   "unreadable": [],
   "tampered": [],
   "checks": [
     {
       "check_id": "github.change.branch-protection",
-      "runs": 32,
+      "runs": 33,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-16T04:23:24.810Z",
-      "chain_head_sha256": "ea6b0885736a2f6f493c38b4016a350bcf0888e1de10dc0da9fc469ba3a367bc",
+      "last_collected_at": "2026-09-17T09:24:19.048Z",
+      "chain_head_sha256": "ccfde20f8ee350218094f211dfd1d3db95a8f9865e6f9f41199e76a42bd6d2cf",
       "chain_ok": true,
       "bundles": [
         {
@@ -142,15 +142,19 @@
         {
           "collected_at": "2026-09-16T04:23:24.810Z",
           "content_sha256": "ea6b0885736a2f6f493c38b4016a350bcf0888e1de10dc0da9fc469ba3a367bc"
+        },
+        {
+          "collected_at": "2026-09-17T09:24:19.048Z",
+          "content_sha256": "ccfde20f8ee350218094f211dfd1d3db95a8f9865e6f9f41199e76a42bd6d2cf"
         }
       ]
     },
     {
       "check_id": "github.change.pr-review",
-      "runs": 32,
+      "runs": 33,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-16T04:23:24.810Z",
-      "chain_head_sha256": "8b65eed73d9b6db0ca8747a8ae95c640382e3dd02b1ae248a8061c204cfcea05",
+      "last_collected_at": "2026-09-17T09:24:19.048Z",
+      "chain_head_sha256": "1d0b6b5469e4912b7dfe47ddbd1c23d2044e6d82a63ae46e3614a5014e544c3e",
       "chain_ok": true,
       "bundles": [
         {
@@ -280,15 +284,19 @@
         {
           "collected_at": "2026-09-16T04:23:24.810Z",
           "content_sha256": "8b65eed73d9b6db0ca8747a8ae95c640382e3dd02b1ae248a8061c204cfcea05"
+        },
+        {
+          "collected_at": "2026-09-17T09:24:19.048Z",
+          "content_sha256": "1d0b6b5469e4912b7dfe47ddbd1c23d2044e6d82a63ae46e3614a5014e544c3e"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.dependency-alerts",
-      "runs": 32,
+      "runs": 33,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-16T04:23:24.810Z",
-      "chain_head_sha256": "18c270d149fe4c30407b52162c9e4e029c5d6b51172367b2c5ce04a9f4839857",
+      "last_collected_at": "2026-09-17T09:24:19.048Z",
+      "chain_head_sha256": "2bed2f3b2921bf1f6eeddcfdb0a2e479995cc09a4f12f76765f25626809dffac",
       "chain_ok": true,
       "bundles": [
         {
@@ -418,15 +426,19 @@
         {
           "collected_at": "2026-09-16T04:23:24.810Z",
           "content_sha256": "18c270d149fe4c30407b52162c9e4e029c5d6b51172367b2c5ce04a9f4839857"
+        },
+        {
+          "collected_at": "2026-09-17T09:24:19.048Z",
+          "content_sha256": "2bed2f3b2921bf1f6eeddcfdb0a2e479995cc09a4f12f76765f25626809dffac"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.workflow-pinning",
-      "runs": 32,
+      "runs": 33,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-16T04:23:24.810Z",
-      "chain_head_sha256": "203863e1fa9496c81700d366a3b72443985d03d632ece7b296ab237b2bbc9622",
+      "last_collected_at": "2026-09-17T09:24:19.048Z",
+      "chain_head_sha256": "d738be935bea9c83bbd4d2353c0957f0ac0183aa92b9add2deebb60a89fee365",
       "chain_ok": true,
       "bundles": [
         {
@@ -556,9 +568,13 @@
         {
           "collected_at": "2026-09-16T04:23:24.810Z",
           "content_sha256": "203863e1fa9496c81700d366a3b72443985d03d632ece7b296ab237b2bbc9622"
+        },
+        {
+          "collected_at": "2026-09-17T09:24:19.048Z",
+          "content_sha256": "d738be935bea9c83bbd4d2353c0957f0ac0183aa92b9add2deebb60a89fee365"
         }
       ]
     }
   ],
-  "root_sha256": "d3c5614f442fce7085421ca4f606837f1585fbc3cbc9b847eea1b086dc88d9ea"
+  "root_sha256": "5244ff6dbec55096760db8e25bef76a906d69c41fe9cb53fc49cd82bcb223721"
 }

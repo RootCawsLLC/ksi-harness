@@ -1,18 +1,18 @@
 {
   "schema": "ksi-harness/evidence-manifest/1",
-  "generated_at": "2026-09-18T08:58:57.014Z",
+  "generated_at": "2026-09-19T08:46:37.215Z",
   "run_uri": null,
   "locker": ".locker/evidence",
-  "bundle_count": 136,
+  "bundle_count": 140,
   "unreadable": [],
   "tampered": [],
   "checks": [
     {
       "check_id": "github.change.branch-protection",
-      "runs": 34,
+      "runs": 35,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-18T08:58:18.583Z",
-      "chain_head_sha256": "41c6a4f5df7e3d250661618eb7c40f969638e29818880e6ea38bfdb27a79bc9d",
+      "last_collected_at": "2026-09-19T08:45:59.281Z",
+      "chain_head_sha256": "23a7064b6b459a312800888a3c3291b8fe196b2f4bf8fb4725ae081cc921629d",
       "chain_ok": true,
       "bundles": [
         {
@@ -150,15 +150,19 @@
         {
           "collected_at": "2026-09-18T08:58:18.583Z",
           "content_sha256": "41c6a4f5df7e3d250661618eb7c40f969638e29818880e6ea38bfdb27a79bc9d"
+        },
+        {
+          "collected_at": "2026-09-19T08:45:59.281Z",
+          "content_sha256": "23a7064b6b459a312800888a3c3291b8fe196b2f4bf8fb4725ae081cc921629d"
         }
       ]
     },
     {
       "check_id": "github.change.pr-review",
-      "runs": 34,
+      "runs": 35,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-18T08:58:18.583Z",
-      "chain_head_sha256": "03f3639ab267140319307c9fb9287b060aa14673029a0ed8e488430f7e14e41d",
+      "last_collected_at": "2026-09-19T08:45:59.281Z",
+      "chain_head_sha256": "d3bd7bbede8ae8790ea27edee31b0ac164a8f170c9cba57f0c8d71d4ad5bfc8a",
       "chain_ok": true,
       "bundles": [
         {
@@ -296,15 +300,19 @@
         {
           "collected_at": "2026-09-18T08:58:18.583Z",
           "content_sha256": "03f3639ab267140319307c9fb9287b060aa14673029a0ed8e488430f7e14e41d"
+        },
+        {
+          "collected_at": "2026-09-19T08:45:59.281Z",
+          "content_sha256": "d3bd7bbede8ae8790ea27edee31b0ac164a8f170c9cba57f0c8d71d4ad5bfc8a"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.dependency-alerts",
-      "runs": 34,
+      "runs": 35,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-18T08:58:18.583Z",
-      "chain_head_sha256": "8931bb672d9222cc1c8a8a0349cab8ad3ea822740a9c427f5a95c4fd61695dda",
+      "last_collected_at": "2026-09-19T08:45:59.281Z",
+      "chain_head_sha256": "809a9a6f4f1e32d3c29764ded1f9ba94077b3b3f8ca806aab73a80516cbc4dce",
       "chain_ok": true,
       "bundles": [
         {
@@ -442,15 +450,19 @@
         {
           "collected_at": "2026-09-18T08:58:18.583Z",
           "content_sha256": "8931bb672d9222cc1c8a8a0349cab8ad3ea822740a9c427f5a95c4fd61695dda"
+        },
+        {
+          "collected_at": "2026-09-19T08:45:59.281Z",
+          "content_sha256": "809a9a6f4f1e32d3c29764ded1f9ba94077b3b3f8ca806aab73a80516cbc4dce"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.workflow-pinning",
-      "runs": 34,
+      "runs": 35,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-18T08:58:18.583Z",
-      "chain_head_sha256": "7439af288936058cefcbf33e69b6f65bd54f971ab8520f37bd3edfcb82674f4d",
+      "last_collected_at": "2026-09-19T08:45:59.281Z",
+      "chain_head_sha256": "47a8690f8740132408a38f50a04994b70d31e4c68cfbe94f089a56407e014a54",
       "chain_ok": true,
       "bundles": [
         {
@@ -588,9 +600,13 @@
         {
           "collected_at": "2026-09-18T08:58:18.583Z",
           "content_sha256": "7439af288936058cefcbf33e69b6f65bd54f971ab8520f37bd3edfcb82674f4d"
+        },
+        {
+          "collected_at": "2026-09-19T08:45:59.281Z",
+          "content_sha256": "47a8690f8740132408a38f50a04994b70d31e4c68cfbe94f089a56407e014a54"
         }
       ]
     }
   ],
-  "root_sha256": "25b1e175a6eef0516f907543613d6f6ba159a5c00e9fb8991a38482a7396461c"
+  "root_sha256": "18f6b24ab5945b64900b74c168006247bf6992df1ed0c9bc6cbfe2e0d90f794f"
 }

@@ -1,18 +1,18 @@
 {
   "schema": "ksi-harness/evidence-manifest/1",
-  "generated_at": "2026-09-19T08:46:37.215Z",
+  "generated_at": "2026-09-20T09:15:17.322Z",
   "run_uri": null,
   "locker": ".locker/evidence",
-  "bundle_count": 140,
+  "bundle_count": 144,
   "unreadable": [],
   "tampered": [],
   "checks": [
     {
       "check_id": "github.change.branch-protection",
-      "runs": 35,
+      "runs": 36,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-19T08:45:59.281Z",
-      "chain_head_sha256": "23a7064b6b459a312800888a3c3291b8fe196b2f4bf8fb4725ae081cc921629d",
+      "last_collected_at": "2026-09-20T09:14:45.713Z",
+      "chain_head_sha256": "9926d1e0bb3891e9fc6407cd37691eb469d8b2ef18ba0c11215806448c2bae51",
       "chain_ok": true,
       "bundles": [
         {
@@ -154,15 +154,19 @@
         {
           "collected_at": "2026-09-19T08:45:59.281Z",
           "content_sha256": "23a7064b6b459a312800888a3c3291b8fe196b2f4bf8fb4725ae081cc921629d"
+        },
+        {
+          "collected_at": "2026-09-20T09:14:45.713Z",
+          "content_sha256": "9926d1e0bb3891e9fc6407cd37691eb469d8b2ef18ba0c11215806448c2bae51"
         }
       ]
     },
     {
       "check_id": "github.change.pr-review",
-      "runs": 35,
+      "runs": 36,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-19T08:45:59.281Z",
-      "chain_head_sha256": "d3bd7bbede8ae8790ea27edee31b0ac164a8f170c9cba57f0c8d71d4ad5bfc8a",
+      "last_collected_at": "2026-09-20T09:14:45.713Z",
+      "chain_head_sha256": "94817b87be43277351718192463a3b3b354dbb70c5cf99e37a509ee14e63b2cf",
       "chain_ok": true,
       "bundles": [
         {
@@ -304,15 +308,19 @@
         {
           "collected_at": "2026-09-19T08:45:59.281Z",
           "content_sha256": "d3bd7bbede8ae8790ea27edee31b0ac164a8f170c9cba57f0c8d71d4ad5bfc8a"
+        },
+        {
+          "collected_at": "2026-09-20T09:14:45.713Z",
+          "content_sha256": "94817b87be43277351718192463a3b3b354dbb70c5cf99e37a509ee14e63b2cf"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.dependency-alerts",
-      "runs": 35,
+      "runs": 36,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-19T08:45:59.281Z",
-      "chain_head_sha256": "809a9a6f4f1e32d3c29764ded1f9ba94077b3b3f8ca806aab73a80516cbc4dce",
+      "last_collected_at": "2026-09-20T09:14:45.713Z",
+      "chain_head_sha256": "7892ddf73e4cef4eec069b796db58d309a4ad2d22fad98d251f13486e592f828",
       "chain_ok": true,
       "bundles": [
         {
@@ -454,15 +462,19 @@
         {
           "collected_at": "2026-09-19T08:45:59.281Z",
           "content_sha256": "809a9a6f4f1e32d3c29764ded1f9ba94077b3b3f8ca806aab73a80516cbc4dce"
+        },
+        {
+          "collected_at": "2026-09-20T09:14:45.713Z",
+          "content_sha256": "7892ddf73e4cef4eec069b796db58d309a4ad2d22fad98d251f13486e592f828"
         }
       ]
     },
     {
       "check_id": "github.supply-chain.workflow-pinning",
-      "runs": 35,
+      "runs": 36,
       "first_collected_at": "2026-08-19T11:03:54.665Z",
-      "last_collected_at": "2026-09-19T08:45:59.281Z",
-      "chain_head_sha256": "47a8690f8740132408a38f50a04994b70d31e4c68cfbe94f089a56407e014a54",
+      "last_collected_at": "2026-09-20T09:14:45.713Z",
+      "chain_head_sha256": "a2df3b569d591a5e1a6cbae996e6a088e2d29b877898a394a089f390e2eb2052",
       "chain_ok": true,
       "bundles": [
         {
@@ -604,9 +616,13 @@
         {
           "collected_at": "2026-09-19T08:45:59.281Z",
           "content_sha256": "47a8690f8740132408a38f50a04994b70d31e4c68cfbe94f089a56407e014a54"
+        },
+        {
+          "collected_at": "2026-09-20T09:14:45.713Z",
+          "content_sha256": "a2df3b569d591a5e1a6cbae996e6a088e2d29b877898a394a089f390e2eb2052"
         }
       ]
     }
   ],
-  "root_sha256": "18f6b24ab5945b64900b74c168006247bf6992df1ed0c9bc6cbfe2e0d90f794f"
+  "root_sha256": "bb0fa49ebfcc7126708e9c4b1e03b9f2dd5849bb9708f3c2e9d7315ef64de200"
 }

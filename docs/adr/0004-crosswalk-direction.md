@@ -34,7 +34,7 @@ Treat **800-53 Rev 5 as the pivot** and derive everything else from the indicato
 ruleset already publishes.
 
 - `controlIndex()` in `src/catalog/ksi.mjs` builds the reverse index: control id → the indicators
-  that touch it. 209 controls, from the pinned file, computed rather than authored.
+  that touch it, from the pinned file, computed rather than authored.
 - Control ids are normalized before comparison. The ruleset uses two dialects for the same
   control — KSI mappings use the OSCAL-style dotted form (`ac-6.1`) and the CTL section uses a
   dashed zero-padded form (`AC-06-01`) — and nothing crosswalks until those converge.

@@ -61,13 +61,12 @@ export function rulesProvenance() {
  * explicit that the definition wins, so anything that renders an indicator statement for a
  * human resolves its terms through here.
  */
-export function definitions() {
-  const rules = loadRules();
+export function definitions(rules = loadRules()) {
   const out = new Map();
   for (const bucket of Object.values(rules.FRD.data ?? {})) {
     for (const [id, entry] of Object.entries(bucket ?? {})) {
       if (!entry?.term) continue;
-      const record = { id, term: entry.term, definition: entry.definition, alts: entry.alts ?? [] };
+      const record = { id, term: entry.term, definition: entry.definition, note: entry.note ?? null, alts: entry.alts ?? [] };
       out.set(entry.term.toLowerCase(), record);
       for (const alt of record.alts) out.set(String(alt).toLowerCase(), record);
     }

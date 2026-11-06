@@ -104,7 +104,7 @@ the state model does the work. Reasoning, including the counter-case for OSCAL, 
 FedRAMP/rules + FedRAMP/schemas        pinned by sha256, drift-checked
         │
         ▼
-  catalog (46 indicators, 10 themes, 209 controls, 195 definitions)
+  catalog (indicators, themes, 800-53 mappings, definitions)
         │
         ├── routes.yaml ──────────── coverage declaration + written gaps
         │
@@ -808,7 +808,7 @@ validation text.
 ## Tests
 
 ```bash
-npm test          # 355 tests
+npm test
 npm run policy    # policy unit tests + gate + negative control (39 Rego tests)
 ```
 

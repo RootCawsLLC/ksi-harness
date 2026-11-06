@@ -26,6 +26,7 @@
 # contains and reports a route whose schedule is aspirational.
 
 KSI-CED-RAT:
+  reviewed: { text: "b0945ef18a866871", controls: "89066b0a72ecd84b" }
   coverage: manual
   cadence: annual
   manual_evidence:
@@ -39,6 +40,7 @@ KSI-CED-RAT:
       false pass in the catalog.
 
 KSI-CMT-LMC:
+  reviewed: { text: "1df157645fc4e3c4", controls: "cc6db7ef92a38607" }
   coverage: partial
   cadence: daily
   checks:
@@ -54,6 +56,7 @@ KSI-CMT-LMC:
     - Infrastructure changed outside CI (console actions, vendor consoles) is recorded in CloudTrail but not traced to an approval.
 
 KSI-CMT-RMV:
+  reviewed: { text: "f80772f7f0340643", controls: "133fcd7a0067f8d6" }
   coverage: partial
   cadence: daily
   checks:
@@ -67,6 +70,7 @@ KSI-CMT-RMV:
       write events, and "wherever reasonable" needs a documented exception list.
 
 KSI-CMT-RVP:
+  reviewed: { text: "b4c9d4c97a5e7eaa", controls: "9e58296e1478566c" }
   coverage: partial
   cadence: daily
   checks:
@@ -79,6 +83,7 @@ KSI-CMT-RVP:
       retrospectives — and only the settings half is automated here.
 
 KSI-CMT-VTD:
+  reviewed: { text: "bd47162f7f4ba58a", controls: "7c1898ad3e5faf4a" }
   coverage: partial
   cadence: daily
   checks:
@@ -97,6 +102,7 @@ KSI-CMT-VTD:
   next: Collect per-deployment gate outcomes and the bypass count, so the claim becomes a rate rather than a snapshot of configuration.
 
 KSI-CNA-DFP:
+  reviewed: { text: "faf985a8a0d435e6", controls: "82a84d953a690315" }
   # The first indicator to reach `automated`, and getting here took a change to what the word can
   # mean. Sufficiency turned out to be a property of a boundary rather than of an indicator, so
   # the argument below states which boundary it is an argument about. On anything wider the route
@@ -148,6 +154,7 @@ KSI-CNA-DFP:
       the functionality clause is open.
 
 KSI-CNA-EIS:
+  reviewed: { text: "b54c22bb26bd371d", controls: "c2b3c61432758d00" }
   coverage: partial
   cadence: daily
   checks:
@@ -165,6 +172,7 @@ KSI-CNA-EIS:
   note: Optional at Class B, required at Class C.
 
 KSI-CNA-IBP:
+  reviewed: { text: "9c54af268b932cf1", controls: "cfafa24b330a8d9a" }
   coverage: unaddressed
   reason: >
     Comparing third-party resource configuration against the original provider's guidance
@@ -177,6 +185,7 @@ KSI-CNA-IBP:
     in the boundary.
 
 KSI-CNA-MAT:
+  reviewed: { text: "2a8cd48defd594c2", controls: "312731163b6ae832" }
   coverage: partial
   cadence: daily
   checks:
@@ -193,6 +202,7 @@ KSI-CNA-MAT:
       ingress property, and needs east-west path analysis rather than a rule inventory.
 
 KSI-CNA-OFA:
+  reviewed: { text: "0ee48f4792129c53", controls: "d43cbcf67ea6bd66" }
   coverage: unaddressed
   reason: >
     High availability is an architecture property that this harness cannot read from
@@ -204,6 +214,7 @@ KSI-CNA-OFA:
     against the declared objective rather than against a fixed opinion.
 
 KSI-CNA-RNT:
+  reviewed: { text: "70005e0151fe6ad7", controls: "1072db3b0b0e4cc0" }
   coverage: partial
   cadence: daily
   checks:
@@ -214,6 +225,7 @@ KSI-CNA-RNT:
     - Traffic controls implemented at a CDN or WAF in front of the boundary are outside what the check reads.
 
 KSI-CNA-RVP:
+  reviewed: { text: "be557e8aa9d99292", controls: "923340d205da6547" }
   coverage: unaddressed
   reason: >
     Denial-of-service protection state is readable, but the indicator asks whether its
@@ -223,6 +235,7 @@ KSI-CNA-RVP:
   next: Collect protection state as a supporting check, and route the effectiveness review to a manual artifact with a named cadence.
 
 KSI-CNA-ULN:
+  reviewed: { text: "f73975d7375fa6f2", controls: "39d2c8c04a422948" }
   coverage: partial
   cadence: daily
   checks:
@@ -235,6 +248,7 @@ KSI-CNA-ULN:
       check cannot claim traffic-flow control is enforced overall.
 
 KSI-IAM-AAM:
+  reviewed: { text: "09d0803fca82fe85", controls: "f4d4cdb7f9e675ed" }
   coverage: partial
   cadence: daily
   checks:
@@ -270,6 +284,7 @@ KSI-IAM-AAM:
   next: Join the identity provider and cloud views, so a privilege granted directly in the cloud to a federated identity is visible as a lifecycle finding rather than only as a cloud one.
 
 KSI-IAM-APM:
+  reviewed: { text: "75986a4ed234a996", controls: "82c08620a9a5d2f6" }
   coverage: partial
   cadence: daily
   checks:
@@ -283,6 +298,7 @@ KSI-IAM-APM:
     - "Passwordless \"when feasible\" implies a documented feasibility judgment; there is no artifact for it."
 
 KSI-IAM-ELP:
+  reviewed: { text: "e39798ffa4dde666", controls: "e126e496a08e5900" }
   coverage: partial
   cadence: daily
   checks:
@@ -299,6 +315,7 @@ KSI-IAM-ELP:
     - Device access is not evaluated at all; the indicator covers users and devices.
 
 KSI-IAM-JIT:
+  reviewed: { text: "5e0ccc73d2cc0af2", controls: "52c953fdf4d1b737" }
   coverage: partial
   cadence: daily
   checks:
@@ -311,6 +328,7 @@ KSI-IAM-JIT:
       and its absence is precisely what a standing-privilege finding cannot tell you.
 
 KSI-IAM-SNU:
+  reviewed: { text: "e182bcca2ae77577", controls: "207f5959d073bca8" }
   coverage: partial
   cadence: daily
   checks:
@@ -331,6 +349,7 @@ KSI-IAM-SNU:
       services — are the larger share of non-user authentication and are not collected.
 
 KSI-IAM-SUS:
+  reviewed: { text: "62fae2012e285c68", controls: "b68b17ee7eee8238" }
   coverage: unaddressed
   reason: >
     The indicator is about response, not detection: privileged accounts being disabled or
@@ -340,6 +359,7 @@ KSI-IAM-SUS:
   next: Correlate detection findings against IAM state-change events in CloudTrail, and report the interval between them.
 
 KSI-INR-AAR:
+  reviewed: { text: "67f59aa4b0ae7245", controls: "f4f9090d8bfdf76a" }
   coverage: manual
   cadence: per-incident
   manual_evidence:
@@ -352,6 +372,7 @@ KSI-INR-AAR:
       reporting obligation and the report content is the evidence.
 
 KSI-INR-RIR:
+  reviewed: { text: "bdea7d49757017f4", controls: "f374d403a0bedcda" }
   coverage: manual
   cadence: annual
   manual_evidence:
@@ -360,6 +381,7 @@ KSI-INR-RIR:
     why_not_automated: Reviewing a documented procedure's effectiveness is an exercise, and the artifact of an exercise is a narrative.
 
 KSI-INR-RPI:
+  reviewed: { text: "1b8051f541e45450", controls: "58503e4cf47b07ce" }
   coverage: manual
   cadence: quarterly
   manual_evidence:
@@ -371,6 +393,7 @@ KSI-INR-RPI:
       rather than automated.
 
 KSI-MLA-ALA:
+  reviewed: { text: "46eeb74561a01ef7", controls: "9b232233ce118fb4" }
   coverage: partial
   cadence: daily
   checks:
@@ -384,6 +407,7 @@ KSI-MLA-ALA:
   note: Optional at Class B, required at Class C.
 
 KSI-MLA-EVC:
+  reviewed: { text: "1ce7701ee3dceb30", controls: "dbc53c8049ccef7b" }
   coverage: partial
   cadence: daily
   checks:
@@ -404,6 +428,7 @@ KSI-MLA-EVC:
   next: Run the gate against plan output in CI so unresolved expressions become decidable, and tag deployed resources with the IaC revision so the two halves can be reconciled.
 
 KSI-MLA-LET:
+  reviewed: { text: "273503891056b398", controls: "dc2a2b8f1d2a97ff" }
   coverage: partial
   cadence: daily
   checks:
@@ -418,6 +443,7 @@ KSI-MLA-LET:
   next: Declare the expected resource and event-type inventory in the profile so the check becomes a reconciliation rather than an inventory.
 
 KSI-MLA-OSM:
+  reviewed: { text: "45f8997ce23a19b5", controls: "08a904302848a562" }
   coverage: partial
   cadence: daily
   checks:
@@ -430,6 +456,7 @@ KSI-MLA-OSM:
       state, and no check reads it.
 
 KSI-MLA-RVL:
+  reviewed: { text: "2365a0e59bcae2cb", controls: "7a3a47ed2a00e637" }
   coverage: unaddressed
   reason: >
     Log review is an activity. Evidence is query history, alert dispositions, or analyst
@@ -437,6 +464,7 @@ KSI-MLA-RVL:
   next: Read detection-rule state and alert dispositions from the monitoring platform once one is in scope.
 
 KSI-PIY-GIV:
+  reviewed: { text: "c5be56927d16fa53", controls: "03e045399fa85cdf" }
   coverage: partial
   cadence: daily
   checks:
@@ -464,6 +492,7 @@ KSI-PIY-GIV:
       reported as stated exclusions rather than verified ones.
 
 KSI-PIY-RES:
+  reviewed: { text: "ad1610fca18743e4", controls: "d43cbcf67ea6bd66" }
   coverage: manual
   cadence: quarterly
   manual_evidence:
@@ -472,6 +501,7 @@ KSI-PIY-RES:
     why_not_automated: Executive support is demonstrated by decisions and funding, and neither has a machine-readable source.
 
 KSI-PIY-RIS:
+  reviewed: { text: "949e395fc17dee9e", controls: "479100fef5da1414" }
   coverage: manual
   cadence: annual
   manual_evidence:
@@ -484,6 +514,7 @@ KSI-PIY-RIS:
       not a collector.
 
 KSI-PIY-RSD:
+  reviewed: { text: "a0271c217ca6badc", controls: "a5f34213aa14484b" }
   coverage: manual
   cadence: annual
   manual_evidence:
@@ -495,6 +526,7 @@ KSI-PIY-RSD:
       about practice, and the indicator names that alignment explicitly.
 
 KSI-PIY-RVD:
+  reviewed: { text: "0dc4e721acb4c87b", controls: "a4e3c08658046e50" }
   coverage: manual
   cadence: annual
   manual_evidence:
@@ -506,6 +538,7 @@ KSI-PIY-RVD:
       outcome quality. FRR process VDR governs the obligation.
 
 KSI-RPL-ABO:
+  reviewed: { text: "f59fc63818428fd6", controls: "f15760b60d2057c6" }
   coverage: unaddressed
   reason: >
     Backup configuration is readable and recovery objectives are not declared anywhere
@@ -514,6 +547,7 @@ KSI-RPL-ABO:
   next: Declare RPO per resource class in the profile, then check backup frequency and retention against it. Same dependency as KSI-CNA-OFA.
 
 KSI-RPL-ARP:
+  reviewed: { text: "ead1cc4889d40686", controls: "9ecb5ae137ff6b26" }
   coverage: manual
   cadence: annual
   manual_evidence:
@@ -522,6 +556,7 @@ KSI-RPL-ARP:
     why_not_automated: Alignment between a written plan and an objective is a reading of both.
 
 KSI-RPL-RRO:
+  reviewed: { text: "2e510273f892eb52", controls: "e54661ce1b53230f" }
   coverage: manual
   cadence: annual
   manual_evidence:
@@ -533,6 +568,7 @@ KSI-RPL-RRO:
       artifact is a prerequisite for two automated ones.
 
 KSI-RPL-TRC:
+  reviewed: { text: "23566e3100f419cc", controls: "9979f11398285ddd" }
   coverage: manual
   cadence: annual
   manual_evidence:
@@ -544,6 +580,7 @@ KSI-RPL-TRC:
       measurement has no denominator.
 
 KSI-SCR-MIT:
+  reviewed: { text: "2913e9672f7fae0b", controls: "a5647c89cb7f7be0" }
   coverage: partial
   cadence: daily
   checks:
@@ -573,6 +610,7 @@ KSI-SCR-MIT:
       falls due.
 
 KSI-SCR-MON:
+  reviewed: { text: "876f438d35603807", controls: "f744732c72ca4c68" }
   coverage: partial
   cadence: daily
   checks:
@@ -600,6 +638,7 @@ KSI-SCR-MON:
       failure — but neither is it evidence that anything was fixed.
 
 KSI-SVC-ACM:
+  reviewed: { text: "ea45275d8869dfd4", controls: "4f4d484e2a2fc73b" }
   coverage: partial
   cadence: daily
   checks:
@@ -613,6 +652,7 @@ KSI-SVC-ACM:
       established by any check here.
 
 KSI-SVC-ASM:
+  reviewed: { text: "8108d21fd7e1ab00", controls: "50a286aeef477c7a" }
   coverage: unaddressed
   reason: >
     Secret management state is readable — rotation configuration, key rotation, secret age —
@@ -622,6 +662,7 @@ KSI-SVC-ASM:
   next: Check rotation configuration and secret age in the cloud vault first, then CI-held secrets, and report them as separate populations rather than one.
 
 KSI-SVC-EIS:
+  reviewed: { text: "e762149b46b5b7bd", controls: "2e2aec11dadac5c9" }
   coverage: manual
   cadence: quarterly
   manual_evidence:
@@ -634,6 +675,7 @@ KSI-SVC-EIS:
       improvement.
 
 KSI-SVC-PRR:
+  reviewed: { text: "86a9d153d42d5d83", controls: "cb936f731de5a569" }
   coverage: manual
   cadence: per-change
   manual_evidence:
@@ -646,6 +688,7 @@ KSI-SVC-PRR:
   note: Optional at Class B, required at Class C.
 
 KSI-SVC-RUD:
+  reviewed: { text: "3da36b0a54b67f21", controls: "8d48d64e05920f87" }
   coverage: manual
   cadence: per-request
   manual_evidence:
@@ -658,6 +701,7 @@ KSI-SVC-RUD:
   note: Optional at Class B, required at Class C.
 
 KSI-SVC-SIN:
+  reviewed: { text: "4f734db9e3373bf9", controls: "e977e3e5b258d175" }
   coverage: partial
   cadence: daily
   checks:
@@ -694,6 +738,7 @@ KSI-SVC-SIN:
     - "\"Otherwise secured from unwanted modification\" is an integrity claim; only confidentiality is examined."
 
 KSI-SVC-VCM:
+  reviewed: { text: "156dbb20283fbb24", controls: "b9ed376512fa3dae" }
   coverage: partial
   cadence: daily
   checks:
@@ -728,6 +773,7 @@ KSI-SVC-VCM:
   note: Optional at Class B, required at Class C.
 
 KSI-SVC-VRI:
+  reviewed: { text: "2e40ea7e3ded5efa", controls: "164e127b75b07a82" }
   coverage: partial
   cadence: daily
   checks:

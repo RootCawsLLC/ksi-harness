@@ -1,8 +1,9 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 
+import { REVIEW_FIELDS, reviewFingerprints } from '../catalog/fingerprint.mjs';
 import { catalog, resolveIndicator } from '../catalog/ksi.mjs';
 import { CHECK_IDS } from '../collectors/registry.mjs';
 import { CONDITIONS } from './sufficiency.mjs';
@@ -61,7 +62,7 @@ export function loadRoutes({ path = ROUTES_PATH } = {}) {
  * Returns `{ ok, errors, warnings }` rather than throwing so the CLI can print every
  * problem at once; a validator that stops at the first error turns one fix into ten runs.
  */
-export function validateRoutes({ routes = loadRoutes(), klass = 'c' } = {}) {
+export function validateRoutes({ routes = loadRoutes(), klass = 'c', fingerprints = reviewFingerprints() } = {}) {
   const errors = [];
   const warnings = [];
   const indicators = catalog({ klass }).indicators;
@@ -93,6 +94,8 @@ export function validateRoutes({ routes = loadRoutes(), klass = 'c' } = {}) {
       errors.push(`${id}: coverage "${route.coverage}" is not one of ${COVERAGE_LEVELS.join(', ')}.`);
       continue;
     }
+
+    errors.push(...reviewErrors(id, route, fingerprints.get(id)));
 
     if (route.cadence !== undefined && !(route.cadence in CADENCES)) {
       errors.push(`${id}: cadence "${route.cadence}" is not one of ${Object.keys(CADENCES).join(', ')}.`);
@@ -210,6 +213,116 @@ export function validateRoutes({ routes = loadRoutes(), klass = 'c' } = {}) {
   }
 
   return { ok: errors.length === 0, errors, warnings };
+}
+
+const STALE = {
+  text:
+    'the indicator\'s statement, its cited terms, or what one of those terms means changed since this ' +
+    'route was reviewed. The reasoning below was written against the old wording and may no longer hold.',
+  controls:
+    'the indicator\'s 800-53 mappings, or FedRAMP\'s CTL values for them, changed since this route was ' +
+    'reviewed. Emitted SDR and OSCAL results credit this route\'s evidence to those controls, and any ' +
+    'reasoning or Rev5 material that relies on their values may no longer hold.',
+};
+
+/**
+ * The route stamp: which version of the indicator the route's reasoning was reviewed against.
+ *
+ * Required wherever the route claims something. An `unaddressed` route claims nothing a reword
+ * could inflate, and the generated baseline is entirely unaddressed and must validate on day
+ * one, so there the stamp is optional, but a stamp that is present is always checked: a stale
+ * one is a stale claim of review, at any level.
+ *
+ * There is deliberately no way to renew a stamp in bulk. Renewing is the review; a command that
+ * renewed everything would be the bypass this exists to prevent.
+ */
+function reviewErrors(id, route, current) {
+  const stamp = route.reviewed;
+  const renew = (fields) => `ksi routes reviewed ${id} --fields ${fields.join(',')}`;
+
+  if (stamp === undefined) {
+    if (route.coverage === 'unaddressed') return [];
+    return [
+      `${id}: coverage "${route.coverage}" requires "reviewed", the fingerprint of the indicator its reasoning ` +
+        `was written against. Without it a reworded indicator cannot be told apart from the one the route ` +
+        `describes. Read the route against \`ksi explain ${id}\`, then: ${renew(REVIEW_FIELDS)}`,
+    ];
+  }
+  if (stamp === null || typeof stamp !== 'object' || Array.isArray(stamp)) {
+    return [`${id}: "reviewed" must be a mapping of ${REVIEW_FIELDS.join(' and ')}. Write it with: ${renew(REVIEW_FIELDS)}`];
+  }
+
+  const errors = [];
+  for (const key of Object.keys(stamp)) {
+    if (!REVIEW_FIELDS.includes(key)) errors.push(`${id}: "reviewed.${key}" is not a review field (${REVIEW_FIELDS.join(', ')}).`);
+  }
+  for (const field of REVIEW_FIELDS) {
+    if (!stamp[field]) {
+      errors.push(`${id}: "reviewed.${field}" is missing, so this route was never reviewed against it. ${renew([field])}`);
+    } else if (stamp[field] !== current[field]) {
+      errors.push(
+        `${id}: ${STALE[field]} (reviewed.${field} ${stamp[field]}, pinned ${current[field]}.) ` +
+          `See what moved with \`ksi drift --base <ref before the bump>\`, re-read the route, then: ${renew([field])}`
+      );
+    }
+  }
+  return errors;
+}
+
+/**
+ * Renews the review stamp on named routes, in place.
+ *
+ * An edit to the one line rather than a YAML round trip: re-serializing would rewrap every folded
+ * argument in the file, and a diff that touches all the prose hides the one line a reviewer
+ * should be looking at. The stamp is written as a flow mapping directly under the route key so
+ * the edit stays a single line. The result is re-parsed and compared before anything is written,
+ * so a layout this cannot handle fails loudly instead of writing a stamp it did not mean to.
+ */
+export function stampReviewed({ ids, fields, path = ROUTES_PATH, fingerprints = reviewFingerprints() }) {
+  if (!ids.length) throw new Error('Name the routes you reviewed. There is no "all": renewing is the review.');
+  if (!fields.length || fields.some((f) => !REVIEW_FIELDS.includes(f))) {
+    throw new Error(`--fields must name one or more of ${REVIEW_FIELDS.join(', ')}.`);
+  }
+
+  const lines = readFileSync(path, 'utf8').split('\n');
+  const expected = {};
+
+  for (const id of ids) {
+    const current = fingerprints.get(id);
+    if (!current) throw new Error(`${id} is not an indicator in the pinned ruleset.`);
+
+    const header = lines.findIndex((l) => l === `${id}:` || l.startsWith(`${id}: `) || l.startsWith(`${id}:\t`));
+    if (header === -1) throw new Error(`${id} has no route in ${path}.`);
+    let end = header + 1;
+    while (end < lines.length && (lines[end] === '' || /^\s/.test(lines[end]))) end += 1;
+
+    const existing = loadRoutes({ path })[id]?.reviewed;
+    const at = lines.slice(header + 1, end).findIndex((l) => /^\s+reviewed:/.test(l));
+    if (at !== -1 && !/^ {2}reviewed: \{[^}]*\}\s*$/.test(lines[header + 1 + at])) {
+      throw new Error(`${id}: "reviewed" is not a one-line flow mapping; fix it by hand rather than have this guess.`);
+    }
+
+    const stamp = { ...(existing && typeof existing === 'object' ? existing : {}) };
+    for (const field of fields) stamp[field] = current[field];
+    // Quoted, because a hex digest is not always a YAML string: all digits reads as an integer
+    // and `123e4567...` as a float, and a stamp parsed as a number never matches anything.
+    const ordered = REVIEW_FIELDS.filter((f) => stamp[f]).map((f) => `${f}: "${stamp[f]}"`);
+    const line = `  reviewed: { ${ordered.join(', ')} }`;
+
+    if (at === -1) lines.splice(header + 1, 0, line);
+    else lines[header + 1 + at] = line;
+    expected[id] = Object.fromEntries(REVIEW_FIELDS.filter((f) => stamp[f]).map((f) => [f, stamp[f]]));
+  }
+
+  const text = lines.join('\n');
+  const reparsed = parse(text);
+  for (const [id, stamp] of Object.entries(expected)) {
+    if (JSON.stringify(reparsed[id]?.reviewed) !== JSON.stringify(stamp)) {
+      throw new Error(`${id}: the stamp did not land where intended; nothing was written.`);
+    }
+  }
+  writeFileSync(path, text, 'utf8');
+  return expected;
 }
 
 /** Reverse index: check id -> the indicators that claim it. */

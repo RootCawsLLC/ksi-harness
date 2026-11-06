@@ -22,6 +22,13 @@ are resolved from the pinned ruleset at run time.
   current.
 - Changing the pin is `npm run vendor:sync`, never a manual edit. `PINNED.json` records the hash and
   `npm run vendor:verify` fails the build if a vendored file drifts from it.
+- A bump is not done when the sync is. Every route carries a `reviewed` stamp: the fingerprint of
+  the indicator text (statement, class variants, cited terms and what those terms are defined to
+  mean) and of its 800-53 mappings with their CTL values, as the route was last read against. A term
+  FedRAMP redefines without touching any indicator still invalidates every route citing it. `routes:validate` fails on any stamp the new pin no longer matches.
+  `ksi drift --base <ref before the bump>` says what moved; re-read each named route, fix its prose
+  if the change broke it, then `ksi routes reviewed <ids> --fields text|controls`. There is no
+  renew-all on purpose: renewing is the review, and a bulk renew would be the bypass.
 - Catalog tests assert against the pinned ruleset on purpose. A ruleset bump is *expected* to move
   them — that is one of the places the harness notices the ground moved. Do not write assertions
   designed to survive any ruleset.
@@ -96,6 +103,9 @@ Read [ADR 0002](docs/adr/0002-coverage-honesty.md) before touching `routes.yaml`
   `tests/routes.test.mjs` guards the property directly now: every `automated` route carries an
   argument, a non-empty `holds_when`, and an `unautomated` gap for everywhere else. A promotion
   missing any of the three fails there. Promote deliberately, in the same commit, argument written.
+- `automated`, `partial` and `manual` require a `reviewed` stamp that matches the pinned ruleset
+  (see "Ground truth" above). Never write or edit one by hand to make validation pass; a stamp is a
+  statement that someone read the route against that exact text.
 - `partial` requires `unautomated` naming what the checks do not establish. Write it for a sceptical
   reader who will quote it back. It is printed in the coverage report and carried into the SDR.
 - `manual` requires an owner, an artifact and why automation is the wrong instrument. Manual is a
@@ -138,7 +148,7 @@ created it, and every linked worktree silently runs no hooks at all.
 
 ```bash
 npm run setup            # pin the commit identity AND arm .githooks (local config only)
-npm test                 # 465 tests
+npm test
 npm run policy           # policy unit tests + gate + negative control
 npm run vendor:verify    # the ruleset pin still matches
 npm run routes:validate  # routing map against catalog and registry

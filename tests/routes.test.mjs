@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import { reviewFingerprints } from '../src/catalog/fingerprint.mjs';
 import { catalog } from '../src/catalog/ksi.mjs';
 import { ALL_CHECKS, CHECK_IDS, duplicateCheckIds } from '../src/collectors/registry.mjs';
 import { CADENCES, COVERAGE_LEVELS, checkToIndicators, loadRoutes, validateRoutes } from '../src/routes/routes.mjs';
@@ -20,20 +21,24 @@ import { resolveSufficiency } from '../src/routes/sufficiency.mjs';
  */
 
 const KNOWN_CHECK = [...CHECK_IDS][0];
+const PINNED = reviewFingerprints();
+const reviewed = (id) => ({ ...PINNED.get(id) });
 
 /** A minimal valid route of each coverage level, to mutate in the negative cases below. */
 const valid = {
   // Sufficiency is a mapping rather than prose alone: the argument has to say which boundary it
   // is an argument about, and the route stays honest on boundaries the condition does not cover.
   automated: {
+    reviewed: reviewed('KSI-IAM-ELP'),
     coverage: 'automated',
     cadence: 'daily',
     checks: [KNOWN_CHECK],
     sufficiency: { holds_when: { providers_within: ['gcp'] }, argument: 'It settles the claim.' },
     unautomated: ['On a boundary the condition does not cover, this is what is missing.'],
   },
-  partial: { coverage: 'partial', cadence: 'daily', checks: [KNOWN_CHECK], unautomated: ['The rest is not automated.'] },
+  partial: { reviewed: reviewed('KSI-IAM-ELP'), coverage: 'partial', cadence: 'daily', checks: [KNOWN_CHECK], unautomated: ['The rest is not automated.'] },
   manual: {
+    reviewed: reviewed('KSI-CED-RAT'),
     coverage: 'manual',
     cadence: 'annual',
     checks: [],

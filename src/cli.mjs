@@ -20,7 +20,7 @@ import { coverageJson, coverageMarkdown, coverageText } from './report/coverage.
 import { diffLocker, diffMarkdown, diffText } from './report/diff.mjs';
 import { checkDrift, driftMarkdown } from './report/drift.mjs';
 import { buildBaseline } from './routes/baseline.mjs';
-import { checkToIndicators, loadRoutes, validateRoutes } from './routes/routes.mjs';
+import { checkToIndicators, loadRoutes, stampReviewed, validateRoutes } from './routes/routes.mjs';
 
 /**
  * Command line entry point.
@@ -73,6 +73,9 @@ const USAGE = `ksi-harness — continuous control monitoring for FedRAMP 20x
   ksi routes baseline [--class c] [--out FILE]
       A routing map for a new boundary: every applicable indicator, unaddressed.
 
+  ksi routes reviewed KSI-ID [KSI-ID...] --fields text,controls
+      Record that these routes were re-read against the pinned indicator. Names are required.
+
   ksi collect --profile F [--fixture DIR] [--out DIR] [--only aws|check.id]
       Run the collectors and write evidence bundles.
 
@@ -102,8 +105,9 @@ const USAGE = `ksi-harness — continuous control monitoring for FedRAMP 20x
   ksi notify --profile F [--evidence DIR] [--sink stdout] [--always]
       Deliver what changed since the last collection to the declared sink.
 
-  ksi drift [--md FILE]
+  ksi drift [--base REF] [--md FILE]
       Compare the pinned ruleset against upstream and name the routes affected.
+      --base compares the ruleset committed at a git ref against the pin instead: the review after a sync.
 `;
 
 async function main() {
@@ -215,7 +219,15 @@ async function main() {
         else process.stdout.write(text);
         return 0;
       }
-      if (sub !== 'validate') throw new Error('Usage: ksi routes validate | ksi routes baseline');
+      if (sub === 'reviewed') {
+        const fields = typeof flags.fields === 'string' ? flags.fields.split(',').map((f) => f.trim()) : [];
+        const stamped = stampReviewed({ ids: positional.slice(2), fields });
+        for (const [id, stamp] of Object.entries(stamped)) {
+          console.log(`${id}  reviewed: ${Object.entries(stamp).map(([k, v]) => `${k} ${v}`).join(', ')}`);
+        }
+        return 0;
+      }
+      if (sub !== 'validate') throw new Error('Usage: ksi routes validate | ksi routes baseline | ksi routes reviewed');
       const result = validateRoutes({ klass });
       for (const err of result.errors) console.error(`error   ${err}`);
       for (const warn of result.warnings) console.warn(`warning ${warn}`);
@@ -570,7 +582,12 @@ async function main() {
     }
 
     case 'drift': {
-      const diff = await checkDrift();
+      // `--base` with no value parses as true and `--base=` as '', and either falling through to the
+      // upstream comparison would answer a different question than the one asked.
+      if ('base' in flags && (typeof flags.base !== 'string' || !flags.base)) {
+        throw new Error('--base needs a git ref, for example: ksi drift --base main');
+      }
+      const diff = await checkDrift({ base: flags.base });
       if (flags.md) console.log(`wrote ${write(String(flags.md), driftMarkdown(diff))}`);
       else process.stdout.write(driftMarkdown(diff));
       return diff.ok ? 0 : 1;

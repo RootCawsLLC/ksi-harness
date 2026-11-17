@@ -483,6 +483,7 @@
         "tag": { "type": "string" },
         "alts": { "type": "array", "items": { "type": "string" } },
         "do_not_link": { "type": "boolean" },
+        "ignore_in_terms": { "type": "boolean" },
         "reference": { "type": "string" },
         "reference_url": { "type": "string", "format": "uri" },
         "referenceurl": { "type": "string", "format": "uri" },
@@ -607,6 +608,8 @@
         },
         "timeframe_type": { "$ref": "#/$defs/timeframe_type" },
         "timeframe_num": { "$ref": "#/$defs/positive_number" },
+        "timeframe_num_min": { "$ref": "#/$defs/positive_number" },
+        "timeframe_num_max": { "$ref": "#/$defs/positive_number" },
         "notification": {
           "type": "array",
           "items": {
@@ -617,7 +620,8 @@
               "method": { "$ref": "#/$defs/notification_method" },
               "target": { "type": "string" },
               "name": { "type": "string" },
-              "url": { "type": "string", "format": "uri" }
+              "url": { "type": "string", "format": "uri" },
+              "optional": { "type": "boolean" }
             },
             "additionalProperties": false
           }
@@ -631,8 +635,26 @@
         "updated": { "$ref": "#/$defs/updated_list" }
       },
       "dependentRequired": {
-        "timeframe_type": ["timeframe_num"],
-        "timeframe_num": ["timeframe_type"]
+        "timeframe_num": ["timeframe_type"],
+        "timeframe_num_min": ["timeframe_type", "timeframe_num_max"],
+        "timeframe_num_max": ["timeframe_type", "timeframe_num_min"]
+      },
+      "dependentSchemas": {
+        "timeframe_type": {
+          "oneOf": [
+            {
+              "properties": { "timeframe_num": {} },
+              "required": ["timeframe_num"]
+            },
+            {
+              "properties": {
+                "timeframe_num_min": {},
+                "timeframe_num_max": {}
+              },
+              "required": ["timeframe_num_min", "timeframe_num_max"]
+            }
+          ]
+        }
       },
       "additionalProperties": false
     },
@@ -798,7 +820,7 @@
     },
     "force_enum": {
       "type": "string",
-      "description": "Defines the force of a requirement or indicator.",
+      "description": "Defines the force of a requirement.",
       "enum": ["MUST", "MUST NOT", "SHOULD", "SHOULD NOT", "MAY"]
     },
     "applicability_key": {
@@ -807,11 +829,11 @@
     },
     "class_key": {
       "type": "string",
-      "enum": ["a", "b", "c", "d"]
+      "enum": ["a", "b", "c", "d", "g"]
     },
     "class_name": {
       "type": "string",
-      "enum": ["A", "B", "C", "D"]
+      "enum": ["A", "B", "C", "D", "G"]
     },
     "certification_type": {
       "type": "string",
@@ -895,7 +917,8 @@
         "required": ["date", "comment"],
         "properties": {
           "date": { "type": "string", "format": "date" },
-          "comment": { "type": "string" }
+          "comment": { "type": "string" },
+          "issue": { "type": "string", "format": "uri" }
         },
         "additionalProperties": false
       }

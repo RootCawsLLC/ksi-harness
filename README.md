@@ -23,7 +23,7 @@ npm run demo          # end to end against fixtures, no credentials needed
 ## The headline number is zero, and that is the point
 
 ```
-FedRAMP Consolidated Rules 2026.07.14.01  ·  Class C
+FedRAMP Consolidated Rules 2026.11.02.01  ·  Class C
 46 applicable indicators of 46 in the ruleset
 
 automated      0

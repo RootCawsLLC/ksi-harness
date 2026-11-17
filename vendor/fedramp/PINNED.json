@@ -1,64 +1,64 @@
 {
   "$comment": "Written by scripts/vendor-sync.mjs. Hand edits defeat the point: the hashes are what make a generated certification artifact reproducible against a known ruleset.",
-  "vendored_at": "2026-08-18T11:48:59.661Z",
-  "rules_version": "2026.07.14.01",
-  "rules_last_updated": "2026-07-14",
+  "vendored_at": "2026-11-06T17:45:04.621Z",
+  "rules_version": "2026.11.02.01",
+  "rules_last_updated": "2026-11-02",
   "sources": {
     "rules": {
       "repo": "FedRAMP/rules",
       "ref": "main",
       "path": "vendor/fedramp/fedramp-consolidated-rules.json",
       "url": "https://raw.githubusercontent.com/FedRAMP/rules/main/fedramp-consolidated-rules.json",
-      "bytes": 567435,
-      "sha256": "135707003f0aaa5ceb10d7d32c2681e5b1585a4eaf4403d0d135837787e5ae8e"
+      "bytes": 588800,
+      "sha256": "782faecae3eee4aa2aa9d32cdb0de4c929524f2e41dc1f3d143a94a9ca64c4e3"
     },
     "rules-schema": {
       "repo": "FedRAMP/rules",
       "ref": "main",
       "path": "vendor/fedramp/schemas/fedramp-consolidated-rules.schema.json",
       "url": "https://raw.githubusercontent.com/FedRAMP/rules/main/schemas/fedramp-consolidated-rules.schema.json",
-      "bytes": 27565,
-      "sha256": "ab0d267979ef7c3dd97cf253326d19725b6e945f3784364a8491091a47bdc147"
+      "bytes": 28409,
+      "sha256": "2fb59963b5b9161acb1354a2b76fda8b8a832275e1ac1ad93315c031ca350f8d"
     },
     "common-definitions": {
       "repo": "FedRAMP/schemas",
       "ref": "main",
       "path": "vendor/fedramp/schemas/fedramp-common-definitions-schema-2026-06-24.json",
       "url": "https://raw.githubusercontent.com/FedRAMP/schemas/main/fedramp-common-definitions-schema-2026-06-24.json",
-      "bytes": 8401,
-      "sha256": "13bed0a781e5e75c5cb923fc2b7d9e10330c06e0f21260a738dc8ed4d3349455"
+      "bytes": 9682,
+      "sha256": "b12a8d8bc2b7443c24114f4639ed49c9d3348c50b96519539a39cf3f76062c54"
     },
     "security-decision-record": {
       "repo": "FedRAMP/schemas",
       "ref": "main",
       "path": "vendor/fedramp/schemas/fedramp-security-decision-record-schema-2026-06-24.json",
       "url": "https://raw.githubusercontent.com/FedRAMP/schemas/main/fedramp-security-decision-record-schema-2026-06-24.json",
-      "bytes": 10748,
-      "sha256": "aba4386befcd9e6642fafee02821857f4a0daa11eafd5051a52bce209443040f"
+      "bytes": 11593,
+      "sha256": "94580404e8d4276ee3ced2a3c39cce5cc6565df6ae38a91f60f26cb96d833188"
     },
     "ongoing-certification-report": {
       "repo": "FedRAMP/schemas",
       "ref": "main",
       "path": "vendor/fedramp/schemas/fedramp-ongoing-certification-report-schema-2026-06-24.json",
       "url": "https://raw.githubusercontent.com/FedRAMP/schemas/main/fedramp-ongoing-certification-report-schema-2026-06-24.json",
-      "bytes": 4987,
-      "sha256": "f691ce3571337bed24cc81d8ef1c832a1e28e22b6b6238379208b86f0283feb3"
+      "bytes": 4947,
+      "sha256": "fe5af00f292e177333a203da5058b44e31a9f7c7d4932b43415078ff9ad406ac"
     },
     "certification-package-overview": {
       "repo": "FedRAMP/schemas",
       "ref": "main",
       "path": "vendor/fedramp/schemas/fedramp-certification-package-overview-schema-2026-06-24.json",
       "url": "https://raw.githubusercontent.com/FedRAMP/schemas/main/fedramp-certification-package-overview-schema-2026-06-24.json",
-      "bytes": 15672,
-      "sha256": "331b22a8437da8117c0e5ac0514dde3c73e4a38427da9e1e230fe2c3c52998a4"
+      "bytes": 16152,
+      "sha256": "37e796345509c3528fc369233d986a0e7a31fcbcc9187229729b8ba05fe32f12"
     },
     "significant-change-notifications": {
       "repo": "FedRAMP/schemas",
       "ref": "main",
       "path": "vendor/fedramp/schemas/fedramp-significant-change-notifications-schema-2026-06-24.json",
       "url": "https://raw.githubusercontent.com/FedRAMP/schemas/main/fedramp-significant-change-notifications-schema-2026-06-24.json",
-      "bytes": 4575,
-      "sha256": "b627ed012781ad0e8a70d94f0dede731a7364343e8ce5f701ce268b70075751d"
+      "bytes": 4507,
+      "sha256": "fa8b6ad150b752320a08641b962a9d4ed1162c8fe31bd5835fccc12243faee37"
     },
     "vulnerability-detail-report": {
       "repo": "FedRAMP/schemas",
@@ -73,24 +73,24 @@
       "ref": "main",
       "path": "vendor/fedramp/schemas/fedramp-incident-report-schema-2026-06-24.json",
       "url": "https://raw.githubusercontent.com/FedRAMP/schemas/main/fedramp-incident-report-schema-2026-06-24.json",
-      "bytes": 6500,
-      "sha256": "45bc7494faaaa74f374b27d744318efdf394275e4230499804ef779c47b62fe9"
+      "bytes": 6420,
+      "sha256": "d11a78cba248c1fd32005fe369d09f495bfd101218056924239b6d9ac2c9bc40"
     },
     "assessor-information": {
       "repo": "FedRAMP/schemas",
       "ref": "main",
       "path": "vendor/fedramp/schemas/fedramp-assessor-information-schema-2026-06-24.json",
       "url": "https://raw.githubusercontent.com/FedRAMP/schemas/main/fedramp-assessor-information-schema-2026-06-24.json",
-      "bytes": 3208,
-      "sha256": "1dc4b7a8fbd279c490cae95ceefc42ea0096920f64dfe7e145f1ccc91fe656ca"
+      "bytes": 3373,
+      "sha256": "cdca297032031a034294129245ecc0366cb38cb81f04e4254254c8dc8dfafafe"
     },
     "advisor-information": {
       "repo": "FedRAMP/schemas",
       "ref": "main",
       "path": "vendor/fedramp/schemas/fedramp-advisor-information-schema-2026-06-24.json",
       "url": "https://raw.githubusercontent.com/FedRAMP/schemas/main/fedramp-advisor-information-schema-2026-06-24.json",
-      "bytes": 2875,
-      "sha256": "971d73baf9a76ea7b5e40e35064b4daf231243171526459db0ab665a506274e6"
+      "bytes": 2628,
+      "sha256": "fd81993cbd991bc49c53192c6a0f12ea710e1f05920d89a3c62de2c0b40c8c89"
     },
     "accepted-vulnerability-info": {
       "repo": "FedRAMP/schemas",

@@ -54,6 +54,15 @@ README described it as tamper detection.
 
 ### Fixed
 
+- **The third-party register declared hosts it never named.** Reconciliation accepted any
+  substring and matched entry names as well as hosts, so an entry named "Box" declared
+  `dropbox.com` and `sandbox-exfil.net`, and one named "Slack" declared
+  `slack-export.attacker.example`. Those are undeclared third parties graded as declared, which is
+  the one result the reconciliation exists to prevent. A declared host now covers itself and its
+  subdomains on a dot boundary, nothing else. Names are never matched, and an entry with no `hosts`
+  matches nothing, so its integrations surface as undeclared rather than passing silently.
+  `thirdparty.register.review` moves to `1.1.0`: a `pass` before this release may legitimately be a
+  `fail` after it, and the bundle should say which grader produced it.
 - **A population that decided nothing reported `pass`.** `deriveResult` had no guard for zero
   decidable items, so a region with no security groups, a window in which every commit was a merge
   commit, or a token that could see no repositories produced an empty, complete, failure-free

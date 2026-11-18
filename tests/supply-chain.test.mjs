@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { DEFAULT_SLA_DAYS, gradeDependencyAlerts } from '../src/collectors/github/dependencies.mjs';
-import { gradeRegister, registerFrom } from '../src/collectors/thirdparty/register.mjs';
+import { coversHost, gradeRegister, registerFrom } from '../src/collectors/thirdparty/register.mjs';
 import { buildBundle } from '../src/evidence/bundle.mjs';
 
 /**
@@ -154,6 +154,52 @@ test('an observed integration matching no register entry is an undeclared depend
   const undeclared = graded.items.find((i) => i.id.includes('sentry.io'));
   assert.equal(undeclared.status, 'fail');
   assert.match(undeclared.detail, /no register entry mentions it/);
+});
+
+// Exact or a dot-boundary suffix, nothing looser. The match used to be a substring over names as
+// well as hosts, and every host below except the last three was graded as declared.
+test('a host that only resembles a declared one is undeclared, not matched', () => {
+  const graded = gradeRegister(
+    [
+      { name: 'Slack', certified: true, fedramp_id: 'FR3', owner: 'IT', attestation: { date: '2026-06-01' }, hosts: ['slack.com'] },
+      { name: 'Box', certified: false, owner: 'IT', resolution: { plan: 'p', target_date: '2027-01-01' }, hosts: ['box.com'] },
+    ],
+    [
+      'slack-export.attacker.example', // contains an entry name
+      'dropbox.com', //                   contains a declared host, no dot boundary
+      'sandbox-exfil.net', //             contains an entry name mid-word
+      'notslack.com', //                  suffix of a declared host, no dot boundary
+      'slack.com.attacker.example', //    a declared host as a prefix
+      'hooks.slack.com', //               a subdomain: declared
+      'slack.com', //                     exact: declared
+      'BOX.COM.', //                      case and a trailing root dot: still box.com
+    ].map((host) => ({ source: 'a/b', host })),
+    { now: NOW }
+  );
+  const status = (host) => graded.items.find((i) => i.id === `integration/a/b/${host}`)?.status;
+  for (const host of ['slack-export.attacker.example', 'dropbox.com', 'sandbox-exfil.net', 'notslack.com', 'slack.com.attacker.example']) {
+    assert.equal(status(host), 'fail', `${host} must not count as declared`);
+  }
+  assert.equal(status('hooks.slack.com'), 'pass');
+  assert.equal(status('slack.com'), 'pass');
+  assert.equal(status('box.com'), 'pass', 'normalised before matching');
+});
+
+test('an entry name is not a host, so an entry declaring no hosts matches nothing', () => {
+  const graded = gradeRegister(
+    [{ name: 'sentry.io', certified: false, owner: 'Eng', resolution: { plan: 'p', target_date: '2027-01-01' } }],
+    [{ source: 'a/b', host: 'sentry.io' }],
+    { now: NOW }
+  );
+  assert.equal(graded.items.find((i) => i.id === 'integration/a/b/sentry.io').status, 'fail');
+});
+
+test('a single-label declaration covers only itself, never every host beneath it', () => {
+  assert.equal(coversHost('com', 'attacker.com'), false);
+  assert.equal(coversHost('internal', 'build.internal'), false);
+  assert.equal(coversHost('internal', 'internal'), true);
+  assert.equal(coversHost('', 'anything.example'), false);
+  assert.equal(coversHost('example.com', ''), false);
 });
 
 test('the denominator spans both the declaration and the observation', () => {

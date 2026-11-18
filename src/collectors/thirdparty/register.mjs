@@ -3,7 +3,7 @@ import { api, resolveRepos } from '../lib/github.mjs';
 import { fixtureScope, loadFixture } from '../lib/fixtures.mjs';
 import { passRate } from '../lib/grade.mjs';
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.1.0';
 export const PATH = 'src/collectors/thirdparty/register.mjs';
 
 export const CHECKS = [
@@ -126,12 +126,10 @@ export function gradeRegister(register, observed, { now = Date.now(), unexamined
 
   // The observed side. A destination the register does not mention is a third party
   // receiving data that nobody assessed.
-  const declaredHosts = new Set(
-    register.flatMap((e) => [e.name?.toLowerCase(), ...(e.hosts ?? []).map((h) => h.toLowerCase())]).filter(Boolean)
-  );
+  const declaredHosts = register.flatMap((e) => (e.hosts ?? []).map(normaliseHost)).filter(Boolean);
   for (const integration of observed) {
-    const host = String(integration.host ?? '').toLowerCase();
-    const matched = [...declaredHosts].some((declared) => host === declared || host.endsWith(`.${declared}`) || host.includes(declared));
+    const host = normaliseHost(integration.host);
+    const matched = declaredHosts.some((declared) => coversHost(declared, host));
     items.push(
       matched
         ? {
@@ -250,6 +248,29 @@ export async function collect({ profile, collectedAt, fixture, sourceCommit, pre
       ...gradeRegister(register, observed, { now: Date.parse(collectedAt), unexamined }),
     }),
   ];
+}
+
+/**
+ * Whether a declared host covers an observed one: the host itself, or a subdomain of it.
+ *
+ * Exact, or a suffix on a dot boundary, and nothing looser. This used to accept any substring and
+ * to match entry names as well as hosts, so a register naming "Box" declared dropbox.com and
+ * sandbox-exfil.net, and one naming "Slack" declared slack-export.attacker.example: an undeclared
+ * third party graded as declared, the one result this reconciliation exists to prevent.
+ *
+ * A name is not a host. An entry with no `hosts` matches nothing, and the integrations it receives
+ * show up as undeclared until it says where they go. That is the loud failure, and the right one.
+ * A single-label declaration ("com", "internal") covers only itself: as a suffix it would declare
+ * every host under it.
+ */
+export function coversHost(declared, host) {
+  if (!declared || !host) return false;
+  return host === declared || (declared.includes('.') && host.endsWith(`.${declared}`));
+}
+
+/** Case and a trailing root dot do not make a different host. */
+function normaliseHost(raw) {
+  return String(raw ?? '').trim().toLowerCase().replace(/\.$/, '');
 }
 
 /**

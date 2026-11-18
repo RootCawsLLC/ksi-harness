@@ -233,8 +233,11 @@ const STALE = {
  * one, so there the stamp is optional, but a stamp that is present is always checked: a stale
  * one is a stale claim of review, at any level.
  *
- * There is deliberately no way to renew a stamp in bulk. Renewing is the review; a command that
- * renewed everything would be the bypass this exists to prevent.
+ * Renewal takes named routes and has no "all". That stops an accidental blanket renewal, not a
+ * deliberate one: a loop over every id produces the same stamps without anyone reading anything.
+ * What the stamp guarantees is that a changed indicator cannot land silently, because every
+ * renewal is a line in the routes.yaml diff. Whether the route was read is for the owner reviewing
+ * that diff to judge, which is why the guarantee is stated this narrowly.
  */
 function reviewErrors(id, route, current) {
   const stamp = route.reviewed;
@@ -279,7 +282,7 @@ function reviewErrors(id, route, current) {
  * so a layout this cannot handle fails loudly instead of writing a stamp it did not mean to.
  */
 export function stampReviewed({ ids, fields, path = ROUTES_PATH, fingerprints = reviewFingerprints() }) {
-  if (!ids.length) throw new Error('Name the routes you reviewed. There is no "all": renewing is the review.');
+  if (!ids.length) throw new Error('Name the routes you reviewed; renewal has no "all", so each one shows in the diff.');
   if (!fields.length || fields.some((f) => !REVIEW_FIELDS.includes(f))) {
     throw new Error(`--fields must name one or more of ${REVIEW_FIELDS.join(', ')}.`);
   }

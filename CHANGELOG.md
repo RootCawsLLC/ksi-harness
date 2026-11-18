@@ -108,6 +108,13 @@ README described it as tamper detection.
   touches, which 800-53 controls they carry, what the evidence says about each today.
 - `SECURITY.md`, `CONTRIBUTING.md`, `CODEOWNERS`, a pull-request template, dependabot for both
   ecosystems, and `npm audit` in CI.
+- **Route review stamps.** Every route in `routes.yaml` records a fingerprint of the indicator it
+  was last reviewed against: the statement, its class variants and the definitions of the terms it
+  cites, and the 800-53 mappings with their CTL values. `routes:validate` fails when the pinned
+  ruleset no longer matches, so an indicator FedRAMP changes cannot land silently: each renewal is
+  a visible line in the `routes.yaml` diff. The stamp does not show the route was read. Anyone can
+  renew every stamp in a loop, so owner review of that diff is the control.
+  `ksi drift --base <ref>` shows what moved after a sync, and `ksi routes reviewed` renews stamps.
 
 ### Changed
 
@@ -116,6 +123,14 @@ README described it as tamper detection.
 - AWS SDK optional dependencies are pinned to a floor version rather than `^3.x`.
 - Collector versions bumped to `2.0.0` where the population contract changed, so a bundle from
   before this release is not silently compared against one from after it.
+- **The FedRAMP ruleset moves to 2026.11.02.01** (from 2026.07.14.01). 43 of 46 indicators changed,
+  40 of them in their 800-53 mappings, and the control index grows from 209 to 302 controls.
+- **Emitted SDR and OSCAL output now credits evidence to more controls.** Those artifacts carry
+  each indicator's mappings from the ruleset (ADR 0004), so the same evidence that supported a
+  route before is now listed against FedRAMP's new mappings, for example 18 more controls for
+  KSI-IAM-ELP and 19 more for KSI-SCR-MIT. Nothing about the evidence changed; what it is reported
+  against did. An artifact generated before this release and one generated after it list
+  different control sets for the same evidence.
 
 ## 0.1.0
 

@@ -208,14 +208,31 @@ test('a 40-character commit revision is a pass', () => {
   assert.equal(verdict.kind, 'pinned');
 });
 
+// Only a full revision is immutable. An abbreviated one is ambiguous, and in `uses:` a short hex
+// string can resolve as a branch or tag of that name, so it is graded as the mutable ref it may be.
+test('an abbreviated commit revision is not pinned', () => {
+  for (const ref of ['third/party@8f4b7c2', 'third/party@8f4b7c2a1d3e5f60718293a4b5c6d7e8f901234']) {
+    const verdict = classifyUse({ ref });
+    assert.notEqual(verdict.kind, 'pinned', `${ref} is not a full revision`);
+    assert.equal(verdict.status, 'fail');
+  }
+  assert.equal(classifyUse({ ref: 'actions/checkout@8f4b7c2a1d3e' }).status, 'warn', 'first-party: a tag, not a pin');
+});
+
 test('a third-party mutable tag fails and a first-party one warns', () => {
   assert.equal(classifyUse({ ref: 'third/party@v2' }).status, 'fail');
   assert.equal(classifyUse({ ref: 'actions/checkout@v4' }).status, 'warn');
   assert.equal(classifyUse({ ref: 'github/codeql-action@v3' }).status, 'warn');
 });
 
-test('a reference with no revision at all fails', () => {
-  assert.equal(classifyUse({ ref: 'third/party' }).status, 'fail');
+// First-party included. With no revision the ref follows the default branch, which is mutable in a
+// way a tag is not even pretending to avoid, so the first-party leniency for tags does not reach it.
+test('a reference with no revision at all fails, first-party or not', () => {
+  for (const ref of ['third/party', 'actions/checkout', 'github/codeql-action']) {
+    const verdict = classifyUse({ ref });
+    assert.equal(verdict.status, 'fail', ref);
+    assert.equal(verdict.kind, 'unpinned', ref);
+  }
 });
 
 // Local and container references are a different provenance question, so they stay out of the

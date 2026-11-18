@@ -564,8 +564,8 @@ KSI-RPL-RRO:
     artifact: RTO/RPO definitions with the business-need and capability analysis behind them
     why_not_automated: >
       The objectives are an input to the program, not an output of it. Declaring them in
-      machine-readable form is what unblocks KSI-RPL-ABO and KSI-CNA-OFA, so this manual
-      artifact is a prerequisite for two automated ones.
+      machine-readable form is what would let KSI-RPL-ABO and KSI-CNA-OFA be checked against
+      them, so this manual artifact is a prerequisite for automating either.
 
 KSI-RPL-TRC:
   reviewed: { text: "23566e3100f419cc", controls: "80d1911baecceb3c" }

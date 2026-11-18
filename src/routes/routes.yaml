@@ -597,7 +597,10 @@ KSI-SCR-MIT:
       dependencies are reconciled against outbound integrations observed in the estate, so a
       destination nobody wrote down is a finding. That observation is webhooks only:
       installed GitHub Apps are the richer signal and need organization-admin scope, and SaaS
-      reached from outside the code host is not visible at all.
+      reached from outside the code host is not visible at all. A declared host also covers its
+      subdomains, so declaring a shared-hosting parent such as mongodb.net or google.com also
+      covers endpoints other tenants control there. A register that means one service on such a
+      domain has to name that service's host, not the parent.
     - >
       "Review" is evidenced only indirectly. A certified dependency's attestation must fall
       within its refresh interval, a year unless the register sets one, and a non-certified

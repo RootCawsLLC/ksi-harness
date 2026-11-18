@@ -63,11 +63,13 @@ If you cannot write the sufficiency argument, the honest level is `partial` with
   own workflows, so a tag will fail CI.
 - Vendored FedRAMP files are pinned by SHA-256 in `vendor/fedramp/PINNED.json`. Never edit one by
   hand; run `npm run vendor:sync`.
-- A ruleset bump fails `routes:validate` until every route whose indicator moved has been re-read.
-  Each route carries a `reviewed` stamp, the fingerprint of what it was last read against: the
-  indicator text with the definitions of the terms it cites, and its 800-53 mappings with their CTL
-  values. `ksi drift --base main` names what moved; re-read those routes, fix
-  any prose the change broke, then renew with `ksi routes reviewed <ids> --fields text|controls`.
+- A ruleset bump fails `routes:validate` until every route whose indicator moved has its stamp
+  renewed. Each route carries a `reviewed` stamp, the fingerprint of what it was last read against:
+  the indicator text with the definitions of the terms it cites, and its 800-53 mappings with their
+  CTL values. `ksi drift --base main` names what moved; re-read those routes, fix any prose the
+  change broke, then renew with `ksi routes reviewed <ids> --fields text|controls`. The stamp makes
+  the change visible, not read: renewals can be scripted, so the owner review of the `routes.yaml`
+  diff is what the acknowledgement rests on.
   Keep the stamp renewals in the same commit as the sync, so the reviewer sees each acknowledgement
   next to the change it acknowledges. A PR that renews a stamp without saying what was re-read will
   be asked to.

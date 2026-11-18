@@ -24,11 +24,15 @@ are resolved from the pinned ruleset at run time.
   `npm run vendor:verify` fails the build if a vendored file drifts from it.
 - A bump is not done when the sync is. Every route carries a `reviewed` stamp: the fingerprint of
   the indicator text (statement, class variants, cited terms and what those terms are defined to
-  mean) and of its 800-53 mappings with their CTL values, as the route was last read against. A term
-  FedRAMP redefines without touching any indicator still invalidates every route citing it. `routes:validate` fails on any stamp the new pin no longer matches.
-  `ksi drift --base <ref before the bump>` says what moved; re-read each named route, fix its prose
-  if the change broke it, then `ksi routes reviewed <ids> --fields text|controls`. There is no
-  renew-all on purpose: renewing is the review, and a bulk renew would be the bypass.
+  mean) and of its 800-53 mappings with their CTL values, as the route was last read against. A
+  term FedRAMP redefines without touching any indicator still invalidates every route citing it.
+  `routes:validate` fails on any stamp the new pin no longer matches. `ksi drift --base <ref before
+  the bump>` says what moved; re-read each named route, fix its prose if the change broke it, then
+  `ksi routes reviewed <ids> --fields text|controls`.
+- Know what the stamp proves. It makes a changed indicator impossible to land *silently*: every
+  renewal is a line in the `routes.yaml` diff. It does not prove the route was read, because a loop
+  over every id renews them all without anyone reading anything. Owner review of that diff is the
+  control, so never renew a stamp you have not re-read, and say in the PR what you re-read.
 - Catalog tests assert against the pinned ruleset on purpose. A ruleset bump is *expected* to move
   them — that is one of the places the harness notices the ground moved. Do not write assertions
   designed to survive any ruleset.

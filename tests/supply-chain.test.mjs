@@ -139,6 +139,20 @@ test('a certified dependency with a lapsed attestation is not evidence of a curr
   assert.match(lapsed.items[0].detail, /lapsed attestation is not evidence/);
 });
 
+// Without this branch the age check compares against NaN, which is never greater than the refresh
+// interval, so an unattested certification would quietly pass.
+test('a certified dependency with no attestation date fails rather than passing on nothing', () => {
+  for (const attestation of [undefined, {}, { refresh_days: 30 }]) {
+    const graded = gradeRegister(
+      [{ name: 'X', certified: true, fedramp_id: 'FR9', owner: 'o', attestation }],
+      [],
+      { now: NOW }
+    );
+    assert.equal(graded.items[0].status, 'fail', JSON.stringify(attestation));
+    assert.match(graded.items[0].detail, /no attestation date/);
+  }
+});
+
 // The finding the reconciliation exists for. A register checked only against itself confirms
 // that a document says what it says.
 test('an observed integration matching no register entry is an undeclared dependency', () => {

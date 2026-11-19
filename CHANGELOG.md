@@ -100,6 +100,14 @@ README described it as tamper detection.
 - **One corrupt bundle took down the whole report.** `readLocker` now reports unparseable files
   instead of throwing.
 - **`pages()` could loop forever** on a service that echoed its own pagination token.
+- **Buckets outside the collection region were left unexamined.** Buckets are listed
+  account-wide, but the S3 client was bound to the account's first declared region, and a bucket in
+  any other region answers `301 PermanentRedirect`. Every bucket outside that region became an
+  unexamined item in `aws.data.encryption-at-rest` and `aws.transit.tls-enforcement`, and a trail
+  bucket in another region would do the same to `aws.logging.log-access`. An honest gap, but one
+  that grows with every region an account uses. The S3 client now follows the redirect to the region
+  named in `x-amz-bucket-region`, with no extra call and no new permission. `aws.data` and
+  `aws.logging` move to `2.0.1`, `aws.transit` to `1.0.1`.
 
 ### Added
 

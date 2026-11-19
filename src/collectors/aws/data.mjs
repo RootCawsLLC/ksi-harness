@@ -11,7 +11,7 @@ import {
   service,
 } from '../lib/aws.mjs';
 
-export const VERSION = '2.0.0';
+export const VERSION = '2.0.1';
 export const PATH = 'src/collectors/aws/data.mjs';
 
 export const CHECKS = [

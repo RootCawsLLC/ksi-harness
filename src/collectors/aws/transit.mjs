@@ -12,7 +12,7 @@ import {
 } from '../lib/aws.mjs';
 import { compareTlsVersion, elbPolicyFloor, resolveMinTlsVersion, resolveMutualAuthRequired } from '../lib/transit.mjs';
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.0.1';
 export const PATH = 'src/collectors/aws/transit.mjs';
 
 export const CHECKS = [

@@ -28,7 +28,10 @@ const CLIENT_MODULES = {
   iam: ['@aws-sdk/client-iam', 'IAMClient'],
   kms: ['@aws-sdk/client-kms', 'KMSClient'],
   logs: ['@aws-sdk/client-cloudwatch-logs', 'CloudWatchLogsClient'],
-  s3: ['@aws-sdk/client-s3', 'S3Client'],
+  // Buckets are listed account-wide but answer only in their own region. Without this, a bucket
+  // outside the client's region returns 301 PermanentRedirect and drops out of the population as
+  // unexamined. The SDK retries in the region named by x-amz-bucket-region, with no extra call.
+  s3: ['@aws-sdk/client-s3', 'S3Client', { followRegionRedirects: true }],
   secretsmanager: ['@aws-sdk/client-secrets-manager', 'SecretsManagerClient'],
   sts: ['@aws-sdk/client-sts', 'STSClient'],
 };
@@ -47,7 +50,7 @@ const CLIENT_MODULES = {
 export async function service(name, region, credentials = undefined) {
   const entry = CLIENT_MODULES[name];
   if (!entry) throw new Error(`Unknown AWS service "${name}". Known: ${Object.keys(CLIENT_MODULES).join(', ')}`);
-  const [moduleName, className] = entry;
+  const [moduleName, className, options = {}] = entry;
 
   let sdk;
   try {
@@ -58,7 +61,7 @@ export async function service(name, region, credentials = undefined) {
         `install and test without it. Run: npm install ${moduleName}`
     );
   }
-  return { client: new sdk[className]({ region, credentials }), sdk };
+  return { client: new sdk[className]({ ...options, region, credentials }), sdk };
 }
 
 /**

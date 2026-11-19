@@ -28,7 +28,10 @@ const CLIENT_MODULES = {
   iam: ['@aws-sdk/client-iam', 'IAMClient'],
   kms: ['@aws-sdk/client-kms', 'KMSClient'],
   logs: ['@aws-sdk/client-cloudwatch-logs', 'CloudWatchLogsClient'],
-  s3: ['@aws-sdk/client-s3', 'S3Client'],
+  // Buckets are listed account-wide but answer only in their own region. Without this, a bucket
+  // outside the client's region returns 301 PermanentRedirect and drops out of the population as
+  // unexamined. The SDK retries in the region named by x-amz-bucket-region, with no extra call.
+  s3: ['@aws-sdk/client-s3', 'S3Client', { followRegionRedirects: true }],
   secretsmanager: ['@aws-sdk/client-secrets-manager', 'SecretsManagerClient'],
   sts: ['@aws-sdk/client-sts', 'STSClient'],
 };
@@ -47,7 +50,7 @@ const CLIENT_MODULES = {
 export async function service(name, region, credentials = undefined) {
   const entry = CLIENT_MODULES[name];
   if (!entry) throw new Error(`Unknown AWS service "${name}". Known: ${Object.keys(CLIENT_MODULES).join(', ')}`);
-  const [moduleName, className] = entry;
+  const [moduleName, className, options = {}] = entry;
 
   let sdk;
   try {
@@ -58,7 +61,7 @@ export async function service(name, region, credentials = undefined) {
         `install and test without it. Run: npm install ${moduleName}`
     );
   }
-  return { client: new sdk[className]({ region, credentials }), sdk };
+  return { client: new sdk[className]({ ...options, region, credentials }), sdk };
 }
 
 /**
@@ -86,6 +89,27 @@ export async function pages(client, CommandClass, input, extract, tokenIn = 'Nex
 }
 
 /**
+ * Every bucket in the account, with the region it lives in.
+ *
+ * The paginated form, for two reasons. Unpaginated ListBuckets stops at the account's bucket
+ * quota, which is the truncated population `pages()` exists to prevent. And only the paginated
+ * form returns BucketRegion, which is what lets each graded bucket say where it was read. Same
+ * permission (s3:ListAllMyBuckets), no extra call. `region` is null when S3 leaves it out:
+ * "not stated" rather than a guess at the client's region.
+ */
+export async function listBuckets(client, sdk) {
+  const listed = await pages(
+    client,
+    sdk.ListBucketsCommand,
+    { MaxBuckets: 1000 },
+    (r) => r.Buckets,
+    'ContinuationToken',
+    'ContinuationToken'
+  );
+  return listed.map((b) => ({ name: b.Name, region: b.BucketRegion ?? null }));
+}
+
+/**
  * Swallows the "this resource has no such configuration" errors that AWS reports as
  * exceptions rather than empty responses, and only those.
  *
@@ -100,6 +124,19 @@ export async function optional(promise, absentErrorNames) {
     if (absentErrorNames.includes(err.name) || absentErrorNames.includes(err.Code)) return null;
     throw err;
   }
+}
+
+/**
+ * The reason an unexamined entry records for a failed call.
+ *
+ * The error name leads because the message alone can be empty of meaning: IAM returns some
+ * modeled errors with no message, and the SDK fills in "Unknown", which is not evidence of
+ * anything a reader could act on.
+ */
+export function errorReason(err) {
+  const message = err?.message ?? String(err);
+  const name = err?.name;
+  return name && name !== 'Error' && !message.includes(name) ? `${name}: ${message}` : message;
 }
 
 /** Who the ambient credential actually is. Recorded in scope so evidence names its own source. */
@@ -194,7 +231,7 @@ export async function perAccount(profile, fn, { sessionName = 'ksi-harness' } = 
       try {
         credentials = await assumeRole(roleArn, region, sessionName);
       } catch (err) {
-        unexamined.push({ id: `account/${account.id}`, reason: `could not assume ${roleArn}: ${err.message}` });
+        unexamined.push({ id: `account/${account.id}`, reason: `could not assume ${roleArn}: ${errorReason(err)}` });
         continue;
       }
     }
@@ -203,7 +240,7 @@ export async function perAccount(profile, fn, { sessionName = 'ksi-harness' } = 
       const graded = await fn({ account, region, regions: account.regions ?? [region], credentials, roleArn });
       parts.push({ scope: account.id, graded });
     } catch (err) {
-      unexamined.push({ id: `account/${account.id}`, reason: err.message });
+      unexamined.push({ id: `account/${account.id}`, reason: errorReason(err) });
     }
   }
 

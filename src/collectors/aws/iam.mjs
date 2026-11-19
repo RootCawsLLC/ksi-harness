@@ -1,5 +1,6 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
 import {
+  errorReason,
   fixtureScope,
   loadFixture,
   mergeGraded,
@@ -10,7 +11,7 @@ import {
   service,
 } from '../lib/aws.mjs';
 
-export const VERSION = '2.0.0';
+export const VERSION = '2.0.1';
 export const PATH = 'src/collectors/aws/iam.mjs';
 
 export const CHECKS = [
@@ -350,15 +351,27 @@ export function gradePrivilegedAccess(principals, { enumerated = null, unexamine
 
 /* ------------------------------------------------------------------ fetching */
 
+/**
+ * What GetCredentialReport throws while there is no usable report: none yet, one still being
+ * generated, or one older than four hours. Each means "generate and wait", never "no users".
+ *
+ * These are the SDK's modeled class names, which is what `err.name` carries for IAM. The names
+ * this used before (`ReportNotPresentException`, `ReportInProgressException`) exist nowhere, so
+ * the first call threw and the account went unexamined unless someone had generated a report in
+ * the last four hours. `tests/aws-error-names.test.mjs` checks each against the installed SDK.
+ */
+export const CREDENTIAL_REPORT_PENDING = [
+  'CredentialReportNotPresentException',
+  'CredentialReportNotReadyException',
+  'CredentialReportExpiredException',
+];
+
 async function fetchCredentialReport(region, credentials) {
   const { client, sdk } = await service('iam', region, credentials);
   // The report is generated asynchronously. GenerateCredentialReport is idempotent and
   // returns STARTED or COMPLETE; GetCredentialReport throws until one exists.
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const got = await optional(client.send(new sdk.GetCredentialReportCommand({})), [
-      'ReportNotPresentException',
-      'ReportInProgressException',
-    ]);
+    const got = await optional(client.send(new sdk.GetCredentialReportCommand({})), CREDENTIAL_REPORT_PENDING);
     if (got?.Content) return Buffer.from(got.Content).toString('utf8');
     await client.send(new sdk.GenerateCredentialReportCommand({}));
     await new Promise((r) => setTimeout(r, 2000));
@@ -439,7 +452,7 @@ async function fetchPrincipals(region, credentials) {
     try {
       principals.push(await describe('user', user.UserName, null, user.PermissionsBoundary?.PermissionsBoundaryArn));
     } catch (err) {
-      unexamined.push({ id: `user/${user.UserName}`, reason: err.message });
+      unexamined.push({ id: `user/${user.UserName}`, reason: errorReason(err) });
     }
   }
   for (const role of gradableRoles) {
@@ -447,7 +460,7 @@ async function fetchPrincipals(region, credentials) {
       const trust = role.AssumeRolePolicyDocument ? JSON.parse(decodeURIComponent(role.AssumeRolePolicyDocument)) : null;
       principals.push(await describe('role', role.RoleName, trust, role.PermissionsBoundary?.PermissionsBoundaryArn));
     } catch (err) {
-      unexamined.push({ id: `role/${role.RoleName}`, reason: err.message });
+      unexamined.push({ id: `role/${role.RoleName}`, reason: errorReason(err) });
     }
   }
 

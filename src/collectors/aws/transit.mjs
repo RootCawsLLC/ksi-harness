@@ -1,8 +1,19 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { fixtureScope, loadFixture, mergeGraded, optional, pages, passRate, perAccount, service } from '../lib/aws.mjs';
+import {
+  errorReason,
+  fixtureScope,
+  listBuckets,
+  loadFixture,
+  mergeGraded,
+  optional,
+  pages,
+  passRate,
+  perAccount,
+  service,
+} from '../lib/aws.mjs';
 import { compareTlsVersion, elbPolicyFloor, resolveMinTlsVersion, resolveMutualAuthRequired } from '../lib/transit.mjs';
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.0.1';
 export const PATH = 'src/collectors/aws/transit.mjs';
 
 export const CHECKS = [
@@ -141,6 +152,7 @@ export function gradeTlsEnforcement(data, { minTlsVersion, scopeId = 'account', 
             id: `bucket/${bucket.name}`,
             status: 'pass',
             detail: 'Bucket policy denies requests where aws:SecureTransport is false.',
+            observed: { region: bucket.region ?? null },
           }
         : {
             id: `bucket/${bucket.name}`,
@@ -150,7 +162,7 @@ export function gradeTlsEnforcement(data, { minTlsVersion, scopeId = 'account', 
                 ? 'Bucket policy does not deny requests made without transport security, so the bucket answers ' +
                   'plaintext HTTP requests as readily as HTTPS.'
                 : 'No bucket policy at all, so nothing refuses a plaintext HTTP request to this bucket.',
-            observed: { policy_present: Boolean(bucket.policy_present) },
+            observed: { region: bucket.region ?? null, policy_present: Boolean(bucket.policy_present) },
           }
     );
   }
@@ -308,7 +320,7 @@ async function fetchTransit(region, credentials) {
         'NextMarker'
       );
     } catch (err) {
-      unexamined.push({ id: `load-balancer/${balancer.LoadBalancerName}`, reason: err.message });
+      unexamined.push({ id: `load-balancer/${balancer.LoadBalancerName}`, reason: errorReason(err) });
       continue;
     }
 
@@ -334,16 +346,16 @@ async function fetchTransit(region, credentials) {
   }
 
   const { client: s3, sdk: s3sdk } = await service('s3', region, credentials);
-  const listed = await s3.send(new s3sdk.ListBucketsCommand({}));
   const buckets = [];
-  for (const bucket of listed.Buckets ?? []) {
+  for (const bucket of await listBuckets(s3, s3sdk)) {
     try {
-      const got = await optional(s3.send(new s3sdk.GetBucketPolicyCommand({ Bucket: bucket.Name })), [
+      const got = await optional(s3.send(new s3sdk.GetBucketPolicyCommand({ Bucket: bucket.name })), [
         'NoSuchBucketPolicy',
       ]);
       const policy = got?.Policy ? JSON.parse(got.Policy) : null;
       buckets.push({
-        name: bucket.Name,
+        name: bucket.name,
+        region: bucket.region,
         policy_present: Boolean(policy),
         denies_insecure_transport: deniesInsecureTransport(policy),
       });
@@ -351,7 +363,7 @@ async function fetchTransit(region, credentials) {
       // Same line as the at-rest collector draws: a bucket this credential cannot read is a gap,
       // not a bucket without a policy. Grading it as a failure would manufacture a finding out of
       // a permission.
-      unexamined.push({ id: `bucket/${bucket.Name}`, reason: err.message });
+      unexamined.push({ id: `bucket/${bucket.name}`, reason: errorReason(err) });
     }
   }
 

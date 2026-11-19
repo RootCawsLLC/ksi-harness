@@ -1,7 +1,17 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { fixtureScope, loadFixture, mergeGraded, optional, passRate, perAccount, service } from '../lib/aws.mjs';
+import {
+  errorReason,
+  fixtureScope,
+  listBuckets,
+  loadFixture,
+  mergeGraded,
+  optional,
+  passRate,
+  perAccount,
+  service,
+} from '../lib/aws.mjs';
 
-export const VERSION = '2.0.0';
+export const VERSION = '2.0.1';
 export const PATH = 'src/collectors/aws/logging.mjs';
 
 export const CHECKS = [
@@ -128,8 +138,18 @@ export function gradeLogAccess(buckets, accountId, accountBlockPublicAccess, { u
     if (bucket.publicAcl) problems.push('ACL grants access to a public grantee');
 
     return problems.length
-      ? { id: `bucket/${bucket.name}`, status: 'fail', detail: problems.join('; '), observed: { external_principals: external } }
-      : { id: `bucket/${bucket.name}`, status: 'pass', detail: 'Public access blocked, no external reader in the policy' };
+      ? {
+          id: `bucket/${bucket.name}`,
+          status: 'fail',
+          detail: problems.join('; '),
+          observed: { region: bucket.region ?? null, external_principals: external },
+        }
+      : {
+          id: `bucket/${bucket.name}`,
+          status: 'pass',
+          detail: 'Public access blocked, no external reader in the policy',
+          observed: { region: bucket.region ?? null },
+        };
   });
 
   items.unshift(
@@ -185,6 +205,11 @@ async function fetchTrails(region, credentials) {
 async function fetchLogStorage(region, trails, accountId, credentials) {
   const { client, sdk } = await service('s3', region, credentials);
   const names = [...new Set(trails.map((t) => t.S3BucketName).filter(Boolean))];
+  // Trail buckets come from the trail, not from a listing, so the region is looked up. A log
+  // archive in another account is not in this account's listing and records null: unknown.
+  const regions = names.length
+    ? new Map((await listBuckets(client, sdk)).map((b) => [b.name, b.region]))
+    : new Map();
 
   const buckets = [];
   const unexamined = [];
@@ -204,6 +229,7 @@ async function fetchLogStorage(region, trails, accountId, credentials) {
 
       buckets.push({
         name,
+        region: regions.get(name) ?? null,
         blockPublicAccess: Boolean(
           cfg?.BlockPublicAcls && cfg?.BlockPublicPolicy && cfg?.IgnorePublicAcls && cfg?.RestrictPublicBuckets
         ),
@@ -214,7 +240,7 @@ async function fetchLogStorage(region, trails, accountId, credentials) {
       // A log destination this credential cannot read is a gap in the population. Grading it
       // as an exposed bucket would invent a finding from a permission; dropping it would
       // report clean over a destination nobody looked at.
-      unexamined.push({ id: `bucket/${name}`, reason: err.message });
+      unexamined.push({ id: `bucket/${name}`, reason: errorReason(err) });
     }
   }
 

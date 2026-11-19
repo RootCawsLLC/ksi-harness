@@ -1,5 +1,15 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { describePorts, fixtureScope, loadFixture, mergeGraded, pages, passRate, perAccount, service } from '../lib/aws.mjs';
+import {
+  describePorts,
+  errorReason,
+  fixtureScope,
+  loadFixture,
+  mergeGraded,
+  pages,
+  passRate,
+  perAccount,
+  service,
+} from '../lib/aws.mjs';
 
 export const VERSION = '2.0.0';
 export const PATH = 'src/collectors/aws/network.mjs';
@@ -186,7 +196,7 @@ export async function collect({ profile, collectedAt, fixture, sourceCommit, pre
       try {
         groups.push(...(await fetchSecurityGroups(region, credentials)));
       } catch (err) {
-        regionGaps.push({ id: `region/${region}`, reason: err.message });
+        regionGaps.push({ id: `region/${region}`, reason: errorReason(err) });
       }
     }
     return gradeIngressExposure(groups, { publicPorts, scopeId: account.id, unexamined: regionGaps });

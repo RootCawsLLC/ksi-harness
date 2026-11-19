@@ -54,6 +54,16 @@ README described it as tamper detection.
 
 ### Fixed
 
+- **The IAM checks examined nothing unless a credential report already existed.**
+  `fetchCredentialReport` treated `ReportNotPresentException` and `ReportInProgressException` as
+  "generate and wait", but the SDK throws `CredentialReportNotPresentException`,
+  `CredentialReportNotReadyException` and `CredentialReportExpiredException`. The first call
+  therefore threw, and `aws.iam.mfa-coverage` and `aws.iam.privileged-access` recorded the whole
+  account as unexamined unless someone had generated a report in the last four hours. It failed
+  closed, so nothing passed that should not have, but on a first run against a real account neither
+  check graded anything. All three names are now handled, and a test checks them against the
+  installed SDK. Unexamined reasons now lead with the error name, because the reason recorded for
+  that account was the bare message, `Unknown`. `aws.iam` moves to `2.0.1`.
 - **The third-party register declared hosts it never named.** Reconciliation accepted any
   substring and matched entry names as well as hosts, so an entry named "Box" declared
   `dropbox.com` and `sandbox-exfil.net`, and one named "Slack" declared
@@ -90,6 +100,18 @@ README described it as tamper detection.
 - **One corrupt bundle took down the whole report.** `readLocker` now reports unparseable files
   instead of throwing.
 - **`pages()` could loop forever** on a service that echoed its own pagination token.
+- **Buckets outside the collection region were left unexamined.** Buckets are listed
+  account-wide, but the S3 client was bound to the account's first declared region, and a bucket in
+  any other region answers `301 PermanentRedirect`. Every bucket outside that region became an
+  unexamined item in `aws.data.encryption-at-rest` and `aws.transit.tls-enforcement`, and a trail
+  bucket in another region would do the same to `aws.logging.log-access`. An honest gap, but one
+  that grows with every region an account uses. The S3 client now follows the redirect to the region
+  named in `x-amz-bucket-region`, with no extra call and no new permission. Because a bucket is now
+  read wherever it lives, every bucket item records where that was in `observed.region`, taken from
+  the paginated form of `ListBuckets`, which states each bucket's region under the same permission.
+  It is `null` when not stated, as for a trail bucket held in another account, rather than the
+  client's region filled in. The listing is also paginated now, where it previously stopped at the
+  account's bucket quota. `aws.data` and `aws.logging` move to `2.0.1`, `aws.transit` to `1.0.1`.
 
 ### Added
 

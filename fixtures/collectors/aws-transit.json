@@ -34,8 +34,8 @@
     { "arn": "arn:aws:elasticloadbalancing:us-east-1:210987654321:listener/app/mesh/1", "load_balancer": "mesh", "port": 8443, "protocol": "HTTPS", "ssl_policy": "ELBSecurityPolicy-TLS13-1-2-2021-06", "redirects_to_https": false, "mutual_authentication": "verify", "trust_store": "arn:aws:elasticloadbalancing:us-east-1:210987654321:truststore/internal-ca/1" }
   ],
   "buckets": [
-    { "name": "northwind-artifacts", "policy_present": true, "denies_insecure_transport": true },
-    { "name": "northwind-public-assets", "policy_present": true, "denies_insecure_transport": false },
-    { "name": "northwind-logs", "policy_present": false, "denies_insecure_transport": false }
+    { "name": "northwind-artifacts", "region": "us-east-1", "policy_present": true, "denies_insecure_transport": true },
+    { "name": "northwind-public-assets", "region": "us-west-2", "policy_present": true, "denies_insecure_transport": false },
+    { "name": "northwind-logs", "region": "us-east-1", "policy_present": false, "denies_insecure_transport": false }
   ]
 }

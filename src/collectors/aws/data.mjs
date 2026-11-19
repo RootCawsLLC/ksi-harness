@@ -2,6 +2,7 @@ import { buildBundle } from '../../evidence/bundle.mjs';
 import {
   errorReason,
   fixtureScope,
+  listBuckets,
   loadFixture,
   mergeGraded,
   optional,
@@ -42,7 +43,12 @@ export function gradeEncryptionAtRest(storage, { scopeId = 'account', unexamined
 
   for (const bucket of storage.buckets ?? []) {
     if (!bucket.encryption) {
-      items.push({ id: `bucket/${bucket.name}`, status: 'fail', detail: 'No default encryption configured' });
+      items.push({
+        id: `bucket/${bucket.name}`,
+        status: 'fail',
+        detail: 'No default encryption configured',
+        observed: { region: bucket.region ?? null },
+      });
       continue;
     }
     const customerManaged = bucket.encryption.type === 'aws:kms' && Boolean(bucket.encryption.key_id);
@@ -52,7 +58,7 @@ export function gradeEncryptionAtRest(storage, { scopeId = 'account', unexamined
       detail: customerManaged
         ? `Encrypted with a customer-managed key (${bucket.encryption.key_id})`
         : `Encrypted with ${bucket.encryption.type}, provider-held key`,
-      observed: { algorithm: bucket.encryption.type, customer_managed_key: customerManaged },
+      observed: { region: bucket.region ?? null, algorithm: bucket.encryption.type, customer_managed_key: customerManaged },
     });
   }
 
@@ -100,25 +106,24 @@ export function gradeEncryptionAtRest(storage, { scopeId = 'account', unexamined
 
 async function fetchStorage(region, credentials) {
   const { client: s3, sdk: s3sdk } = await service('s3', region, credentials);
-  const listed = await s3.send(new s3sdk.ListBucketsCommand({}));
-
   const buckets = [];
   const unexamined = [];
-  for (const bucket of listed.Buckets ?? []) {
+  for (const bucket of await listBuckets(s3, s3sdk)) {
     try {
-      const got = await optional(s3.send(new s3sdk.GetBucketEncryptionCommand({ Bucket: bucket.Name })), [
+      const got = await optional(s3.send(new s3sdk.GetBucketEncryptionCommand({ Bucket: bucket.name })), [
         'ServerSideEncryptionConfigurationNotFoundError',
       ]);
       const rule = got?.ServerSideEncryptionConfiguration?.Rules?.[0]?.ApplyServerSideEncryptionByDefault;
       buckets.push({
-        name: bucket.Name,
+        name: bucket.name,
+        region: bucket.region,
         encryption: rule ? { type: rule.SSEAlgorithm, key_id: rule.KMSMasterKeyID ?? null } : null,
       });
     } catch (err) {
       // A bucket in another region, or one this credential cannot read, is a gap rather than
       // an unencrypted bucket. Grading it as a failure would manufacture a finding out of a
       // permission, which is the mirror image of the bug this harness is built to avoid.
-      unexamined.push({ id: `bucket/${bucket.Name}`, reason: errorReason(err) });
+      unexamined.push({ id: `bucket/${bucket.name}`, reason: errorReason(err) });
     }
   }
 

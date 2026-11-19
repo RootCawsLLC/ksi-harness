@@ -106,8 +106,12 @@ README described it as tamper detection.
   unexamined item in `aws.data.encryption-at-rest` and `aws.transit.tls-enforcement`, and a trail
   bucket in another region would do the same to `aws.logging.log-access`. An honest gap, but one
   that grows with every region an account uses. The S3 client now follows the redirect to the region
-  named in `x-amz-bucket-region`, with no extra call and no new permission. `aws.data` and
-  `aws.logging` move to `2.0.1`, `aws.transit` to `1.0.1`.
+  named in `x-amz-bucket-region`, with no extra call and no new permission. Because a bucket is now
+  read wherever it lives, every bucket item records where that was in `observed.region`, taken from
+  the paginated form of `ListBuckets`, which states each bucket's region under the same permission.
+  It is `null` when not stated, as for a trail bucket held in another account, rather than the
+  client's region filled in. The listing is also paginated now, where it previously stopped at the
+  account's bucket quota. `aws.data` and `aws.logging` move to `2.0.1`, `aws.transit` to `1.0.1`.
 
 ### Added
 

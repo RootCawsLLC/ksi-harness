@@ -4,6 +4,7 @@
   "buckets": [
     {
       "name": "northwind-audit-logs",
+      "region": "us-east-1",
       "blockPublicAccess": true,
       "publicAcl": false,
       "policy": {
@@ -28,6 +29,7 @@
     },
     {
       "name": "northwind-legacy-logs",
+      "region": "us-west-2",
       "blockPublicAccess": false,
       "publicAcl": false,
       "policy": {

@@ -89,6 +89,27 @@ export async function pages(client, CommandClass, input, extract, tokenIn = 'Nex
 }
 
 /**
+ * Every bucket in the account, with the region it lives in.
+ *
+ * The paginated form, for two reasons. Unpaginated ListBuckets stops at the account's bucket
+ * quota, which is the truncated population `pages()` exists to prevent. And only the paginated
+ * form returns BucketRegion, which is what lets each graded bucket say where it was read. Same
+ * permission (s3:ListAllMyBuckets), no extra call. `region` is null when S3 leaves it out:
+ * "not stated" rather than a guess at the client's region.
+ */
+export async function listBuckets(client, sdk) {
+  const listed = await pages(
+    client,
+    sdk.ListBucketsCommand,
+    { MaxBuckets: 1000 },
+    (r) => r.Buckets,
+    'ContinuationToken',
+    'ContinuationToken'
+  );
+  return listed.map((b) => ({ name: b.Name, region: b.BucketRegion ?? null }));
+}
+
+/**
  * Swallows the "this resource has no such configuration" errors that AWS reports as
  * exceptions rather than empty responses, and only those.
  *

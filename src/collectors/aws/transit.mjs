@@ -1,5 +1,15 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { fixtureScope, loadFixture, mergeGraded, optional, pages, passRate, perAccount, service } from '../lib/aws.mjs';
+import {
+  errorReason,
+  fixtureScope,
+  loadFixture,
+  mergeGraded,
+  optional,
+  pages,
+  passRate,
+  perAccount,
+  service,
+} from '../lib/aws.mjs';
 import { compareTlsVersion, elbPolicyFloor, resolveMinTlsVersion, resolveMutualAuthRequired } from '../lib/transit.mjs';
 
 export const VERSION = '1.0.0';
@@ -308,7 +318,7 @@ async function fetchTransit(region, credentials) {
         'NextMarker'
       );
     } catch (err) {
-      unexamined.push({ id: `load-balancer/${balancer.LoadBalancerName}`, reason: err.message });
+      unexamined.push({ id: `load-balancer/${balancer.LoadBalancerName}`, reason: errorReason(err) });
       continue;
     }
 
@@ -351,7 +361,7 @@ async function fetchTransit(region, credentials) {
       // Same line as the at-rest collector draws: a bucket this credential cannot read is a gap,
       // not a bucket without a policy. Grading it as a failure would manufacture a finding out of
       // a permission.
-      unexamined.push({ id: `bucket/${bucket.Name}`, reason: err.message });
+      unexamined.push({ id: `bucket/${bucket.Name}`, reason: errorReason(err) });
     }
   }
 

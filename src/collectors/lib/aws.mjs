@@ -102,6 +102,19 @@ export async function optional(promise, absentErrorNames) {
   }
 }
 
+/**
+ * The reason an unexamined entry records for a failed call.
+ *
+ * The error name leads because the message alone can be empty of meaning: IAM returns some
+ * modeled errors with no message, and the SDK fills in "Unknown", which is not evidence of
+ * anything a reader could act on.
+ */
+export function errorReason(err) {
+  const message = err?.message ?? String(err);
+  const name = err?.name;
+  return name && name !== 'Error' && !message.includes(name) ? `${name}: ${message}` : message;
+}
+
 /** Who the ambient credential actually is. Recorded in scope so evidence names its own source. */
 export async function callerIdentity(region = 'us-east-1', credentials = undefined) {
   const { client, sdk } = await service('sts', region, credentials);
@@ -194,7 +207,7 @@ export async function perAccount(profile, fn, { sessionName = 'ksi-harness' } = 
       try {
         credentials = await assumeRole(roleArn, region, sessionName);
       } catch (err) {
-        unexamined.push({ id: `account/${account.id}`, reason: `could not assume ${roleArn}: ${err.message}` });
+        unexamined.push({ id: `account/${account.id}`, reason: `could not assume ${roleArn}: ${errorReason(err)}` });
         continue;
       }
     }
@@ -203,7 +216,7 @@ export async function perAccount(profile, fn, { sessionName = 'ksi-harness' } = 
       const graded = await fn({ account, region, regions: account.regions ?? [region], credentials, roleArn });
       parts.push({ scope: account.id, graded });
     } catch (err) {
-      unexamined.push({ id: `account/${account.id}`, reason: err.message });
+      unexamined.push({ id: `account/${account.id}`, reason: errorReason(err) });
     }
   }
 

@@ -1,5 +1,14 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { fixtureScope, loadFixture, mergeGraded, optional, passRate, perAccount, service } from '../lib/aws.mjs';
+import {
+  errorReason,
+  fixtureScope,
+  loadFixture,
+  mergeGraded,
+  optional,
+  passRate,
+  perAccount,
+  service,
+} from '../lib/aws.mjs';
 
 export const VERSION = '2.0.0';
 export const PATH = 'src/collectors/aws/logging.mjs';
@@ -214,7 +223,7 @@ async function fetchLogStorage(region, trails, accountId, credentials) {
       // A log destination this credential cannot read is a gap in the population. Grading it
       // as an exposed bucket would invent a finding from a permission; dropping it would
       // report clean over a destination nobody looked at.
-      unexamined.push({ id: `bucket/${name}`, reason: err.message });
+      unexamined.push({ id: `bucket/${name}`, reason: errorReason(err) });
     }
   }
 

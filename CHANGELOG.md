@@ -54,6 +54,16 @@ README described it as tamper detection.
 
 ### Fixed
 
+- **The IAM checks examined nothing unless a credential report already existed.**
+  `fetchCredentialReport` treated `ReportNotPresentException` and `ReportInProgressException` as
+  "generate and wait", but the SDK throws `CredentialReportNotPresentException`,
+  `CredentialReportNotReadyException` and `CredentialReportExpiredException`. The first call
+  therefore threw, and `aws.iam.mfa-coverage` and `aws.iam.privileged-access` recorded the whole
+  account as unexamined unless someone had generated a report in the last four hours. It failed
+  closed, so nothing passed that should not have, but on a first run against a real account neither
+  check graded anything. All three names are now handled, and a test checks them against the
+  installed SDK. Unexamined reasons now lead with the error name, because the reason recorded for
+  that account was the bare message, `Unknown`. `aws.iam` moves to `2.0.1`.
 - **The third-party register declared hosts it never named.** Reconciliation accepted any
   substring and matched entry names as well as hosts, so an entry named "Box" declared
   `dropbox.com` and `sandbox-exfil.net`, and one named "Slack" declared

@@ -1,5 +1,15 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { fixtureScope, loadFixture, mergeGraded, optional, pages, passRate, perAccount, service } from '../lib/aws.mjs';
+import {
+  errorReason,
+  fixtureScope,
+  loadFixture,
+  mergeGraded,
+  optional,
+  pages,
+  passRate,
+  perAccount,
+  service,
+} from '../lib/aws.mjs';
 
 export const VERSION = '2.0.0';
 export const PATH = 'src/collectors/aws/data.mjs';
@@ -108,7 +118,7 @@ async function fetchStorage(region, credentials) {
       // A bucket in another region, or one this credential cannot read, is a gap rather than
       // an unencrypted bucket. Grading it as a failure would manufacture a finding out of a
       // permission, which is the mirror image of the bug this harness is built to avoid.
-      unexamined.push({ id: `bucket/${bucket.Name}`, reason: err.message });
+      unexamined.push({ id: `bucket/${bucket.Name}`, reason: errorReason(err) });
     }
   }
 

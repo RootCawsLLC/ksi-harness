@@ -1,6 +1,7 @@
-import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+import { canonicalSha256 } from './canonical.mjs';
 
 /**
  * Evidence bundle construction.
@@ -31,20 +32,6 @@ import { join } from 'node:path';
  * indicator-level judgment is assembled in ../routes and ../evidence/state.mjs, and it is
  * deliberately not something a check can make about itself.
  */
-
-/** Deterministic key order, so the hash of unchanged evidence does not change. */
-function canonicalize(value) {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (value && typeof value === 'object') {
-    return Object.keys(value)
-      .sort()
-      .reduce((acc, k) => {
-        if (value[k] !== undefined) acc[k] = canonicalize(value[k]);
-        return acc;
-      }, {});
-  }
-  return value;
-}
 
 /** Items that actually tested the assertion. A `not-applicable` item decided nothing. */
 export function decidableItems(items) {
@@ -199,9 +186,26 @@ export function buildBundle({
     chain: { previous_sha256: previousHash, index: chainIndex },
   };
 
-  const hash = createHash('sha256').update(JSON.stringify(canonicalize(bundle))).digest('hex');
-  bundle.integrity = { content_sha256: hash, signed: false };
+  bundle.integrity = { content_sha256: canonicalSha256(bundle), signed: false };
   return bundle;
+}
+
+/**
+ * Records the profile a bundle was graded against, before it is written.
+ *
+ * Collectors build their bundles and never see which profile file the run came from; the runner
+ * does. So the runner stamps the hash on, and the content hash is recomputed over the stamped
+ * body with the same function `buildBundle` used. That happens before the bundle is written or
+ * chained onto, so there is no earlier version of it anywhere for the new hash to disagree with.
+ * Doing it here rather than in each of the collectors keeps one call site that cannot be
+ * forgotten by the next collector written.
+ */
+export function stampProfile(bundle, profileSha256) {
+  if (!profileSha256) return bundle;
+  const { integrity, ...body } = bundle;
+  const stamped = { ...body, profile_sha256: profileSha256 };
+  stamped.integrity = { ...integrity, content_sha256: canonicalSha256(stamped) };
+  return stamped;
 }
 
 /**
@@ -249,7 +253,7 @@ export function unimplementedBundle({ checkId, ksis, collectorPath, collectedAt,
 /** Recomputes the content hash, so a stored bundle can be checked for accidental corruption. */
 export function verifyIntegrity(bundle) {
   const { integrity, ...rest } = bundle;
-  const expected = createHash('sha256').update(JSON.stringify(canonicalize(rest))).digest('hex');
+  const expected = canonicalSha256(rest);
   return { ok: integrity?.content_sha256 === expected, expected, stored: integrity?.content_sha256 ?? null };
 }
 

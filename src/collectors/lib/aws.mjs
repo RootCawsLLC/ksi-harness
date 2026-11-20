@@ -172,6 +172,30 @@ export async function assumeRole(roleArn, region, sessionName = 'ksi-harness') {
  * refused: running them all on one credential would report the same account's evidence
  * several times under several names, which is worse than not running.
  */
+/**
+ * The regions an account is examined in: its own list, or else one region from the profile or
+ * us-east-1. That fallback means an account declared without regions is examined somewhere, which
+ * a reader of the evidence could not otherwise know, so `accountScope` records the result.
+ */
+export function accountRegions(profile, account) {
+  return account.regions ?? [profile?.aws?.regions?.[0] ?? 'us-east-1'];
+}
+
+/**
+ * The scope block shared by the regional AWS checks.
+ *
+ * Regions are recorded per account because they are the denominator a regional check is measured
+ * against, and the one a reader cannot recover otherwise: a region left out of the profile is
+ * unexamined, not empty, and a bundle that names only the account cannot show which it was.
+ */
+export function accountScope(profile, accounts) {
+  return {
+    accounts: accounts.map((a) => a.id),
+    regions: Object.fromEntries(accounts.map((a) => [a.id, accountRegions(profile, a)])),
+    collector_role: profile?.aws?.collector_role ?? null,
+  };
+}
+
 export async function perAccount(profile, fn, { sessionName = 'ksi-harness' } = {}) {
   const accounts = resolveAccounts(profile);
   const parts = [];
@@ -186,7 +210,8 @@ export async function perAccount(profile, fn, { sessionName = 'ksi-harness' } = 
   }
 
   for (const account of accounts) {
-    const region = account.regions?.[0] ?? profile?.aws?.regions?.[0] ?? 'us-east-1';
+    const regions = accountRegions(profile, account);
+    const region = regions[0] ?? profile?.aws?.regions?.[0] ?? 'us-east-1';
     const roleArn = collectorRoleArn(profile, account.id);
 
     let credentials;
@@ -200,7 +225,7 @@ export async function perAccount(profile, fn, { sessionName = 'ksi-harness' } = 
     }
 
     try {
-      const graded = await fn({ account, region, regions: account.regions ?? [region], credentials, roleArn });
+      const graded = await fn({ account, region, regions, credentials, roleArn });
       parts.push({ scope: account.id, graded });
     } catch (err) {
       unexamined.push({ id: `account/${account.id}`, reason: err.message });

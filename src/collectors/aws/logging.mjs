@@ -1,5 +1,5 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { fixtureScope, loadFixture, mergeGraded, optional, passRate, perAccount, service } from '../lib/aws.mjs';
+import { accountScope, fixtureScope, loadFixture, mergeGraded, optional, passRate, perAccount, service } from '../lib/aws.mjs';
 
 export const VERSION = '2.0.0';
 export const PATH = 'src/collectors/aws/logging.mjs';
@@ -286,7 +286,7 @@ export async function collect({ profile, collectedAt, fixture, sourceCommit, pre
     };
   });
 
-  const scope = { accounts: accounts.map((a) => a.id), collector_role: profile?.aws?.collector_role ?? null };
+  const scope = accountScope(profile, accounts);
 
   return [
     buildBundle({

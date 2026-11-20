@@ -36,6 +36,11 @@
       "type": "string",
       "format": "date-time"
     },
+    "profile_sha256": {
+      "description": "SHA-256 of the canonical form of the profile this bundle was graded against. Scope records what was examined; this identifies the declaration it was measured against, so a narrower profile cannot produce evidence that looks the same as the one before. Absent on bundles written before it was recorded.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "scope": {
       "description": "Exactly what was examined - accounts, regions, repositories. A reviewer's first question about any population is what was left out. Fixture runs are stamped here so they can never be mistaken for real evidence.",
       "type": "object",

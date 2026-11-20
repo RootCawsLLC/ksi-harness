@@ -3,7 +3,7 @@ import { test } from 'node:test';
 
 import { buildState } from '../src/evidence/state.mjs';
 import { loadRoutes, validateRoutes } from '../src/routes/routes.mjs';
-import { declaredProviders, resolveSufficiency } from '../src/routes/sufficiency.mjs';
+import { resolveSufficiency } from '../src/routes/sufficiency.mjs';
 
 /**
  * `automated` costs a written argument that the checks leave nothing material out, and for a long
@@ -24,15 +24,6 @@ const AUTOMATED = {
   sufficiency: { holds_when: { providers_within: ['gcp'] }, argument: 'It settles the claim.' },
   unautomated: ['On AWS the functionality clause is open.'],
 };
-
-/* ------------------------------------------------------------------- providers */
-
-test('providers come from the declaration, not from what was collected', () => {
-  assert.deepEqual([...declaredProviders({ gcp: { projects: [{ id: 'p' }] } })], ['gcp']);
-  assert.deepEqual([...declaredProviders({ aws: { accounts: ['1'] }, gcp: { organization_id: 'o' } })].sort(), ['aws', 'gcp']);
-  assert.equal(declaredProviders(null), null, 'no profile is distinct from an empty one');
-  assert.equal(declaredProviders({}).size, 0);
-});
 
 /* ------------------------------------------------------------------ resolution */
 

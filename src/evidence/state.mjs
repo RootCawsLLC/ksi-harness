@@ -1,4 +1,6 @@
+import { outOfScope, providerScope, undeclaredSource } from '../boundary/providers.mjs';
 import { catalog } from '../catalog/ksi.mjs';
+import { providerOf } from '../collectors/registry.mjs';
 import { rulesProvenance } from '../catalog/rules.mjs';
 import { CADENCES, loadRoutes, validateRoutes } from '../routes/routes.mjs';
 import { resolveSufficiency } from '../routes/sufficiency.mjs';
@@ -113,10 +115,25 @@ export function buildState({ evidenceDir, klass = 'c', routes = loadRoutes(), no
       return { ...indicator, coverage: 'unrouted', evidence_state: 'not-evidenced', checks: [], cadence: null };
     }
 
-    const checkStates = (route.checks ?? []).map((checkId) => {
+    // A check for a provider outside the boundary is not missing evidence; there is nothing for
+    // it to examine. Left in, it reads as absent, and absent outranks failing, so it would hide
+    // the result of every check that did run. It is set aside by name rather than dropped, so a
+    // reader can see what the declared boundary excluded.
+    const routeChecks = route.checks ?? [];
+    const outOfScopeChecks = routeChecks.filter((id) => outOfScope(providerOf(id), profile));
+    const checkStates = routeChecks.filter((id) => !outOfScopeChecks.includes(id)).map((checkId) => {
       const entry = locker.checks.get(checkId);
       if (!entry) {
-        return { check_id: checkId, present: false, result: null, population_complete: false, age_days: Infinity };
+        return {
+          check_id: checkId,
+          present: false,
+          result: null,
+          population_complete: false,
+          age_days: Infinity,
+          // Absent either way, but "nothing was declared for this to read" is a different gap from
+          // "it should have run and did not", and the reader acting on it needs to know which.
+          absent_reason: undeclaredSource(providerOf(checkId), profile),
+        };
       }
       const { latest, history } = entry;
       return {
@@ -160,6 +177,7 @@ export function buildState({ evidenceDir, klass = 'c', routes = loadRoutes(), no
       next: route.next ?? null,
       note: route.note ?? null,
       checks: checkStates,
+      out_of_scope_checks: outOfScopeChecks,
       cadence: assessCadence(route, checkStates, now),
       evidence_state: evidenceState,
     };
@@ -172,6 +190,8 @@ export function buildState({ evidenceDir, klass = 'c', routes = loadRoutes(), no
     generated_at: new Date(now).toISOString(),
     klass,
     profile: profile ? { service_name: profile.service_name ?? null, provider: profile.provider ?? null } : null,
+    // Null without a profile: nothing was declared, so every provider's checks were expected.
+    providers: providerScope(profile),
     ruleset: rulesProvenance(),
     routes_valid: validation.ok,
     route_errors: validation.errors,
@@ -188,6 +208,11 @@ export function buildState({ evidenceDir, klass = 'c', routes = loadRoutes(), no
       chain_breaks: chainBreaks(locker),
       unreadable: locker.unreadable,
       fixture_bundles: locker.bundles.filter((b) => b.scope?.fixture).length,
+      // Evidence for a provider the profile no longer declares. It counts toward nothing above, so
+      // it is named here instead: a locker holding GCP history under a profile without GCP is
+      // either a boundary that changed or a profile that lost a section, and only a person can
+      // say which.
+      out_of_scope_checks: [...locker.checks.keys()].filter((id) => outOfScope(providerOf(id), profile)).sort(),
     },
     counts: {
       ...counts,
@@ -218,6 +243,7 @@ export function openFindings(state) {
       checks: i.checks.filter((c) => !c.present || c.result !== 'pass').map((c) => ({
         check_id: c.check_id,
         result: c.present ? c.result : 'absent',
+        absent_reason: c.absent_reason ?? null,
         failing_items: c.failing_items ?? 0,
       })),
     }));

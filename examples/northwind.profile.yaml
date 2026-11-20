@@ -163,6 +163,20 @@ github:
     medium: 90
     low: 180
 
+# The workforce identity provider: where the people who operate the service sign in. Not the
+# service's own end-user login, and not the cloud provider's IAM. KSI-IAM-AAM asks whether accounts
+# are managed by automation, and only the IdP records how each account was created.
+#
+# Leave this section out if there is no IdP. The idp.* checks then do not run, and KSI-IAM-AAM
+# reports no evidence with that reason, which is the honest answer for accounts managed by hand.
+# See examples/skylark.profile.yaml for the roster and non-human account options.
+idp:
+  provider: okta
+  domain: northwind.okta.com
+  token_env: KSI_OKTA_TOKEN
+  privileged_groups:
+    - Platform Admins
+
 # Transport security, and the one parameter this harness cannot resolve from the pinned ruleset.
 #
 # Every other parameterized judgment here comes from the vendored FedRAMP rules, because a

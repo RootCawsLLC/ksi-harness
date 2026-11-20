@@ -55,12 +55,21 @@ function implementationStatements(indicator) {
     return out;
   }
 
-  const checks = indicator.checks.map((c) => c.check_id).join(', ');
-  out.push(
-    `Evidenced by ${indicator.checks.length} automated check(s) (${checks}) collected on a ` +
-      `${indicator.cadence?.claimed ?? 'declared'} cycle, each producing a full-population evidence bundle with a ` +
-      `completeness reconciliation and a content hash.`
-  );
+  if (indicator.checks.length) {
+    const checks = indicator.checks.map((c) => c.check_id).join(', ');
+    out.push(
+      `Evidenced by ${indicator.checks.length} automated check(s) (${checks}) collected on a ` +
+        `${indicator.cadence?.claimed ?? 'declared'} cycle, each producing a full-population evidence bundle with a ` +
+        `completeness reconciliation and a content hash.`
+    );
+  } else {
+    out.push('No automated check for this indicator examines a provider inside this boundary, so nothing here evidences it.');
+  }
+  if (indicator.out_of_scope_checks?.length) {
+    out.push(
+      `Not collected, because their provider is outside the declared boundary: ${indicator.out_of_scope_checks.join(', ')}.`
+    );
+  }
 
   if (indicator.coverage === 'automated' && indicator.sufficiency) {
     out.push(`Sufficiency of the automated evidence: ${indicator.sufficiency.trim()}`);
@@ -86,7 +95,11 @@ function validationStatements(indicator) {
   }
 
   const out = indicator.checks.map((check) => {
-    if (!check.present) return `${check.check_id}: declared but no evidence bundle is present in the locker.`;
+    if (!check.present) {
+      return check.absent_reason
+        ? `${check.check_id}: not collected, ${check.absent_reason}.`
+        : `${check.check_id}: declared but no evidence bundle is present in the locker.`;
+    }
     const population = check.population
       ? `${check.population.examined} of ${check.population.expected} item(s) examined` +
         (check.population.complete ? ', population complete' : `, INCOMPLETE — ${check.population.reconciliation}`)

@@ -250,7 +250,14 @@ async function main() {
         log: (line) => console.log(line),
       });
       console.log(
-        `\n${result.bundles.length} bundle(s) written to ${flags.out ?? evidenceDir}; ${result.failures.length} collector failure(s).`
+        `\n${result.bundles.length} bundle(s) written to ${flags.out ?? evidenceDir}; ${result.failures.length} collector failure(s).` +
+          (result.providers
+            ? `\nProviders in scope: ${result.providers.in_scope.join(', ') || 'none'}; outside the boundary: ` +
+              `${result.providers.out_of_scope.join(', ') || 'none'}.` +
+              (result.providers.undeclared_sources.length
+                ? ` Not declared, so not collected: ${result.providers.undeclared_sources.join(', ')}.`
+                : '')
+            : '')
       );
       // A collector that could not run has produced no evidence. Exiting 0 here would let a
       // credentials failure look like a clean collection.

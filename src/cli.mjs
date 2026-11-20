@@ -11,9 +11,10 @@ import { ALL_CHECKS } from './collectors/registry.mjs';
 import { chainBreaks, computeManifest, readLocker, timestampPath, writeManifest, writeTimestamp } from './evidence/locker.mjs';
 import { buildNotification } from './alert/notification.mjs';
 import { resolveSink, shouldDeliver } from './alert/sinks.mjs';
-import { acceptAnchor, appendAnchor, readAnchorLog, reconcileAgainstAnchor } from './evidence/anchor.mjs';
+import { acceptAnchor, anchoredProfile, appendAnchor, readAnchorLog, reconcileAgainstAnchor } from './evidence/anchor.mjs';
 import { resolveStore } from './evidence/store.mjs';
 import { requestTimestamp, verifyToken } from './evidence/timestamp.mjs';
+import { profileSha256 } from './evidence/profile.mjs';
 import { buildState, openFindings } from './evidence/state.mjs';
 import { emitterFor, EMITTERS } from './emit/index.mjs';
 import { coverageJson, coverageMarkdown, coverageText } from './report/coverage.mjs';
@@ -89,15 +90,21 @@ const USAGE = `ksi-harness — continuous control monitoring for FedRAMP 20x
   ksi diff [--evidence DIR] [--from TS] [--to TS] [--latest] [--md FILE] [--json FILE]
       What changed in the evidence between two points in the locker.
 
-  ksi verify [--evidence DIR] [--manifest FILE] [--anchor FILE]
+  ksi verify [--evidence DIR] [--manifest FILE] [--anchor FILE] [--profile F]
       Verify every bundle's content hash and every check's hash chain.
       --anchor also reports evidence that was deleted rather than altered.
+      --profile with --anchor also refuses a profile the anchor has not accepted.
 
   ksi timestamp [--evidence DIR] [--tsa URL]
       Obtain an RFC 3161 trusted timestamp over the manifest root.
 
   ksi publish --profile F [--evidence DIR] [--anchor FILE]
       Publish the locker to the declared write-once store, and record its root.
+      Refuses a profile the anchor has not accepted.
+
+  ksi anchor accept --reason "..." [--evidence DIR] [--anchor FILE] [--profile F] [--by WHO]
+      Record a person's judgement in the anchor log, with the reason: a locker root the log never
+      saw, and with --profile a changed profile. --by defaults to GITHUB_ACTOR. See ADR 0012.
 
   ksi store --profile F
       What the declared evidence store guarantees, and whether it really does.
@@ -389,7 +396,9 @@ async function main() {
       const anchorPath = (flags.anchor !== true && flags.anchor) || null;
       if (anchorPath) {
         const { manifest: current } = { manifest: computeManifest(evidenceDir, { generatedAt: new Date().toISOString() }) };
-        const reconciliation = reconcileAgainstAnchor(current, readAnchorLog(anchorPath));
+        const reconciliation = reconcileAgainstAnchor(current, readAnchorLog(anchorPath), {
+          profileSha256: flags.profile ? profileSha256(readProfile(flags.profile)) : null,
+        });
         for (const finding of reconciliation.findings) {
           console.error(`anchor      [${finding.kind}] ${finding.detail}`);
         }
@@ -397,6 +406,12 @@ async function main() {
         if (reconciliation.ok) {
           console.log(`anchor      reconciles against ${reconciliation.entries} entry(s), last ${reconciliation.anchored_at}`);
         }
+        const profileLine = {
+          not_checked: 'profile     not checked — pass --profile F to refuse a profile the anchor has not accepted.',
+          unrecorded: 'profile     no profile recorded in the anchor yet; the next anchored run records this one.',
+          unchanged: `profile     matches the anchor (${reconciliation.profile?.current?.slice(0, 12)})`,
+        }[reconciliation.profile?.status];
+        if (profileLine) console.log(profileLine);
       } else {
         console.log(
           'anchor      not checked — pass --anchor FILE. Without it, evidence that was deleted rather than ' +
@@ -473,15 +488,28 @@ async function main() {
         return 1;
       }
 
+      // Checked before anything is uploaded: appendAnchor would refuse an unaccepted profile
+      // anyway, but only after the store had published evidence the anchor then never records.
+      const anchorPath = (flags.anchor !== true && flags.anchor) || profile?.evidence?.anchor_log || null;
+      const profileHash = profileSha256(profile);
+      const recorded = anchorPath ? anchoredProfile(readAnchorLog(anchorPath)) : null;
+      if (recorded && recorded.sha256 !== profileHash) {
+        console.error(
+          `Refusing to publish: the profile changed since the anchor at ${recorded.anchored_at} ` +
+            `(${recorded.sha256.slice(0, 12)} -> ${profileHash.slice(0, 12)}) and no acceptance records it. ` +
+            'Run ksi anchor accept --profile <profile> --reason "..." first.'
+        );
+        return 1;
+      }
+
       const result = await store.publish(evidenceDir);
       console.log(`${result.published} object(s) published, ${result.skipped ?? 0} already present — ${result.location ?? store.location}`);
 
       // The anchor is the half that survives the store being wrong. It records how much
       // evidence there was supposed to be, somewhere the locker's owner does not control, so
       // a truncated locker is detectable even where it was not preventable.
-      const anchorPath = (flags.anchor !== true && flags.anchor) || profile?.evidence?.anchor_log || null;
       if (anchorPath) {
-        const entry = appendAnchor(anchorPath, manifest, { runUri: process.env.KSI_RUN_URL ?? null });
+        const entry = appendAnchor(anchorPath, manifest, { runUri: process.env.KSI_RUN_URL ?? null, profileSha256: profileHash });
         console.log(`anchored root ${entry.root_sha256.slice(0, 12)} (${entry.bundle_count} bundle(s)) to ${anchorPath}`);
       } else {
         console.warn(
@@ -505,11 +533,15 @@ async function main() {
       // This does not weaken the check. It records the judgement that the growth is accounted
       // for, as an entry that says a person made it, with their reason attached.
       if (sub !== 'accept') {
-        console.error('Usage: ksi anchor accept --evidence <dir> --anchor <path> --reason "..." [--by <who>]');
+        console.error('Usage: ksi anchor accept --evidence <dir> --anchor <path> --reason "..." [--by <who>] [--profile F]');
         return 2;
       }
 
-      const anchorPath = (flags.anchor !== true && flags.anchor) || readProfile(flags.profile)?.evidence?.anchor_log || null;
+      // With --profile, the acceptance also records that profile, which is the only way a changed
+      // profile enters the log. The reason then has to account for the profile change as well as
+      // the root, and the output below says which of the two this entry actually changed.
+      const profile = flags.profile ? readProfile(flags.profile) : null;
+      const anchorPath = (flags.anchor !== true && flags.anchor) || profile?.evidence?.anchor_log || null;
       if (!anchorPath) {
         console.error('No anchor log given. Pass --anchor <path>, or set evidence.anchor_log in the profile.');
         return 2;
@@ -527,18 +559,36 @@ async function main() {
       const by = (flags.by !== true && flags.by) || process.env.GITHUB_ACTOR || null;
       const reason = flags.reason !== true ? flags.reason : null;
 
+      const before = readAnchorLog(anchorPath);
+      const rootWasKnown = before.some((e) => e.root_sha256 === manifest.root_sha256);
+      const previousProfile = anchoredProfile(before);
+
       let entry;
       try {
-        entry = acceptAnchor(anchorPath, manifest, { by, reason, runUri: process.env.KSI_RUN_URL ?? null });
+        entry = acceptAnchor(anchorPath, manifest, {
+          by,
+          reason,
+          runUri: process.env.KSI_RUN_URL ?? null,
+          profileSha256: profileSha256(profile),
+        });
       } catch (err) {
         console.error(err.message);
         return 2;
       }
 
+      const profileNote = !entry.profile_sha256
+        ? 'not recorded (no --profile)'
+        : !previousProfile
+          ? `${entry.profile_sha256.slice(0, 12)} (first recorded)`
+          : previousProfile.sha256 === entry.profile_sha256
+            ? `${entry.profile_sha256.slice(0, 12)} (unchanged)`
+            : `${previousProfile.sha256.slice(0, 12)} -> ${entry.profile_sha256.slice(0, 12)} (CHANGED)`;
       console.log(
-        `accepted root ${entry.root_sha256.slice(0, 12)} (${entry.bundle_count} bundle(s)) into ${anchorPath}\n` +
-          `  by:     ${entry.accepted.by}\n` +
-          `  reason: ${entry.accepted.reason}`
+        `accepted root ${entry.root_sha256.slice(0, 12)} (${entry.bundle_count} bundle(s)) into ${anchorPath}` +
+          `${rootWasKnown ? '' : ' (root was not in the log)'}\n` +
+          `  profile: ${profileNote}\n` +
+          `  by:      ${entry.accepted.by}\n` +
+          `  reason:  ${entry.accepted.reason}`
       );
       console.log(
         '\nThis entry is marked as accepted rather than witnessed, so the log shows a person asserted\n' +

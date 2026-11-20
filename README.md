@@ -684,7 +684,8 @@ The two halves of *Existence*, in three commands:
 ```bash
 ksi store --profile examples/northwind.profile.yaml     # what it guarantees, and whether it does
 ksi publish --profile examples/northwind.profile.yaml --anchor .anchors/northwind.jsonl
-ksi verify --anchor .anchors/northwind.jsonl            # and what the locker is now missing
+ksi verify --anchor .anchors/northwind.jsonl \
+  --profile examples/northwind.profile.yaml             # and what the locker is now missing
 ```
 
 `ksi store` is a separate command rather than a step inside `publish` because **a bucket with Object
@@ -710,9 +711,44 @@ a credential expired or the network failed, has not been shown to be anything, a
 | `root_unknown` | A manifest root the anchor never recorded — evidence from somewhere else |
 | `shrunk` | Fewer runs than were anchored — history removed from a check that remains |
 | `missing_check` | A check the anchor knows and the locker no longer contains at all |
+| `profile_changed` | The profile about to be collected under is not the one the anchor last recorded |
 
 Growth is never a finding. A locker is supposed to grow, and a rule that treated any divergence as
 tampering would fire on every successful collection and be switched off within a week.
+
+#### A changed profile has to be accepted
+
+Every list in a profile is a denominator. Drop a region, a repository or a provider section and the
+next run's evidence is just as consistent as the last one's, measured against less. Nothing in a
+bundle's scope shows what used to be there. So every bundle carries `profile_sha256`, the hash of the
+profile it was graded against, and every anchor entry records the profile its run used. The hash is
+over the parsed profile: comments and layout don't count, and any changed value does, including a
+contact or a remediation window. Deciding which changes weaken the evidence is the judgment this puts
+in front of a person. A new public port or a longer SLA looks like an addition and loosens the checks.
+
+A run refuses a profile the anchor has not recorded. `verify --profile` reports `profile_changed`
+before anything is collected, and `publish` refuses to anchor it even if verify was skipped. The only
+way a new profile enters the log is an acceptance:
+
+```bash
+ksi anchor accept --evidence .evidence --anchor .anchors/northwind.jsonl \
+  --profile examples/northwind.profile.yaml \
+  --reason "Declare us-east-1: the ECS tasks moved there in PR #12"
+```
+
+That appends an entry with the new profile hash and an `accepted` block naming who, why and when.
+In `ccm.yml` the same step is the `accept_profile_change` input of a manual run, which puts the
+actor and the run URL on the entry. So the workflow is:
+
+1. Change the profile in a pull request. Review of that diff is the change control.
+2. After it merges, run `ccm` by hand with `accept_profile_change` set to the reason. The run accepts,
+   verifies, collects and publishes the anchor with the acceptance in it.
+3. A scheduled run that reaches a changed profile with no acceptance stops at verify, with a message
+   naming that input.
+
+A log that has never recorded a profile accepts the first one without an acceptance, since there is
+nothing to have changed from, and says so. Why every change needs an acceptance, rather than only
+the ones that shrink the boundary, is in [ADR 0012](docs/adr/0012-profile-changes-are-accepted.md).
 
 `evidence.anchor_log` points at a path, and where that path resolves is the whole design. Held in a
 different account, a different project, or a file the assessor keeps, it detects a deletion nobody
@@ -870,6 +906,7 @@ Hence the `--latest` option, and a test that fails if the direction is ever chan
 | [0009](docs/adr/0009-boundary-as-product-mode.md) | The boundary as a product mode, and the three attribution states |
 | [0010](docs/adr/0010-alert-on-transition.md) | Alert on transition, not on state |
 | [0011](docs/adr/0011-sufficiency-is-boundary-dependent.md) | Sufficiency is a property of a boundary, not of an indicator |
+| [0012](docs/adr/0012-profile-changes-are-accepted.md) | The profile is recorded with the evidence, and a change to it is accepted |
 
 ## What this is not
 

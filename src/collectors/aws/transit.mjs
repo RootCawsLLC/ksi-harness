@@ -1,5 +1,5 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { fixtureScope, loadFixture, mergeGraded, optional, pages, passRate, perAccount, service } from '../lib/aws.mjs';
+import { accountScope, fixtureScope, loadFixture, mergeGraded, optional, pages, passRate, perAccount, service } from '../lib/aws.mjs';
 import { compareTlsVersion, elbPolicyFloor, resolveMinTlsVersion, resolveMutualAuthRequired } from '../lib/transit.mjs';
 
 export const VERSION = '1.0.0';
@@ -412,8 +412,7 @@ export async function collect({ profile, collectedAt, fixture, sourceCommit, pre
   }));
 
   const scope = {
-    accounts: accounts.map((a) => a.id),
-    collector_role: profile?.aws?.collector_role ?? null,
+    ...accountScope(profile, accounts),
     min_tls_version: minTlsVersion,
     min_tls_version_declared: declared,
   };

@@ -39,6 +39,14 @@ on:
         description: 'Run against fixtures instead of live systems'
         type: boolean
         default: false
+      # How a changed profile is accepted. Every list in the profile is a denominator, so a run
+      # refuses to collect under a profile the anchor log has not recorded, and the only way one is
+      # recorded is an acceptance naming who made it and why. Running it here rather than from a
+      # laptop puts the actor and this run's URL on the entry. Leave empty for a normal run.
+      accept_profile_change:
+        description: 'Accept a changed profile: why it changed, in a sentence a later reader can weigh (e.g. "Declare us-east-1: ECS moved there in PR #12")'
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -136,10 +144,24 @@ jobs:
           KSI_ANCHOR_TOKEN: ${{ secrets.KSI_ANCHOR_TOKEN }}
         run: node scripts/anchor-sync.mjs restore "$ANCHOR_LOG"
 
+      # Before verification, which would otherwise refuse the changed profile. The entry carries the
+      # current root and the new profile hash, and reaches the anchor repository only when this run
+      # publishes its anchor at the end; a run that fails after this point has to be dispatched
+      # again with the same reason. The input reaches the shell through env, never interpolated
+      # into the script, because it is free text from whoever dispatched the run.
+      - name: Accept the profile change
+        if: inputs.accept_profile_change != ''
+        env:
+          REASON: ${{ inputs.accept_profile_change }}
+          KSI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node src/cli.mjs anchor accept --evidence "$LOCKER" --anchor "$ANCHOR_LOG" --profile "$PROFILE" --reason "$REASON"
+
+      # --profile makes verify refuse a profile the anchor has not accepted, before anything is
+      # collected under it. A log that has never recorded a profile accepts the first one.
       - name: Verify the restored locker
         run: |
           if [ -f "$ANCHOR_LOG" ]; then
-            node src/cli.mjs verify --evidence "$LOCKER" --anchor "$ANCHOR_LOG"
+            node src/cli.mjs verify --evidence "$LOCKER" --anchor "$ANCHOR_LOG" --profile "$PROFILE"
           else
             echo "No anchor log at $ANCHOR_LOG yet; verifying integrity only."
             node src/cli.mjs verify --evidence "$LOCKER"

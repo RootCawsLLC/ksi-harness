@@ -27,7 +27,7 @@ import { dirname } from 'node:path';
 export const ANCHOR_SCHEMA = 'ksi-harness/evidence-anchor/1';
 
 /** One line per collection. JSON Lines, because appending must never rewrite what is there. */
-export function anchorEntry(manifest, { previousHash = null, runUri = null, accepted = null } = {}) {
+export function anchorEntry(manifest, { previousHash = null, runUri = null, accepted = null, profileSha256 = null } = {}) {
   const entry = {
     schema: ANCHOR_SCHEMA,
     anchored_at: manifest.generated_at,
@@ -38,6 +38,9 @@ export function anchorEntry(manifest, { previousHash = null, runUri = null, acce
     // plausible total if another check grew.
     checks: Object.fromEntries((manifest.checks ?? []).map((c) => [c.check_id, c.runs])),
     run_uri: runUri,
+    // The profile this state was collected under. Omitted rather than null when unknown, for the
+    // same reason as `accepted` below: entries written before it existed must keep their hashes.
+    ...(profileSha256 ? { profile_sha256: profileSha256 } : {}),
     // Present only on an entry a person asserted, and **omitted entirely** otherwise rather than
     // written as null. The chain hashes every field, so adding a null key to pipeline entries
     // would change their hash and invalidate every entry already in every existing log.
@@ -62,11 +65,32 @@ export function readAnchorLog(path) {
     });
 }
 
-/** Appends one entry, chained onto whatever is already there. */
-export function appendAnchor(path, manifest, { runUri = null, accepted = null } = {}) {
+/** The profile the log last recorded, or `null` if no entry has recorded one yet. */
+export function anchoredProfile(entries) {
+  for (let i = entries.length - 1; i >= 0; i -= 1) {
+    if (entries[i].profile_sha256) return { sha256: entries[i].profile_sha256, anchored_at: entries[i].anchored_at };
+  }
+  return null;
+}
+
+/**
+ * Appends one entry, chained onto whatever is already there.
+ *
+ * A pipeline entry may not introduce a profile the log has not seen. Only an acceptance can, so
+ * every change to the declaration evidence is measured against enters the log as an entry that
+ * names who made it and why. `verify` refuses the change before collection; this refuses it again
+ * at the point it would be recorded, so the rule does not depend on every pipeline remembering to
+ * run verify first. A log with no profile recorded yet takes the first one without an acceptance:
+ * there is nothing to have changed from.
+ */
+export function appendAnchor(path, manifest, { runUri = null, accepted = null, profileSha256 = null } = {}) {
   const existing = readAnchorLog(path);
+  const recorded = anchoredProfile(existing);
+  if (!accepted && profileSha256 && recorded && recorded.sha256 !== profileSha256) {
+    throw new Error(profileChangeDetail(recorded, profileSha256));
+  }
   const previous = existing.length ? existing[existing.length - 1].entry_sha256 : null;
-  const entry = anchorEntry(manifest, { previousHash: previous, runUri, accepted });
+  const entry = anchorEntry(manifest, { previousHash: previous, runUri, accepted, profileSha256 });
   mkdirSync(dirname(path), { recursive: true });
   appendFileSync(path, `${JSON.stringify(entry)}\n`, 'utf8');
   return entry;
@@ -96,7 +120,7 @@ export function appendAnchor(path, manifest, { runUri = null, accepted = null } 
  * has one too. An `accepted` block says plainly that this root was asserted rather than observed,
  * so a reader — or an assessor — can tell the two apart without reconstructing history.
  */
-export function acceptAnchor(path, manifest, { by, reason, runUri = null, at = new Date().toISOString() } = {}) {
+export function acceptAnchor(path, manifest, { by, reason, runUri = null, profileSha256 = null, at = new Date().toISOString() } = {}) {
   if (!by?.trim()) {
     throw new Error('An acceptance must name who made it. Pass --by, or set GITHUB_ACTOR.');
   }
@@ -109,6 +133,7 @@ export function acceptAnchor(path, manifest, { by, reason, runUri = null, at = n
   }
   return appendAnchor(path, manifest, {
     runUri,
+    profileSha256,
     accepted: { by: by.trim(), reason: reason.trim(), at },
   });
 }
@@ -139,11 +164,13 @@ export function verifyAnchorChain(entries) {
  *   shrunk         A check has fewer runs than the most recent anchor recorded. This is the
  *                  finding the whole module exists for: evidence was removed.
  *   missing_check  A check the anchor knew about is absent from the locker entirely.
+ *   profile_changed  The profile about to be collected under is not the one the log last
+ *                  recorded. Reported only when the caller says which profile that is.
  *
  * Growth is not a finding. A locker with more runs than the last anchor has simply collected
  * since, which is the normal state between a collection and its anchor.
  */
-export function reconcileAgainstAnchor(manifest, entries) {
+export function reconcileAgainstAnchor(manifest, entries, { profileSha256 = null } = {}) {
   if (entries.length === 0) {
     return { ok: false, findings: [{ kind: 'no_anchor', detail: 'The anchor log is empty; nothing recorded what this locker should contain.' }] };
   }
@@ -186,5 +213,34 @@ export function reconcileAgainstAnchor(manifest, entries) {
     }
   }
 
-  return { ok: findings.length === 0, findings, anchored_at: latest.anchored_at, entries: entries.length };
+  const profile = profileStatus(entries, profileSha256);
+  if (profile.status === 'changed') {
+    findings.push({ kind: 'profile_changed', detail: profileChangeDetail(profile.anchored, profileSha256), ...profile });
+  }
+
+  return { ok: findings.length === 0, findings, anchored_at: latest.anchored_at, entries: entries.length, profile };
+}
+
+/**
+ * Where the profile stands against the log.
+ *
+ *   not_checked  the caller did not say which profile is in use
+ *   unrecorded   no entry has recorded a profile yet; the next anchor records this one
+ *   unchanged    it matches the last one recorded
+ *   changed      it does not, and has to be accepted before it is collected under
+ */
+function profileStatus(entries, profileSha256) {
+  if (!profileSha256) return { status: 'not_checked' };
+  const anchored = anchoredProfile(entries);
+  if (!anchored) return { status: 'unrecorded', current: profileSha256 };
+  return { status: anchored.sha256 === profileSha256 ? 'unchanged' : 'changed', anchored, current: profileSha256 };
+}
+
+function profileChangeDetail(anchored, current) {
+  return (
+    `The profile changed since the anchor at ${anchored.anchored_at} (${anchored.sha256.slice(0, 12)} -> ` +
+    `${current.slice(0, 12)}). Every list in a profile is a denominator, so evidence collected under it is ` +
+    'measured against a different boundary. If the change is intended, record it with ' +
+    `'ksi anchor accept --profile <profile> --reason "..."', or the accept_profile_change input of ccm.yml.`
+  );
 }

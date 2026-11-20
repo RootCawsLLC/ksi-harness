@@ -1,5 +1,5 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { describePorts, fixtureScope, loadFixture, mergeGraded, pages, passRate, perAccount, service } from '../lib/aws.mjs';
+import { accountScope, describePorts, fixtureScope, loadFixture, mergeGraded, pages, passRate, perAccount, service } from '../lib/aws.mjs';
 
 export const VERSION = '2.0.0';
 export const PATH = 'src/collectors/aws/network.mjs';
@@ -199,11 +199,7 @@ export async function collect({ profile, collectedAt, fixture, sourceCommit, pre
       checkId: CHECKS[0].id,
       ksis: CHECKS[0].ksis,
       assertion: CHECKS[0].assertion,
-      scope: {
-        accounts: accounts.map((a) => a.id),
-        collector_role: profile?.aws?.collector_role ?? null,
-        declared_public_ports: publicPorts,
-      },
+      scope: { ...accountScope(profile, accounts), declared_public_ports: publicPorts },
       ...mergeGraded(parts, {
         sourceOfTruth: 'ec2:DescribeSecurityGroups per declared region, resolved against ec2:DescribeNetworkInterfaces',
         enumeratedFrom: 'the accounts and regions declared in the profile, counted before any was queried',

@@ -1,5 +1,5 @@
 import { buildBundle } from '../../evidence/bundle.mjs';
-import { fixtureScope, loadFixture, mergeGraded, perAccount, service } from '../lib/aws.mjs';
+import { accountScope, fixtureScope, loadFixture, mergeGraded, perAccount, service } from '../lib/aws.mjs';
 
 export const VERSION = '2.0.0';
 export const PATH = 'src/collectors/aws/config.mjs';
@@ -172,7 +172,7 @@ export async function collect({ profile, collectedAt, fixture, sourceCommit, pre
       checkId: CHECKS[0].id,
       ksis: CHECKS[0].ksis,
       assertion: CHECKS[0].assertion,
-      scope: { accounts: accounts.map((a) => a.id), collector_role: profile?.aws?.collector_role ?? null },
+      scope: accountScope(profile, accounts),
       ...mergeGraded(parts, {
         sourceOfTruth: 'the AWS Config recorder, delivery channel and rule state in each declared account',
         enumeratedFrom: 'the accounts declared in the profile, counted before any of them was reached',

@@ -93,6 +93,17 @@ README described it as tamper detection.
 
 ### Added
 
+- **The profile is recorded in the evidence, and a change to it has to be accepted.** Every list in
+  a profile is a denominator, so a run under a narrower one produced evidence as consistent as the
+  run before it, and nothing showed what was dropped. Every bundle now carries `profile_sha256`, the
+  hash of the parsed profile it was graded against, and every anchor entry records the profile its
+  run used. `ksi verify --profile` reports `profile_changed` when the profile differs from the one
+  the anchor last recorded, and `ksi publish` refuses to anchor it. The only way a changed profile
+  enters the log is `ksi anchor accept --profile ... --reason "..."`, which `ccm.yml` runs from the
+  new `accept_profile_change` input of a manual run, putting the actor and run URL on the entry. A
+  log that has never recorded a profile accepts the first one. Bundles from regional AWS checks
+  also record the regions each account was examined in, including the `us-east-1` fallback for an
+  account declared without regions.
 - **Cross-account collection.** `perAccount` assumes a declared `aws.collector_role` in each
   account the profile names; an account that cannot be assumed into becomes a named population gap
   rather than an absence. Previously the IAM collector refused more than one account and the others

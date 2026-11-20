@@ -175,6 +175,19 @@ The reason is required and is the point: it is the entire evidential content of 
 a control. The entry it writes carries `accepted`, so a reader can tell an asserted root from a
 witnessed one — and acceptance does **not** suppress a later `shrunk` finding.
 
+### Accepting a profile change
+
+A changed profile is the other state `verify` refuses (`profile_changed`), and `publish` will not
+anchor one either. Change the profile through review, then record the change with a reason:
+
+```bash
+ksi anchor accept --evidence .evidence --anchor .anchors/log.jsonl --profile <profile> --reason "what changed and why"
+```
+
+In `ccm.yml` that is the `accept_profile_change` input of a manual run. Never hash a profile by hand
+or edit `profile_sha256` into a log to make a run pass: the acceptance entry is the record that a
+person decided the boundary changed, and an edited log is the absence of one.
+
 ## Style
 
 Prose in comments and documents explains **why**, never what the next line does. If a decision was

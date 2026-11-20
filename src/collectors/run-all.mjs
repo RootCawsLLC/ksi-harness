@@ -1,4 +1,5 @@
-import { writeBundle } from '../evidence/bundle.mjs';
+import { stampProfile, writeBundle } from '../evidence/bundle.mjs';
+import { profileSha256 } from '../evidence/profile.mjs';
 import { chainHeads, writeManifest } from '../evidence/locker.mjs';
 import { COLLECTORS, providerOf } from './registry.mjs';
 
@@ -30,6 +31,9 @@ export async function runAll({
   runUri = null,
 }) {
   const bundles = [];
+  // Every bundle names the profile it was graded against, so a run under a narrower declaration
+  // cannot produce evidence indistinguishable from the run before it.
+  const profileHash = profileSha256(profile);
   const failures = [];
   const written = [];
   const previousHashes = outDir ? chainHeads(outDir) : new Map();
@@ -40,7 +44,9 @@ export async function runAll({
 
     try {
       const produced = await collector.collect({ profile, collectedAt, fixture, sourceCommit, previousHashes });
-      const kept = produced.filter((b) => !only || only.includes(b.check_id) || only.includes(providerOf(b.check_id)));
+      const kept = produced
+        .filter((b) => !only || only.includes(b.check_id) || only.includes(providerOf(b.check_id)))
+        .map((b) => stampProfile(b, profileHash));
       bundles.push(...kept);
       for (const bundle of kept) {
         const gap = bundle.population.complete

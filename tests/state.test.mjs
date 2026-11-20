@@ -8,6 +8,7 @@ import { runAll } from '../src/collectors/run-all.mjs';
 import { writeBundle } from '../src/evidence/bundle.mjs';
 import { readLocker } from '../src/evidence/locker.mjs';
 import { assessCadence, buildState, openFindings } from '../src/evidence/state.mjs';
+import { FIXTURE_PROFILE } from './fixture-profile.mjs';
 
 /**
  * The control state is where the harness decides what it is willing to say, so these tests are
@@ -30,7 +31,7 @@ after(() => {
 async function locker({ collectedAt = AT } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'ksi-state-'));
   temporary.push(dir);
-  const { bundles } = await runAll({ profile: {}, fixture: 'fixtures/collectors', collectedAt });
+  const { bundles } = await runAll({ profile: FIXTURE_PROFILE, fixture: 'fixtures/collectors', collectedAt });
   for (const bundle of bundles) writeBundle(bundle, dir);
   return dir;
 }

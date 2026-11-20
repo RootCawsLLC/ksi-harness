@@ -9,6 +9,7 @@ import { writeBundle } from '../src/evidence/bundle.mjs';
 import { buildState } from '../src/evidence/state.mjs';
 import { EMITTERS, emitterFor } from '../src/emit/index.mjs';
 import { SCHEMA_IDS, validateArtifact, validator } from '../src/emit/validate.mjs';
+import { FIXTURE_PROFILE } from './fixture-profile.mjs';
 
 /**
  * Emitter tests, and the argument for "machine-readable first, format-pluggable" reduced to
@@ -33,7 +34,7 @@ let state;
 
 before(async () => {
   evidenceDir = mkdtempSync(join(tmpdir(), 'ksi-emit-'));
-  const { bundles } = await runAll({ profile: {}, fixture: 'fixtures/collectors', collectedAt: AT });
+  const { bundles } = await runAll({ profile: FIXTURE_PROFILE, fixture: 'fixtures/collectors', collectedAt: AT });
   for (const bundle of bundles) writeBundle(bundle, evidenceDir);
   state = buildState({ evidenceDir, klass: 'c', now: NOW });
 });

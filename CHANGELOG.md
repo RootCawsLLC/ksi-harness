@@ -125,6 +125,27 @@ README described it as tamper detection.
   before this release is not silently compared against one from after it.
 - **The FedRAMP ruleset moves to 2026.11.02.01** (from 2026.07.14.01). 43 of 46 indicators changed,
   40 of them in their 800-53 mappings, and the control index grows from 209 to 302 controls.
+- **Only collectors whose section the profile has now run.** A missing section used to run the
+  collector into a refusal and fail the collection. What the absence means for grading depends on
+  the family:
+  - **AWS, GCP and GitHub** are infrastructure a service may not use, so no section puts the
+    provider outside the boundary and its checks leave each indicator's check list. That matters
+    because an absent check ranks above a failing one, so on an AWS and GitHub service every
+    indicator also routed to a GCP check read `no-evidence`, whatever the AWS check found. On the
+    service where it was found, 11 failing indicators and 1 degraded one were reported as
+    unexamined.
+  - **An identity provider, an IaC policy gate and a product-mode boundary declaration** are
+    sources a service may not have, but the indicators they serve still apply. Without a section
+    their checks stay in the indicator as absent, with the reason named, so a service with no IdP
+    reports KSI-IAM-AAM as `no-evidence` because no identity provider is declared.
+  - **The third-party register** is required and still refuses a missing section.
+
+  A section's presence is the declaration, so `gcp:` with no projects is still in scope and still
+  refused. Collection, the coverage report and the SDR name what was left out and why, and the
+  report warns about locker evidence for a provider the profile no longer declares. Without
+  `--profile`, every provider is expected, as before. `ksi collect` no longer fails for a missing
+  optional section. The Northwind example gains an Okta `idp` block, so the demo still exercises
+  the IdP checks.
 - **Emitted SDR and OSCAL output now credits evidence to more controls.** Those artifacts carry
   each indicator's mappings from the ruleset (ADR 0004), so the same evidence that supported a
   route before is now listed against FedRAMP's new mappings, for example 18 more controls for

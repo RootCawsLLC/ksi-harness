@@ -1,3 +1,5 @@
+import { declaredProviders } from '../boundary/providers.mjs';
+
 /**
  * Whether an indicator's sufficiency argument holds for the boundary actually being assessed.
  *
@@ -29,22 +31,6 @@
 
 /** Condition kinds a sufficiency argument may depend on. Deliberately few. */
 export const CONDITIONS = Object.freeze(['providers_within']);
-
-/**
- * The providers a profile actually declares.
- *
- * From the declaration rather than from collected evidence, because the boundary is declared and
- * never discovered (ADR 0004). A provider the profile names but the run could not reach is a
- * population gap, which is a separate finding and must not quietly shrink the boundary instead.
- */
-export function declaredProviders(profile) {
-  if (!profile) return null;
-  const providers = new Set();
-  if (profile.aws?.accounts?.length || profile.aws?.account_id) providers.add('aws');
-  if (profile.gcp?.projects?.length || profile.gcp?.organization_id) providers.add('gcp');
-  if (profile.github?.repositories?.length || profile.github?.org) providers.add('github');
-  return providers;
-}
 
 /**
  * Resolves one route's sufficiency condition against a profile.

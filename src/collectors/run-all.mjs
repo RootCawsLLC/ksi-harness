@@ -1,5 +1,6 @@
 import { writeBundle } from '../evidence/bundle.mjs';
 import { chainHeads, writeManifest } from '../evidence/locker.mjs';
+import { collected, outOfScope, providerScope, undeclaredSource } from '../boundary/providers.mjs';
 import { COLLECTORS, providerOf } from './registry.mjs';
 
 /**
@@ -17,6 +18,11 @@ import { COLLECTORS, providerOf } from './registry.mjs';
  * existing locker is read before anything is collected. A run against an empty locker starts
  * fresh chains, and that is exactly what a pipeline which discards its locker between runs
  * does every time — see the persistence steps in ccm.yml.
+ *
+ * A collector whose section the profile does not have is skipped, not run into a refusal that
+ * fails the collection (src/boundary/providers.mjs). Skipping is reported in `skipped` with its
+ * reason and logged, because a family that silently stops being collected is how a boundary
+ * shrinks without anyone deciding it should.
  */
 export async function runAll({
   profile,
@@ -32,11 +38,29 @@ export async function runAll({
   const bundles = [];
   const failures = [];
   const written = [];
+  const skipped = new Map();
   const previousHashes = outDir ? chainHeads(outDir) : new Map();
+
+  // Asking for a family by name and getting nothing back would read as a clean run of it.
+  const refused = (only ?? []).filter((selector) => !collected(providerOf(selector), profile));
+  if (refused.length) {
+    throw new Error(
+      `--only ${refused.join(',')} names something the profile has no section for, so there is nothing to ` +
+        'collect. Add the section to the profile first.'
+    );
+  }
 
   for (const collector of COLLECTORS) {
     const checks = collector.CHECKS.filter((c) => !only || only.includes(c.id) || only.includes(providerOf(c.id)));
     if (checks.length === 0) continue;
+
+    // One collector never spans families: every check id it declares shares a prefix, and a test
+    // holds the registry to that, so the first check speaks for the collector.
+    const family = providerOf(checks[0].id);
+    if (!collected(family, profile)) {
+      skipped.set(family, [...(skipped.get(family) ?? []), collector.PATH]);
+      continue;
+    }
 
     try {
       const produced = await collector.collect({ profile, collectedAt, fixture, sourceCommit, previousHashes });
@@ -66,5 +90,17 @@ export async function runAll({
     manifestResult = writeManifest(outDir, { generatedAt: collectedAt, runUri });
   }
 
-  return { bundles, failures, written, collectedAt, manifest: manifestResult };
+  const skipReason = (family) =>
+    outOfScope(family, profile) ? 'not declared in the profile, so outside the boundary' : undeclaredSource(family, profile);
+  for (const [family, paths] of skipped) log(`  skip  ${family}: ${skipReason(family)} (${paths.length} collector(s))`);
+
+  return {
+    bundles,
+    failures,
+    skipped: [...skipped].map(([family, collectors]) => ({ family, reason: skipReason(family), collectors })),
+    providers: providerScope(profile),
+    written,
+    collectedAt,
+    manifest: manifestResult,
+  };
 }

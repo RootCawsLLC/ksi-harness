@@ -28,6 +28,7 @@ export function coverageJson(state) {
     generated_at: state.generated_at,
     class: state.klass,
     ruleset: state.ruleset,
+    providers: state.providers,
     counts: state.counts,
     routes_valid: state.routes_valid,
     route_errors: state.route_errors,
@@ -49,18 +50,41 @@ export function coverageJson(state) {
         check_id: c.check_id,
         present: c.present,
         result: c.result,
+        absent_reason: c.absent_reason ?? null,
         age_days: Number.isFinite(c.age_days) ? Number(c.age_days.toFixed(2)) : null,
         run_count: c.run_count ?? 0,
         population: c.population ?? null,
         metric: c.metric,
         fixture: Boolean(c.fixture),
       })),
+      out_of_scope_checks: i.out_of_scope_checks,
       controls: i.controls,
       unautomated: i.unautomated,
       reason: i.reason,
       next: i.next,
     })),
   };
+}
+
+/**
+ * Says which providers the numbers cover. Without it, a report scoped to AWS and one that silently
+ * lost its GCP section look identical, and the second is the one that matters.
+ */
+function providerLine(state) {
+  if (!state.providers) {
+    return (
+      '**Providers:** no profile was supplied, so every provider\u2019s checks are expected, including any this ' +
+      'service does not use. Pass `--profile` to scope the report to the declared boundary.'
+    );
+  }
+  const { in_scope: inScope, out_of_scope: outside, undeclared_sources: undeclared } = state.providers;
+  return (
+    `**Providers in scope:** ${inScope.join(', ') || 'none'}` +
+    (outside.length ? ` · **outside the boundary:** ${outside.join(', ')} (no section in the profile, so not collected or counted)` : '') +
+    (undeclared.length
+      ? ` · **not declared:** ${undeclared.join(', ')} (not collected; the indicators they serve still count them as missing evidence)`
+      : '')
+  );
 }
 
 function bar(counts, total) {
@@ -82,6 +106,17 @@ export function coverageMarkdown(state) {
       `generated ${state.generated_at}`
   );
   lines.push('');
+
+  lines.push(providerLine(state));
+  lines.push('');
+  if (state.evidence.out_of_scope_checks?.length) {
+    lines.push(
+      `> **The locker holds evidence for providers outside this boundary:** ` +
+        `${state.evidence.out_of_scope_checks.map((id) => `\`${id}\``).join(', ')}. None of it is counted below. ` +
+        'Either the boundary changed or the profile lost a section; only the profile owner can say which.'
+    );
+    lines.push('');
+  }
 
   if (!state.routes_valid) {
     lines.push('> **The routing map does not validate.** The numbers below are not trustworthy until it does.');
@@ -159,7 +194,9 @@ export function coverageMarkdown(state) {
     const cadence = i.cadence?.claimed
       ? `${i.cadence.claimed}${i.cadence.met === false ? ' ✗' : i.cadence.met === true ? ' ✓' : ''}`
       : '—';
-    const checks = i.checks.length ? i.checks.map((ch) => `\`${ch.check_id}\``).join('<br>') : '—';
+    const set = i.checks.map((ch) => `\`${ch.check_id}\``);
+    if (i.out_of_scope_checks?.length) set.push(`*${i.out_of_scope_checks.length} outside the boundary*`);
+    const checks = set.length ? set.join('<br>') : '—';
     lines.push(
       `| **${i.id}**<br>${i.name}${i.optional ? ' *(optional at this class)*' : ''} ` +
         `| ${i.coverage} | ${SYMBOL[i.evidence_state] ?? i.evidence_state} | ${cadence} | ${checks} | ${i.controls.length} |`
@@ -176,7 +213,14 @@ export function coverageMarkdown(state) {
     for (const finding of findings) {
       lines.push(
         `- **${finding.indicator}** (${finding.name}) — ${finding.evidence_state}: ` +
-          finding.checks.map((ch) => `\`${ch.check_id}\` ${ch.result}${ch.failing_items ? ` (${ch.failing_items} failing)` : ''}`).join(', ')
+          finding.checks
+            .map(
+              (ch) =>
+                `\`${ch.check_id}\` ${ch.result}` +
+                (ch.failing_items ? ` (${ch.failing_items} failing)` : '') +
+                (ch.absent_reason ? ` (${ch.absent_reason})` : '')
+            )
+            .join(', ')
       );
     }
     lines.push('');
@@ -233,10 +277,18 @@ export function coverageText(state) {
       .filter(([, n]) => n)
       .map(([k, n]) => `${k} ${n}`)
       .join(', ')}`,
+    state.providers
+      ? `providers: ${state.providers.in_scope.join(', ') || 'none'}` +
+        (state.providers.out_of_scope.length ? `  (outside the boundary: ${state.providers.out_of_scope.join(', ')})` : '') +
+        (state.providers.undeclared_sources.length ? `  (not declared: ${state.providers.undeclared_sources.join(', ')})` : '')
+      : 'providers: no profile, every provider expected',
     `bundles: ${state.evidence.bundle_count}` +
       (state.evidence.fixture_bundles ? `  (${state.evidence.fixture_bundles} from fixtures — NOT REAL EVIDENCE)` : ''),
   ];
   if (state.counts.cadence_unmet) rows.push(`cadence unmet: ${state.counts.cadence_unmet}`);
+  if (state.evidence.out_of_scope_checks?.length) {
+    rows.push(`evidence outside the boundary, not counted: ${state.evidence.out_of_scope_checks.join(', ')}`);
+  }
   if (state.evidence.chain_breaks?.length) rows.push(`EVIDENCE CHAIN BROKEN: ${state.evidence.chain_breaks.length} break(s)`);
   if (state.evidence.tampered.length) rows.push(`TAMPERED BUNDLES: ${state.evidence.tampered.length}`);
   if (state.evidence.unreadable?.length) rows.push(`UNREADABLE BUNDLES: ${state.evidence.unreadable.length}`);

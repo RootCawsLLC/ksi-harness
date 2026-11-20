@@ -11,6 +11,7 @@ import { gradeWorkflowPinning } from '../src/collectors/github/supply-chain.mjs'
 import { runAll } from '../src/collectors/run-all.mjs';
 import { buildBundle, verifyChain, writeBundle } from '../src/evidence/bundle.mjs';
 import { readLocker } from '../src/evidence/locker.mjs';
+import { FIXTURE_PROFILE } from './fixture-profile.mjs';
 
 /**
  * The population reconciliation has to be able to fail, or it is arithmetic wearing the costume
@@ -219,7 +220,7 @@ test('a commit whose review history could not be read warns rather than failing'
 /* ---------------------------------------------------------------- every check declares one */
 
 test('every check names an independent enumeration for its denominator', async () => {
-  const { bundles } = await runAll({ profile: {}, fixture: 'fixtures/collectors', collectedAt: AT });
+  const { bundles } = await runAll({ profile: FIXTURE_PROFILE, fixture: 'fixtures/collectors', collectedAt: AT });
   for (const b of bundles) {
     assert.ok(
       b.population.enumerated_from?.length,
@@ -239,7 +240,7 @@ test('every bundle a collector produces validates against the published bundle s
   addFormats(ajv);
   const validate = ajv.compile(JSON.parse(readFileSync('schemas/evidence-bundle.schema.json', 'utf8')));
 
-  const { bundles } = await runAll({ profile: {}, fixture: 'fixtures/collectors', collectedAt: AT });
+  const { bundles } = await runAll({ profile: FIXTURE_PROFILE, fixture: 'fixtures/collectors', collectedAt: AT });
   for (const b of bundles) {
     assert.ok(validate(b), `${b.check_id}: ${JSON.stringify(validate.errors)}`);
   }

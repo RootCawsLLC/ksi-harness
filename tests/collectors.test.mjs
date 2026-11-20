@@ -8,6 +8,7 @@ import { describePorts, passRate } from '../src/collectors/lib/grade.mjs';
 import { ALL_CHECKS } from '../src/collectors/registry.mjs';
 import { runAll } from '../src/collectors/run-all.mjs';
 import { verifyIntegrity } from '../src/evidence/bundle.mjs';
+import { FIXTURE_PROFILE } from './fixture-profile.mjs';
 
 const FIXTURES = 'fixtures/collectors';
 const AT = '2026-08-18T04:00:00.000Z';
@@ -246,7 +247,7 @@ test('local and docker references are not applicable rather than passing', () =>
 
 test('every collector runs against its fixtures and produces a valid bundle', async () => {
   const { bundles, failures } = await runAll({
-    profile: { certification_class: 'c', aws: { accounts: [{ id: '123456789012', regions: ['us-east-1'] }] } },
+    profile: FIXTURE_PROFILE,
     fixture: FIXTURES,
     collectedAt: AT,
   });
@@ -267,21 +268,21 @@ test('every collector runs against its fixtures and produces a valid bundle', as
 // live one is the most embarrassing possible failure of a compliance tool, so the marker is
 // asserted rather than assumed.
 test('fixture bundles are marked as fixtures so they cannot pass for live evidence', async () => {
-  const { bundles } = await runAll({ profile: {}, fixture: FIXTURES, collectedAt: AT });
+  const { bundles } = await runAll({ profile: FIXTURE_PROFILE, fixture: FIXTURES, collectedAt: AT });
   for (const bundle of bundles) {
     assert.equal(bundle.scope?.fixture, true, `${bundle.check_id} is not marked as fixture-derived`);
   }
 });
 
 test('a run is reproducible: the same fixtures and timestamp hash identically', async () => {
-  const once = await runAll({ profile: {}, fixture: FIXTURES, collectedAt: AT });
-  const twice = await runAll({ profile: {}, fixture: FIXTURES, collectedAt: AT });
+  const once = await runAll({ profile: FIXTURE_PROFILE, fixture: FIXTURES, collectedAt: AT });
+  const twice = await runAll({ profile: FIXTURE_PROFILE, fixture: FIXTURES, collectedAt: AT });
   const hashes = (r) => r.bundles.map((b) => `${b.check_id}:${b.integrity.content_sha256}`).sort();
   assert.deepEqual(hashes(once), hashes(twice));
 });
 
 test('the fixture set exercises failure as well as success', async () => {
-  const { bundles } = await runAll({ profile: {}, fixture: FIXTURES, collectedAt: AT });
+  const { bundles } = await runAll({ profile: FIXTURE_PROFILE, fixture: FIXTURES, collectedAt: AT });
   const results = new Set(bundles.map((b) => b.result));
   assert.ok(results.has('fail'), 'fixtures that only pass would not prove the grading works');
   assert.ok(results.has('pass'), 'fixtures that only fail would not prove a pass is reachable');
@@ -307,7 +308,7 @@ test("this repository's own workflows pass the pinning check it ships", async ()
 });
 
 test('--only narrows the run to one provider family', async () => {
-  const { bundles } = await runAll({ profile: {}, fixture: FIXTURES, collectedAt: AT, only: ['github'] });
+  const { bundles } = await runAll({ profile: FIXTURE_PROFILE, fixture: FIXTURES, collectedAt: AT, only: ['github'] });
   assert.ok(bundles.length > 0);
   for (const bundle of bundles) assert.match(bundle.check_id, /^github\./);
 });
